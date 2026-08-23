@@ -8,7 +8,8 @@
     "test": "tsx --test tests/**/*.test.ts",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm test",
-    "campaign:demo": "tsx scripts/demo-atthas-campaign.ts"
+    "campaign:demo": "tsx scripts/demo-atthas-campaign.ts",
+    "campaign:ai-demo": "tsx scripts/demo-ai-campaign.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
