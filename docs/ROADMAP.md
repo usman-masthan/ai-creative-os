@@ -9,9 +9,11 @@
 - [x] Add campaign and approval schemas
 - [x] Add acceptance scenarios
 - [x] Add minimal TypeScript domain logic
-- [ ] Populate verified client truth from approved sources
+- [x] Start T001 source-aware truth onboarding (owner menu + public platform snapshots)
+- [ ] Confirm T001 official master prices/hours/contacts with management
 - [ ] Populate brand rules/assets
 - [ ] Run all acceptance scenarios manually against the master prompt
+- [x] Add deterministic T001 campaign preflight / truth resolver
 
 ## Phase 2 — API-backed orchestration
 

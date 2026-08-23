@@ -1,6 +1,12 @@
 export type TenantId = "T001" | "T002" | "T003";
 export type RiskProfile = "commercial" | "humanitarian-strict";
 export type RiskLevel = "low" | "medium" | "high";
+export type TruthStatus =
+  | "VERIFIED"
+  | "OWNER_SOURCE_CONFIRMED"
+  | "SOURCE_VERIFIED"
+  | "CONFLICT_REQUIRES_CONFIRMATION"
+  | "MISSING";
 
 export interface Brand {
   id: string;
@@ -21,6 +27,31 @@ export interface VerifiedFact {
   value: unknown;
   verified: boolean;
   source?: string;
+  status?: TruthStatus;
+}
+
+export interface TruthScope {
+  tenantId: TenantId;
+  brandId?: string;
+  branchId?: string;
+  productId?: string;
+  salesChannel?: string;
+}
+
+export interface TruthRecord {
+  key: string;
+  value: unknown;
+  status: TruthStatus;
+  sourceId?: string;
+  scope: TruthScope;
+  observedAt?: string;
+  timeSensitive?: boolean;
+}
+
+export interface TruthRequirement {
+  key: string;
+  productId?: string;
+  salesChannel?: string;
 }
 
 export interface CampaignContext {

@@ -1,0 +1,43 @@
+{
+  "tenantId": "T001",
+  "retrievedAt": "2026-08-23",
+  "contacts": [
+    {
+      "branchId": "BURGER_DEHIWALA",
+      "type": "phone",
+      "value": "+94 77 306 8864",
+      "status": "SOURCE_VERIFIED",
+      "sourceId": "GOOGLE_BUSINESS_DEHIWALA"
+    },
+    {
+      "branchId": "RESTAURANT_COLOMBO_06",
+      "type": "phone",
+      "value": null,
+      "status": "MISSING"
+    },
+    {
+      "branchId": "RESTAURANT_COLOMBO_06",
+      "type": "whatsapp",
+      "value": null,
+      "status": "MISSING"
+    },
+    {
+      "branchId": "BURGER_WELLAMPITIYA",
+      "type": "phone",
+      "value": null,
+      "status": "MISSING"
+    },
+    {
+      "branchId": "BURGER_WELLAMPITIYA",
+      "type": "whatsapp",
+      "value": null,
+      "status": "MISSING"
+    },
+    {
+      "branchId": "BURGER_DEHIWALA",
+      "type": "whatsapp",
+      "value": null,
+      "status": "MISSING"
+    }
+  ]
+}

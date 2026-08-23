@@ -1,0 +1,88 @@
+{
+  "tenantId": "T001",
+  "brandId": "ATTHAS_BURGER",
+  "branchId": "BURGER_MARINE_DRIVE_C04",
+  "salesChannel": "UBER_EATS",
+  "sourceId": "UBER_BURGER_MARINE_C04",
+  "status": "SOURCE_VERIFIED",
+  "retrievedAt": "2026-08-23",
+  "currency": "LKR",
+  "prices": [
+    {
+      "productId": "CHICKEN_CHEESE_BURGER",
+      "name": "Chicken Cheese Burger",
+      "price": 990
+    },
+    {
+      "productId": "CRISPY_CHICKEN_BURGER",
+      "name": "Crispy Chicken Burger",
+      "price": 900
+    },
+    {
+      "productId": "CRISPY_CHICKEN_BURGER_KIK",
+      "name": "Crispy Chicken Burger & KIK Cola",
+      "price": 960
+    },
+    {
+      "productId": "LOADED_FRIES",
+      "name": "Loaded Fries",
+      "price": 900
+    },
+    {
+      "productId": "BEEF_3X3_BURGER",
+      "name": "3x3 Beef Cheese Burger",
+      "price": 1650
+    },
+    {
+      "productId": "BEEF_CHEESE_BURGER_KIK",
+      "name": "Beef Cheese Burger & KIK Cola",
+      "price": 1080
+    },
+    {
+      "productId": "BEEF_STEW_BURGER",
+      "name": "Beef Stew Burger",
+      "price": 850
+    },
+    {
+      "productId": "BEEF_2X2_BURGER",
+      "name": "2x2 Double Beef Cheese Burger",
+      "price": 1300
+    },
+    {
+      "productId": "BEEF_CHEESE_BURGER",
+      "name": "Beef Cheese Burger",
+      "price": 990
+    },
+    {
+      "productId": "HYBRID_BURGER",
+      "name": "Hybrid Burger",
+      "price": 1200
+    },
+    {
+      "productId": "BEEF_KEBAB_BURGER",
+      "name": "Beef Kebab Burger",
+      "price": 850
+    },
+    {
+      "productId": "CHEESE_BURGER_NO_MEAT",
+      "name": "Cheese Burger (No Meat)",
+      "price": 550
+    },
+    {
+      "productId": "CHICKEN_KEBAB_BURGER",
+      "name": "Chicken Kebab Burger",
+      "price": 750
+    },
+    {
+      "productId": "BEEF_5X5_BURGER",
+      "name": "5x5 Beef Cheese Burger",
+      "price": 2300
+    },
+    {
+      "productId": "GRILLED_CHICKEN_SANDWICH",
+      "name": "Grilled Chicken Sandwich",
+      "price": 800
+    }
+  ],
+  "warning": "Use only for Uber Eats-specific creatives after freshness recheck; not official in-store pricing."
+}

@@ -1,0 +1,45 @@
+{
+  "tenantId": "T001",
+  "retrievedAt": "2026-08-23",
+  "providers": [
+    {
+      "provider": "Uber Eats",
+      "branchId": "RESTAURANT_COLOMBO_06",
+      "profileUrl": "https://www.ubereats.com/lk/store/atthas-restaurant-colombo-06/rx0DsSbYXXSxprXGuNAfRA",
+      "status": "SOURCE_VERIFIED"
+    },
+    {
+      "provider": "Uber Eats",
+      "branchId": "BURGER_WELLAMPITIYA",
+      "profileUrl": "https://www.ubereats.com/lk/store/atthas-burger-wellampitiya/nS5FOAf2V0-1R1kdHNj-tA",
+      "status": "SOURCE_VERIFIED"
+    },
+    {
+      "provider": "Uber Eats",
+      "branchId": "BURGER_DEHIWALA",
+      "profileUrl": "https://www.ubereats.com/lk/store/atthas-burger-dehiwala/SEA5t6bPVbibVSwDJS6SFw",
+      "status": "SOURCE_VERIFIED"
+    },
+    {
+      "provider": "Uber Eats",
+      "branchId": "BURGER_MARINE_DRIVE_C04",
+      "profileUrl": "https://www.ubereats.com/lk/store/atthas-burger-marine-drive-colombo-04/HO5gh8T7Ur6onmwvUhAVXQ",
+      "status": "SOURCE_VERIFIED"
+    },
+    {
+      "provider": "Uber Eats",
+      "branchId": "BURGER_HEY_MARINE_C03",
+      "profileUrl": null,
+      "status": "SOURCE_VERIFIED",
+      "note": "Store presence/address observed in Uber Eats directory; direct profile URL not resolved."
+    },
+    {
+      "provider": "PickMe",
+      "branchId": "BURGER_WELLAMPITIYA",
+      "profileUrl": null,
+      "status": "OWNER_SOURCE_CONFIRMED",
+      "sourceId": "OWNER_BURGER_MENU_2026_08",
+      "note": "PickMe logo/order channel is printed on the owner-supplied Wellampitiya menu; profile URL still required."
+    }
+  ]
+}

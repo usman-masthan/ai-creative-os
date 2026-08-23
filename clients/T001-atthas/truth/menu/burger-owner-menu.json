@@ -1,0 +1,311 @@
+{
+  "tenantId": "T001",
+  "brandId": "ATTHAS_BURGER",
+  "branchId": "BURGER_WELLAMPITIYA",
+  "sourceId": "OWNER_BURGER_MENU_2026_08",
+  "sourceType": "OWNER_SUPPLIED_IMAGE",
+  "status": "OWNER_SOURCE_CONFIRMED",
+  "currency": "LKR",
+  "priceContext": "LEGACY_OR_OWNER_MENU_NOT_YET_CONFIRMED_AS_CURRENT_MASTER_PRICE",
+  "halalMarkDisplayed": true,
+  "products": [
+    {
+      "productId": "BURGER_CRISPY",
+      "category": "burger",
+      "name": "Crispy",
+      "variant": "Crispy Chicken",
+      "price": 890,
+      "description": "Crispy Chicken, Lettuce Iceberg, Cheese Slice, Red Onion Rings, Garlic Mayo & Tomato Sauce"
+    },
+    {
+      "productId": "BURGER_TURBO_CHICK",
+      "category": "burger",
+      "name": "Turbo (Pattie)",
+      "variant": "Chick",
+      "price": 650
+    },
+    {
+      "productId": "BURGER_TURBO_BEEF",
+      "category": "burger",
+      "name": "Turbo (Pattie)",
+      "variant": "Beef",
+      "price": 1150
+    },
+    {
+      "productId": "BURGER_CHEEZY_NO_MEAT",
+      "category": "burger",
+      "name": "Cheezy Melt (2x Cheese)",
+      "variant": "No Meat",
+      "price": 500
+    },
+    {
+      "productId": "BURGER_CHEEZY_CHICK_HAM",
+      "category": "burger",
+      "name": "Cheezy Melt (2x Cheese)",
+      "variant": "Chick Ham",
+      "price": 650
+    },
+    {
+      "productId": "BURGER_CHEEZY_CHICK",
+      "category": "burger",
+      "name": "Cheezy Melt (2x Cheese)",
+      "variant": "Chick",
+      "price": 890
+    },
+    {
+      "productId": "BURGER_CHEEZY_CRISPY",
+      "category": "burger",
+      "name": "Cheezy Melt (2x Cheese)",
+      "variant": "Crispy",
+      "price": 1090
+    },
+    {
+      "productId": "BURGER_CHEEZY_BEEF",
+      "category": "burger",
+      "name": "Cheezy Melt (2x Cheese)",
+      "variant": "Beef",
+      "price": 1300
+    },
+    {
+      "productId": "BURGER_PUNCH_CHICK",
+      "category": "burger",
+      "name": "Punch (Pickle)",
+      "variant": "Chick",
+      "price": 990
+    },
+    {
+      "productId": "BURGER_PUNCH_BEEF",
+      "category": "burger",
+      "name": "Punch (Pickle)",
+      "variant": "Beef",
+      "price": 1250
+    },
+    {
+      "productId": "BURGER_FIRE_CHICK",
+      "category": "burger",
+      "name": "Fire (Kochi)",
+      "variant": "Chick",
+      "price": 750
+    },
+    {
+      "productId": "BURGER_FIRE_CRISPY",
+      "category": "burger",
+      "name": "Fire (Kochi)",
+      "variant": "Crispy",
+      "price": 950
+    },
+    {
+      "productId": "BURGER_FIRE_BEEF",
+      "category": "burger",
+      "name": "Fire (Kochi)",
+      "variant": "Beef",
+      "price": 1200
+    },
+    {
+      "productId": "BURGER_BBQ_CRISPY",
+      "category": "burger",
+      "name": "BBQ",
+      "variant": "Crispy",
+      "price": 1100
+    },
+    {
+      "productId": "BURGER_BBQ_BEEF",
+      "category": "burger",
+      "name": "BBQ",
+      "variant": "Beef",
+      "price": 1290
+    },
+    {
+      "productId": "BURGER_TWIN_TURBO_2CHICK",
+      "category": "burger",
+      "name": "Twin Turbo",
+      "variant": "2xChick",
+      "price": 890
+    },
+    {
+      "productId": "BURGER_TWIN_TURBO_2CRISPY",
+      "category": "burger",
+      "name": "Twin Turbo",
+      "variant": "2xCrispy",
+      "price": 1390
+    },
+    {
+      "productId": "BURGER_TWIN_TURBO_2BEEF",
+      "category": "burger",
+      "name": "Twin Turbo",
+      "variant": "2xBeef",
+      "price": 1900
+    },
+    {
+      "productId": "BURGER_HYBRID",
+      "category": "burger",
+      "name": "Hybrid",
+      "variant": "Crispy Chicken + Beef Pattie + Chicken Ham",
+      "price": 1990
+    },
+    {
+      "productId": "LOADED_WEDGES_MEDIUM",
+      "category": "appetizer",
+      "name": "Loaded Wedges",
+      "variant": "Medium",
+      "price": 850
+    },
+    {
+      "productId": "LOADED_WEDGES_LARGE",
+      "category": "appetizer",
+      "name": "Loaded Wedges",
+      "variant": "Large",
+      "price": 1550
+    },
+    {
+      "productId": "SUB_CHICKEN_HALF",
+      "category": "submarine",
+      "name": "Chicken Submarine",
+      "variant": "Half",
+      "price": 750
+    },
+    {
+      "productId": "SUB_CHICKEN_FULL",
+      "category": "submarine",
+      "name": "Chicken Submarine",
+      "variant": "Full (12 inch)",
+      "price": 1450
+    },
+    {
+      "productId": "SUB_BEEF_HALF",
+      "category": "submarine",
+      "name": "Beef Submarine",
+      "variant": "Half",
+      "price": 850
+    },
+    {
+      "productId": "SUB_BEEF_FULL",
+      "category": "submarine",
+      "name": "Beef Submarine",
+      "variant": "Full (12 inch)",
+      "price": 1550
+    },
+    {
+      "productId": "ADDON_CHEESE",
+      "category": "addon",
+      "name": "Cheese",
+      "price": 150
+    },
+    {
+      "productId": "ADDON_GARLIC_MAYO",
+      "category": "addon",
+      "name": "Garlic Mayo",
+      "price": 150
+    },
+    {
+      "productId": "ADDON_CREAMY_MAYO",
+      "category": "addon",
+      "name": "Creamy Mayo",
+      "price": 150
+    },
+    {
+      "productId": "ADDON_KOCHI_MAYO",
+      "category": "addon",
+      "name": "Kochi Mayo",
+      "price": 150
+    },
+    {
+      "productId": "ADDON_MAYO_KETCHUP",
+      "category": "addon",
+      "name": "Mayo & Ketchup",
+      "price": 100
+    },
+    {
+      "productId": "ADDON_FRIES_S",
+      "category": "addon",
+      "name": "Fries - S",
+      "price": 450
+    },
+    {
+      "productId": "MEAT_CRISPY_CHICKEN",
+      "category": "grill-meat-addon",
+      "name": "Crispy Chicken",
+      "price": 400
+    },
+    {
+      "productId": "MEAT_CHICKEN_PATTIE",
+      "category": "grill-meat-addon",
+      "name": "Chicken Pattie",
+      "price": 350
+    },
+    {
+      "productId": "MEAT_CHICKEN_KEBAB_STICK",
+      "category": "grill-meat-addon",
+      "name": "Chicken Kebab stick",
+      "price": 350
+    },
+    {
+      "productId": "MEAT_CHICKEN_TIKKA_STICK",
+      "category": "grill-meat-addon",
+      "name": "Chicken Tikka stick",
+      "price": 400
+    },
+    {
+      "productId": "MEAT_BEEF_PATTIE",
+      "category": "grill-meat-addon",
+      "name": "Beef Pattie",
+      "price": 600
+    },
+    {
+      "productId": "MEAT_BEEF_KEBAB",
+      "category": "grill-meat-addon",
+      "name": "Beef Kebab",
+      "price": 400
+    },
+    {
+      "productId": "DRINK_VIBE_APPLE",
+      "category": "drink",
+      "name": "Vibe Apple",
+      "price": 200
+    },
+    {
+      "productId": "DRINK_VIBE_ORANGE",
+      "category": "drink",
+      "name": "Vibe Orange",
+      "price": 200
+    },
+    {
+      "productId": "DRINK_VIBE_KIWI",
+      "category": "drink",
+      "name": "Vibe Kiwi",
+      "price": 200
+    },
+    {
+      "productId": "DRINK_VIBE_GRAPE",
+      "category": "drink",
+      "name": "Vibe Grape",
+      "price": 200
+    },
+    {
+      "productId": "DRINK_KIST_STRAWBERRY",
+      "category": "drink",
+      "name": "Kist Strawberry",
+      "price": 250
+    },
+    {
+      "productId": "DRINK_RIDE_CLASSIC",
+      "category": "drink",
+      "name": "Ride Classic",
+      "price": 450
+    },
+    {
+      "productId": "WATER_500",
+      "category": "drink",
+      "name": "Water",
+      "variant": "500ml",
+      "price": 70
+    },
+    {
+      "productId": "WATER_1000",
+      "category": "drink",
+      "name": "Water",
+      "variant": "1000ml",
+      "price": 100
+    }
+  ]
+}

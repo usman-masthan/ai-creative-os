@@ -38,6 +38,10 @@ Customer-facing facts that must not be invented:
 
 Missing required truth becomes `MISSING_VERIFIED_DATA`.
 
+Truth also carries provenance status: `VERIFIED`, `OWNER_SOURCE_CONFIRMED`, `SOURCE_VERIFIED`, `CONFLICT_REQUIRES_CONFIRMATION`, or `MISSING`. External platform facts do not automatically become official master truth.
+
+For commerce data, price is scoped by product, branch and sales channel. This prevents an Uber Eats delivery price from silently becoming an in-store/Instagram price and prevents one branch price from leaking into another branch.
+
 ### Brand rules
 
 Constraints such as logo use, colors, typography, visual direction, tone, CTA style, spacing, and prohibited treatments.

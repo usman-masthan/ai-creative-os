@@ -1,0 +1,127 @@
+{
+  "tenantId": "T001",
+  "brandId": "ATTHAS_RESTAURANT",
+  "branchId": "RESTAURANT_COLOMBO_06",
+  "sourceId": "UBER_RESTAURANT_C06",
+  "status": "SOURCE_VERIFIED",
+  "retrievedAt": "2026-08-23",
+  "completeness": "PARTIAL_VISIBLE_SNAPSHOT",
+  "cuisineLabels": [
+    "Sri Lankan",
+    "American",
+    "Italian"
+  ],
+  "categories": [
+    "Featured items",
+    "New",
+    "SKK Offer",
+    "Appetizers",
+    "Burgers",
+    "Noodles",
+    "Wraps / Shawarma",
+    "Fried Rice (Basmati)",
+    "Submarine",
+    "Cheese Kottu",
+    "Milkshakes",
+    "Grill",
+    "Pasta",
+    "Cheese Steak",
+    "Protein Diet Meal",
+    "Mongolian Rice",
+    "Seafood",
+    "Kottu",
+    "Rotti",
+    "Devil and Sides",
+    "Desserts",
+    "Fresh Juices",
+    "Mojitos",
+    "Coffee Bar",
+    "Virgin Margaritas",
+    "Soft Drinks",
+    "Falooda"
+  ],
+  "featuredSnapshot": [
+    {
+      "name": "Chicken Kottu",
+      "price": 1250
+    },
+    {
+      "name": "Chicken Mayo Shawarma",
+      "price": 990
+    },
+    {
+      "name": "Crispy Chicken Burger",
+      "price": 1350,
+      "promotionObserved": "Buy 1, get a free item"
+    },
+    {
+      "name": "Loaded Fries",
+      "price": 1000
+    },
+    {
+      "name": "Chicken Fried Rice (Basmati)",
+      "price": 1250
+    },
+    {
+      "name": "Crispy Chicken Fried Rice (Basmati)",
+      "price": 1350
+    },
+    {
+      "name": "Double Crispy Chicken Burger",
+      "price": 1500
+    },
+    {
+      "name": "Beef Kottu",
+      "price": 1250
+    },
+    {
+      "name": "Chicken Submarine with Cheese",
+      "price": 1300
+    },
+    {
+      "name": "Mixed Fried Rice (Basmati)",
+      "price": 1600
+    },
+    {
+      "name": "Beef Fried Rice (Basmati)",
+      "price": 1250
+    },
+    {
+      "name": "Spicy Chicken Submarine with Cheese",
+      "price": 1350
+    },
+    {
+      "name": "Crispy Chicken Submarine with Cheese",
+      "price": 1500
+    },
+    {
+      "name": "Spaghetti Beef Meatballs",
+      "price": 1400
+    },
+    {
+      "name": "Tomato Chicken Pasta",
+      "price": 1300
+    },
+    {
+      "name": "Alfredo Pasta Cheesy and Creamy",
+      "price": 1780
+    },
+    {
+      "name": "Chicken Kebab Wrap",
+      "price": 990
+    },
+    {
+      "name": "Beef Mongolian Rice",
+      "price": 1800
+    },
+    {
+      "name": "Hot Butter Cuttlefish",
+      "price": 1400
+    },
+    {
+      "name": "Chicken Noodles",
+      "price": 1500
+    }
+  ],
+  "warning": "Platform prices and promotions are time-sensitive and are not the official master menu until owner-confirmed."
+}
