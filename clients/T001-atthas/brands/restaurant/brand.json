@@ -1,0 +1,21 @@
+{
+  "tenantId": "T001",
+  "brandId": "ATTHAS_RESTAURANT",
+  "name": "ATTHA'S Restaurant",
+  "descriptor": "Authentic Multi Cuisine",
+  "parentBrand": "ATTHAS_MASTER",
+  "status": "ACTIVE_REBRAND_IN_PROGRESS",
+  "visualAccent": "Herb Green",
+  "voice": [
+    "warm",
+    "inviting",
+    "confident",
+    "food-led",
+    "family-friendly"
+  ],
+  "avoid": [
+    "generic luxury language",
+    "unverified authenticity claims",
+    "overly aggressive fast-food slang"
+  ]
+}

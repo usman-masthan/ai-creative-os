@@ -66,6 +66,16 @@
           },
           "source": {
             "type": "string"
+          },
+          "status": {
+            "enum": [
+              "VERIFIED",
+              "OWNER_SOURCE_CONFIRMED",
+              "SOURCE_VERIFIED"
+            ]
+          },
+          "sourceId": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -79,6 +89,14 @@
     },
     "humanApprovalRequired": {
       "type": "boolean"
+    },
+    "branchId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "salesChannel": {
+      "type": "string",
+      "minLength": 1
     }
   },
   "additionalProperties": true

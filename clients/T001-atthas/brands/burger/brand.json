@@ -1,0 +1,20 @@
+{
+  "tenantId": "T001",
+  "brandId": "ATTHAS_BURGER",
+  "name": "ATTHA'S Burger",
+  "parentBrand": "ATTHAS_MASTER",
+  "status": "ACTIVE_REBRAND_IN_PROGRESS",
+  "visualAccent": "Chilli Red",
+  "voice": [
+    "bold",
+    "craveable",
+    "direct",
+    "energetic",
+    "playful-with-control"
+  ],
+  "avoid": [
+    "cheap-looking discount language",
+    "invented heat claims",
+    "fake product photography presented as exact product"
+  ]
+}

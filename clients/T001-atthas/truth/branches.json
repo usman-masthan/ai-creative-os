@@ -1,0 +1,101 @@
+{
+  "tenantId": "T001",
+  "retrievedAt": "2026-08-23",
+  "branches": [
+    {
+      "branchId": "RESTAURANT_COLOMBO_06",
+      "brandId": "ATTHAS_RESTAURANT",
+      "name": "Attha's Restaurant - Colombo 06",
+      "address": {
+        "value": "No. 24C, Hampdon Lane, Colombo 06",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "UBER_RESTAURANT_C06"
+      },
+      "openingHours": {
+        "value": {
+          "sun-thu": "12:00-23:45",
+          "fri": "13:30-23:45",
+          "sat": "12:00-23:45"
+        },
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "UBER_RESTAURANT_C06"
+      },
+      "notes": [
+        "Uber source renders an inconsistent regional country label; street/city text retained, country not promoted from that label."
+      ]
+    },
+    {
+      "branchId": "BURGER_WELLAMPITIYA",
+      "brandId": "ATTHAS_BURGER",
+      "name": "ATTHA's Burger - Wellampitiya",
+      "address": {
+        "value": "2 Avissawella Road, Wellampitiya 10600",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "UBER_BURGER_WELLAMPITIYA"
+      },
+      "openingHours": {
+        "value": {
+          "daily": "16:00-01:00"
+        },
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "UBER_BURGER_WELLAMPITIYA"
+      },
+      "ownerMenuLocationLabel": {
+        "value": "Wellampitiya",
+        "status": "OWNER_SOURCE_CONFIRMED",
+        "sourceId": "OWNER_BURGER_MENU_2026_08"
+      }
+    },
+    {
+      "branchId": "BURGER_DEHIWALA",
+      "brandId": "ATTHAS_BURGER",
+      "name": "ATTHA'S Burger - Dehiwala",
+      "address": {
+        "value": "Sara Beach 60A/4, Frazer Ave, Dehiwala 10350",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "UBER_BURGER_DEHIWALA"
+      },
+      "openingHours": {
+        "value": null,
+        "status": "CONFLICT_REQUIRES_CONFIRMATION",
+        "conflictId": "CONFLICT_DEHIWALA_HOURS"
+      },
+      "phone": {
+        "value": "+94 77 306 8864",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "GOOGLE_BUSINESS_DEHIWALA"
+      }
+    },
+    {
+      "branchId": "BURGER_MARINE_DRIVE_C04",
+      "brandId": "ATTHAS_BURGER",
+      "name": "ATTHA'S Burger Marine Drive - Colombo 04",
+      "address": {
+        "value": "38 Frankfurt Place, Marine Drive, Colombo 04 00400",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "UBER_BURGER_MARINE_C04"
+      },
+      "openingHours": {
+        "value": {
+          "daily": "17:00-02:00"
+        },
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "UBER_BURGER_MARINE_C04"
+      }
+    },
+    {
+      "branchId": "BURGER_HEY_MARINE_C03",
+      "brandId": "ATTHAS_BURGER",
+      "name": "ATTHA'S Burger Hey Marine",
+      "address": {
+        "value": "Hey Marine Food Court, Marine Drive, Kollupitiya, Colombo 03 00300",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "UBER_DIRECTORY_HEY_MARINE"
+      },
+      "openingHours": {
+        "value": null,
+        "status": "MISSING"
+      }
+    }
+  ]
+}

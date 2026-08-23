@@ -1,0 +1,81 @@
+{
+  "tenantId": "T001",
+  "conflicts": [
+    {
+      "conflictId": "CONFLICT_WELLAMPITIYA_CRISPY_PRICE",
+      "fact": "Crispy Chicken Burger price",
+      "branchId": "BURGER_WELLAMPITIYA",
+      "observations": [
+        {
+          "value": 890,
+          "currency": "LKR",
+          "sourceId": "OWNER_BURGER_MENU_2026_08",
+          "context": "owner-supplied menu image"
+        },
+        {
+          "value": 950,
+          "currency": "LKR",
+          "sourceId": "UBER_BURGER_WELLAMPITIYA",
+          "context": "Uber Eats"
+        }
+      ],
+      "status": "CONFLICT_REQUIRES_CONFIRMATION",
+      "resolutionNeeded": "Confirm current official in-store price and whether delivery-channel markup is intentional."
+    },
+    {
+      "conflictId": "CONFLICT_WELLAMPITIYA_HYBRID_PRICE",
+      "fact": "Hybrid Burger price",
+      "branchId": "BURGER_WELLAMPITIYA",
+      "observations": [
+        {
+          "value": 1990,
+          "currency": "LKR",
+          "sourceId": "OWNER_BURGER_MENU_2026_08",
+          "context": "owner-supplied menu image"
+        },
+        {
+          "value": 1200,
+          "currency": "LKR",
+          "sourceId": "UBER_BURGER_WELLAMPITIYA",
+          "context": "Uber Eats"
+        }
+      ],
+      "status": "CONFLICT_REQUIRES_CONFIRMATION",
+      "resolutionNeeded": "Confirm current recipe/product mapping and official price; difference is too large to assume channel markup."
+    },
+    {
+      "conflictId": "CONFLICT_DEHIWALA_HOURS",
+      "fact": "Dehiwala opening hours",
+      "branchId": "BURGER_DEHIWALA",
+      "observations": [
+        {
+          "value": "16:00-01:00",
+          "sourceId": "UBER_BURGER_DEHIWALA"
+        },
+        {
+          "value": "16:00-00:00",
+          "sourceId": "GOOGLE_BUSINESS_DEHIWALA"
+        }
+      ],
+      "status": "CONFLICT_REQUIRES_CONFIRMATION",
+      "resolutionNeeded": "Confirm closing time with management."
+    },
+    {
+      "conflictId": "MAPPING_WELLAMPITIYA_WEDGES",
+      "fact": "Loaded/Potato wedges product mapping",
+      "branchId": "BURGER_WELLAMPITIYA",
+      "observations": [
+        {
+          "value": "Loaded Wedges Medium 850 / Large 1550",
+          "sourceId": "OWNER_BURGER_MENU_2026_08"
+        },
+        {
+          "value": "Potato Wedges 600 / Loaded Potato Wedges 1000",
+          "sourceId": "UBER_BURGER_WELLAMPITIYA"
+        }
+      ],
+      "status": "CONFLICT_REQUIRES_CONFIRMATION",
+      "resolutionNeeded": "Confirm whether these are renamed/new products or size/channel variants."
+    }
+  ]
+}

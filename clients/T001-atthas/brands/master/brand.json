@@ -1,0 +1,40 @@
+{
+  "tenantId": "T001",
+  "brandId": "ATTHAS_MASTER",
+  "name": "ATTHA'S",
+  "status": "REBRAND_IN_PROGRESS",
+  "brandArchitecture": {
+    "model": "BRANDED_HOUSE",
+    "operatingBrands": [
+      "ATTHAS_RESTAURANT",
+      "ATTHAS_BURGER"
+    ]
+  },
+  "positioning": {
+    "core": "Authentic flavour that feels familiar, generous and worth coming back for.",
+    "emotionalTerritory": [
+      "comfort",
+      "belonging",
+      "craving",
+      "sharing"
+    ],
+    "personality": [
+      "warm",
+      "confident",
+      "generous",
+      "premium-without-pretension",
+      "flavour-led"
+    ]
+  },
+  "tagline": {
+    "official": null,
+    "workingRecommendation": "Unlock the Flavour",
+    "status": "PROPOSED_REBRAND_V1"
+  },
+  "identityStatus": {
+    "logo": "PROPOSED_NOT_APPROVED",
+    "colors": "PROPOSED_NOT_APPROVED",
+    "fonts": "PROPOSED_NOT_APPROVED",
+    "website": "PLANNED_NOT_LIVE"
+  }
+}

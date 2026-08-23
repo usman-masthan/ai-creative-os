@@ -74,6 +74,18 @@ Examples include price, offer, product/project name, location, date, phone numbe
 
 You may **never invent** verified truth.
 
+### Truth provenance statuses
+
+Treat truth records as one of:
+
+- `VERIFIED` — official/current internal truth.
+- `OWNER_SOURCE_CONFIRMED` — supplied by the owner/client; usable, but preserve any historical/channel context.
+- `SOURCE_VERIFIED` — observed from a named external source. Use only for an explicitly source/platform-specific campaign unless human approval promotes it to official truth.
+- `CONFLICT_REQUIRES_CONFIRMATION` — sources disagree. Never publish the disputed fact.
+- `MISSING` — unavailable.
+
+Prices are scoped facts. Resolve them by **product + branch + sales channel + validity/freshness**, not by product name alone. Never assume an Uber Eats price is the in-store price, and never assume one branch price applies to another branch.
+
 When a required customer-facing fact is unavailable, return:
 
 ```text

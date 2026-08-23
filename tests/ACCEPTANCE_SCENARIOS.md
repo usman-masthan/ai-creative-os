@@ -70,3 +70,16 @@ The system passes when it:
 - avoids unnecessary premium generation
 - produces useful creative briefs
 - escalates only at appropriate human-judgment gates
+
+## A09 — Cross-channel price leakage
+
+Expected:
+- an Uber Eats price does not automatically become the official/in-store price
+- branch and sales-channel scope must match the campaign requirement
+- general price creative is blocked until official/owner-confirmed truth exists
+
+## A10 — Conflicting branch hours
+
+Expected:
+- `CONFLICT_REQUIRES_CONFIRMATION` blocks publication of the disputed hours
+- the AI does not choose whichever source is newest or most convenient

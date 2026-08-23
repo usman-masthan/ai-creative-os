@@ -1,0 +1,47 @@
+{
+  "tenantId": "T001",
+  "retrievedAt": "2026-08-23",
+  "offers": [
+    {
+      "offerId": "UBER_C06_CRISPY_BURGER_BOGO_SNAPSHOT",
+      "branchId": "RESTAURANT_COLOMBO_06",
+      "salesChannel": "UBER_EATS",
+      "description": "Crispy Chicken Burger — buy 1, get a free item observed on Uber Eats",
+      "status": "SOURCE_VERIFIED",
+      "timeSensitive": true,
+      "requiresRecheckBeforePublish": true,
+      "sourceId": "UBER_RESTAURANT_C06"
+    },
+    {
+      "offerId": "UBER_C06_CRISPY_FRIED_RICE_BOGO_SNAPSHOT",
+      "branchId": "RESTAURANT_COLOMBO_06",
+      "salesChannel": "UBER_EATS",
+      "description": "Crispy Chicken Fried Rice — buy 1, get 1 free observed in a recent Uber snapshot",
+      "status": "SOURCE_VERIFIED",
+      "timeSensitive": true,
+      "requiresRecheckBeforePublish": true,
+      "sourceId": "UBER_RESTAURANT_RECENT_FAILOVER"
+    },
+    {
+      "offerId": "UBER_C06_DOUBLE_BEEF_BOGO_SNAPSHOT",
+      "branchId": "RESTAURANT_COLOMBO_06",
+      "salesChannel": "UBER_EATS",
+      "description": "Double Beef Cheese Burger — buy 1, get 1 free observed in a recent Uber snapshot",
+      "status": "SOURCE_VERIFIED",
+      "timeSensitive": true,
+      "requiresRecheckBeforePublish": true,
+      "sourceId": "UBER_RESTAURANT_RECENT_FAILOVER"
+    },
+    {
+      "offerId": "UBER_MARINE_C04_BOGO_STORE_SNAPSHOT",
+      "branchId": "BURGER_MARINE_DRIVE_C04",
+      "salesChannel": "UBER_EATS",
+      "description": "Uber Eats directory showed Buy 1, get 1 for this store",
+      "status": "SOURCE_VERIFIED",
+      "timeSensitive": true,
+      "requiresRecheckBeforePublish": true,
+      "sourceId": "UBER_MARINE_C04_DIRECTORY_PROMO"
+    }
+  ],
+  "rule": "No offer may be reused from this file without a fresh validity check immediately before customer-facing publication."
+}

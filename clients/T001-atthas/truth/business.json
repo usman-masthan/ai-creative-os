@@ -1,0 +1,33 @@
+{
+  "tenantId": "T001",
+  "masterBrand": "ATTHA'S",
+  "status": "ACTIVE_REBRAND_IN_PROGRESS",
+  "operatingBrands": [
+    {
+      "brandId": "ATTHAS_RESTAURANT",
+      "name": "ATTHA'S Restaurant",
+      "descriptor": "Authentic Multi Cuisine"
+    },
+    {
+      "brandId": "ATTHAS_BURGER",
+      "name": "ATTHA'S Burger"
+    }
+  ],
+  "truthPolicy": {
+    "allowedStatuses": [
+      "VERIFIED",
+      "OWNER_SOURCE_CONFIRMED",
+      "SOURCE_VERIFIED",
+      "CONFLICT_REQUIRES_CONFIRMATION",
+      "MISSING"
+    ],
+    "generalCustomerFacingRule": "Use VERIFIED or OWNER_SOURCE_CONFIRMED for general brand claims. SOURCE_VERIFIED may be used only when the campaign is explicitly source/platform specific and the source is rechecked when time-sensitive.",
+    "conflictRule": "CONFLICT_REQUIRES_CONFIRMATION is never publishable."
+  },
+  "rebrand": {
+    "logo": "MISSING_OFFICIAL_NEW_IDENTITY",
+    "colors": "MISSING_OFFICIAL_NEW_IDENTITY",
+    "fonts": "MISSING_OFFICIAL_NEW_IDENTITY",
+    "website": "MISSING_OFFICIAL_NEW_WEBSITE"
+  }
+}

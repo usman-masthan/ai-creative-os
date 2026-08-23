@@ -1,0 +1,73 @@
+{
+  "tenantId": "T001",
+  "retrievedAt": "2026-08-23",
+  "sources": [
+    {
+      "sourceId": "OWNER_BURGER_MENU_2026_08",
+      "type": "OWNER_SUPPLIED_IMAGE",
+      "description": "ATTHA'S Burger menu image supplied in chat",
+      "status": "OWNER_SOURCE_CONFIRMED"
+    },
+    {
+      "sourceId": "UBER_RESTAURANT_C06",
+      "type": "PUBLIC_PLATFORM",
+      "url": "https://www.ubereats.com/lk/store/atthas-restaurant-colombo-06/rx0DsSbYXXSxprXGuNAfRA"
+    },
+    {
+      "sourceId": "UBER_RESTAURANT_RECENT_FAILOVER",
+      "type": "PUBLIC_PLATFORM",
+      "url": "https://guava.failover.uber.com/lk/store/atthas-restaurant-colombo-06/rx0DsSbYXXSxprXGuNAfRA"
+    },
+    {
+      "sourceId": "UBER_BURGER_WELLAMPITIYA",
+      "type": "PUBLIC_PLATFORM",
+      "url": "https://www.ubereats.com/lk/store/atthas-burger-wellampitiya/nS5FOAf2V0-1R1kdHNj-tA"
+    },
+    {
+      "sourceId": "UBER_BURGER_DEHIWALA",
+      "type": "PUBLIC_PLATFORM",
+      "url": "https://www.ubereats.com/lk/store/atthas-burger-dehiwala/SEA5t6bPVbibVSwDJS6SFw"
+    },
+    {
+      "sourceId": "UBER_BURGER_MARINE_C04",
+      "type": "PUBLIC_PLATFORM",
+      "url": "https://www.ubereats.com/lk/store/atthas-burger-marine-drive-colombo-04/HO5gh8T7Ur6onmwvUhAVXQ"
+    },
+    {
+      "sourceId": "UBER_DIRECTORY_HEY_MARINE",
+      "type": "PUBLIC_PLATFORM_DIRECTORY",
+      "description": "Uber Eats directory entry for ATTHA'S Burger Hey Marine, Hey Marine Food Court, Marine Drive, Kollupitiya, Colombo 03"
+    },
+    {
+      "sourceId": "GOOGLE_BUSINESS_DEHIWALA",
+      "type": "PUBLIC_BUSINESS_LISTING",
+      "description": "Business listing for Attha's Burger Dehiwala; address, phone and hours snapshot"
+    },
+    {
+      "sourceId": "UBER_MARINE_C04_DIRECTORY_PROMO",
+      "type": "PUBLIC_PLATFORM_DIRECTORY",
+      "description": "Uber Eats directory snapshot showing a Buy 1, get 1 store promotion"
+    },
+    {
+      "sourceId": "USER_SOCIAL_LINKS",
+      "type": "USER_PROVIDED_URLS",
+      "urls": [
+        "https://www.facebook.com/100093899397096/",
+        "https://www.instagram.com/atthas.lk/",
+        "https://www.tiktok.com/@atthas.lk"
+      ]
+    },
+    {
+      "sourceId": "USER_GOOGLE_SHARE_LINKS",
+      "type": "USER_PROVIDED_URLS",
+      "urls": [
+        "https://share.google/XddKwxvNZZpnq4jWI",
+        "https://share.google/4IemZ8vsXSmeangvf",
+        "https://share.google/wlmM5FHSDSNXaq8hv",
+        "https://share.google/ckcPh5kXqxV3ZRUB1"
+      ],
+      "status": "UNRESOLVED_BY_CURRENT_FETCHER",
+      "note": "Do not infer destination details until expanded links or screenshots are available."
+    }
+  ]
+}

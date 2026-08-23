@@ -1,0 +1,24 @@
+{
+  "tenantId": "T001",
+  "status": "OWNER_SOURCE_CONFIRMED",
+  "accounts": [
+    {
+      "platform": "facebook",
+      "url": "https://www.facebook.com/100093899397096/",
+      "source": "USER_PROVIDED"
+    },
+    {
+      "platform": "instagram",
+      "handle": "@atthas.lk",
+      "url": "https://www.instagram.com/atthas.lk/",
+      "source": "USER_PROVIDED"
+    },
+    {
+      "platform": "tiktok",
+      "handle": "@atthas.lk",
+      "url": "https://www.tiktok.com/@atthas.lk",
+      "source": "USER_PROVIDED"
+    }
+  ],
+  "note": "URLs are owner/user-provided. Follower counts, bios and account metadata are not inferred because the public crawler could not reliably inspect the social pages."
+}

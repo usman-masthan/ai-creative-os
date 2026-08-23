@@ -1,0 +1,88 @@
+{
+  "tenantId": "T001",
+  "brandId": "ATTHAS_BURGER",
+  "branchId": "BURGER_DEHIWALA",
+  "salesChannel": "UBER_EATS",
+  "sourceId": "UBER_BURGER_DEHIWALA",
+  "status": "SOURCE_VERIFIED",
+  "retrievedAt": "2026-08-23",
+  "currency": "LKR",
+  "prices": [
+    {
+      "productId": "LOADED_FRIES",
+      "name": "Loaded Fries",
+      "price": 1000
+    },
+    {
+      "productId": "CRISPY_CHICKEN_BURGER",
+      "name": "Crispy Chicken Burger",
+      "price": 1000
+    },
+    {
+      "productId": "HYBRID_BURGER",
+      "name": "Hybrid Burger",
+      "price": 1200
+    },
+    {
+      "productId": "BEEF_KEBAB_WRAP",
+      "name": "Beef Kebab Wrap",
+      "price": 900
+    },
+    {
+      "productId": "BEEF_2X2_BURGER",
+      "name": "Beef 2x2 Burger",
+      "price": 1300
+    },
+    {
+      "productId": "SPICY_CHICKEN_WRAP",
+      "name": "Spicy Chicken Wrap",
+      "price": 900
+    },
+    {
+      "productId": "BEEF_3X3_BURGER",
+      "name": "Beef 3x3 Burger",
+      "price": 1600
+    },
+    {
+      "productId": "BEEF_WRAP",
+      "name": "Beef Wrap",
+      "price": 950
+    },
+    {
+      "productId": "CHICKEN_KEBAB_WRAP",
+      "name": "Chicken Kebab Wrap",
+      "price": 900
+    },
+    {
+      "productId": "BEEF_CHEESE_BURGER",
+      "name": "Beef Cheese Burger",
+      "price": 1000
+    },
+    {
+      "productId": "POTATO_WEDGES",
+      "name": "Potato Wedges",
+      "price": 900
+    },
+    {
+      "productId": "FRENCH_FRIES",
+      "name": "French Fries",
+      "price": 800
+    },
+    {
+      "productId": "SKK_CHICKEN_PATTY_BURGER",
+      "name": "SKK Chicken Patty Burger",
+      "price": 580
+    },
+    {
+      "productId": "SKK_BEEF_PATTY_BURGER",
+      "name": "SKK Beef Patty Burger",
+      "price": 580
+    },
+    {
+      "productId": "BEEF_CLASSIC_BURGER",
+      "name": "Beef Classic Burger",
+      "price": 1050
+    }
+  ],
+  "warning": "Use only for Uber Eats-specific creatives after freshness recheck; not official in-store pricing."
+}
