@@ -1,0 +1,6 @@
+{
+  "tenantId": "T001",
+  "status": "template-only",
+  "facts": [],
+  "note": "Populate only with approved, source-backed facts. Do not invent prices, offers, branches, availability, or product details."
+}

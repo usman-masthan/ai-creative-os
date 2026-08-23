@@ -1,0 +1,17 @@
+{
+  "name": "ai-creative-os",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Multi-client AI creative and marketing operating system.",
+  "type": "module",
+  "scripts": {
+    "test": "tsx --test tests/**/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}

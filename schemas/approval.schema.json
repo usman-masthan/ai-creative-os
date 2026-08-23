@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/approval.schema.json",
+  "title": "ApprovalPackage",
+  "type": "object",
+  "required": [
+    "tenantId",
+    "campaignId",
+    "factCheck",
+    "brandCheck",
+    "risk",
+    "decisionNeeded"
+  ],
+  "properties": {
+    "tenantId": {
+      "enum": [
+        "T001",
+        "T002",
+        "T003"
+      ]
+    },
+    "campaignId": {
+      "type": "string"
+    },
+    "factCheck": {
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "brandCheck": {
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "risk": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "estimatedGenerationCost": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "decisionNeeded": {
+      "enum": [
+        "approve",
+        "reject",
+        "modify"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

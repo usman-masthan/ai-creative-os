@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "tenants": [
+    {
+      "id": "T001",
+      "slug": "atthas",
+      "name": "ATTHA'S",
+      "type": "commercial",
+      "brands": [
+        {
+          "id": "ATTHAS_RESTAURANT",
+          "name": "ATTHA'S Authentic Multi Cuisine"
+        },
+        {
+          "id": "ATTHAS_BURGER",
+          "name": "ATTHA'S Burger"
+        }
+      ],
+      "riskProfile": "commercial"
+    },
+    {
+      "id": "T002",
+      "slug": "skk",
+      "name": "SKK Meat Goodies",
+      "type": "commercial",
+      "brands": [
+        {
+          "id": "SKK_MEAT_GOODIES",
+          "name": "SKK Meat Goodies"
+        }
+      ],
+      "riskProfile": "commercial"
+    },
+    {
+      "id": "T003",
+      "slug": "lifeline",
+      "name": "Lifeline Association Sri Lanka",
+      "type": "ngo",
+      "brands": [
+        {
+          "id": "LIFELINE",
+          "name": "Lifeline Association Sri Lanka"
+        }
+      ],
+      "riskProfile": "humanitarian-strict"
+    }
+  ]
+}

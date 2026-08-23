@@ -1,0 +1,6 @@
+{
+  "tenantId": "T003",
+  "status": "template-only",
+  "facts": [],
+  "note": "Populate only with verified project, impact, donation, event, and consent-safe information."
+}

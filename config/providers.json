@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "roles": {
+    "strategy": {
+      "primary": "openai"
+    },
+    "independentReview": {
+      "primary": "anthropic",
+      "useWhen": [
+        "sensitive",
+        "major-campaign",
+        "high-reputation-risk"
+      ]
+    },
+    "draftImage": {
+      "primary": "getimg"
+    },
+    "premiumImage": {
+      "primary": "google-image"
+    },
+    "routineVideo": {
+      "primary": "runway"
+    },
+    "premiumVideo": {
+      "primary": "veo"
+    }
+  },
+  "policy": {
+    "premiumDuringBrainstorming": false,
+    "videoRequiresApprovedStaticDirection": true,
+    "costEstimateWhenPractical": true
+  }
+}

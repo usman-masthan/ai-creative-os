@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/campaign.schema.json",
+  "title": "Campaign",
+  "type": "object",
+  "required": [
+    "campaignId",
+    "tenantId",
+    "brandId",
+    "objective",
+    "channel",
+    "assetType",
+    "riskLevel"
+  ],
+  "properties": {
+    "campaignId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tenantId": {
+      "enum": [
+        "T001",
+        "T002",
+        "T003"
+      ]
+    },
+    "brandId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "channel": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assetType": {
+      "type": "string",
+      "minLength": 1
+    },
+    "riskLevel": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "verifiedFacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "value",
+          "verified"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "value": {},
+          "verified": {
+            "const": true
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "missingVerifiedData": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "humanApprovalRequired": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}
