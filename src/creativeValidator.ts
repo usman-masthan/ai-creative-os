@@ -2,7 +2,9 @@ import type {
   CampaignConcept,
   CampaignConceptRole,
   CampaignCreativeOutput,
+  CampaignMoneyOverlay,
 } from "./creativeTypes.js";
+import { formatLkr } from "./money.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -43,6 +45,33 @@ function requireStringArray(
     throw new Error(`Invalid campaign creative output: ${path}.${key} must be a string array.`);
   }
   return value;
+}
+
+function optionalMoney(
+  object: Record<string, unknown>,
+  key: string,
+  path: string,
+): CampaignMoneyOverlay | undefined {
+  const value = object[key];
+  if (value === undefined || value === null) return undefined;
+  if (!isRecord(value)) {
+    throw new Error(`Invalid campaign creative output: ${path}.${key} must be an object when supplied.`);
+  }
+
+  const amount = value.amount;
+  const currency = value.currency;
+  if (typeof amount !== "number" || !Number.isFinite(amount)) {
+    throw new Error(`Invalid campaign creative output: ${path}.${key}.amount must be a finite number.`);
+  }
+  if (currency !== "LKR") {
+    throw new Error(`Invalid campaign creative output: ${path}.${key}.currency must be LKR.`);
+  }
+
+  return {
+    amount,
+    currency: "LKR",
+    display: formatLkr(amount),
+  };
 }
 
 const expectedRoles: CampaignConceptRole[] = [
@@ -178,7 +207,7 @@ export function parseCampaignCreativeOutput(raw: string): CampaignCreativeOutput
     throw new Error("Invalid campaign creative output: overlaySpec.placementHints must be an object.");
   }
 
-  const price = optionalString(overlaySpecValue, "price", "overlaySpec");
+  const price = optionalMoney(overlaySpecValue, "price", "overlaySpec");
   const pricePlacement = optionalString(placementHintsValue, "price", "overlaySpec.placementHints");
 
   return {
