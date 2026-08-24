@@ -11,6 +11,7 @@ export interface OpenRouterResponsesProviderOptions {
 }
 
 interface ResponsesApiBody {
+  output_text?: string;
   output?: Array<{
     type?: string;
     content?: Array<{
@@ -18,18 +19,60 @@ interface ResponsesApiBody {
       text?: string;
     }>;
   }>;
+  choices?: Array<{
+    message?: {
+      content?: string | Array<{ type?: string; text?: string }>;
+    };
+  }>;
+  status?: string;
   error?: {
     message?: string;
-  };
+  } | null;
+  incomplete_details?: {
+    reason?: string;
+  } | null;
 }
 
 function extractOutputText(body: ResponsesApiBody): string {
+  if (typeof body.output_text === "string" && body.output_text.trim()) {
+    return body.output_text.trim();
+  }
+
   const chunks: string[] = [];
 
   for (const item of body.output ?? []) {
     for (const content of item.content ?? []) {
-      if (content.type === "output_text" && typeof content.text === "string") {
+      if (
+        (content.type === "output_text" || content.type === "text" || !content.type) &&
+        typeof content.text === "string" &&
+        content.text.trim()
+      ) {
         chunks.push(content.text);
+      }
+    }
+  }
+
+  if (chunks.length > 0) {
+    return chunks.join("\n").trim();
+  }
+
+  // Defensive compatibility fallback. OpenRouter's free-router documentation
+  // primarily demonstrates the Chat Completions response shape. If a routed
+  // provider is normalized into that shape, accept it rather than discarding
+  // an otherwise valid completion.
+  for (const choice of body.choices ?? []) {
+    const content = choice.message?.content;
+
+    if (typeof content === "string" && content.trim()) {
+      chunks.push(content);
+      continue;
+    }
+
+    if (Array.isArray(content)) {
+      for (const part of content) {
+        if (typeof part.text === "string" && part.text.trim()) {
+          chunks.push(part.text);
+        }
       }
     }
   }
@@ -122,10 +165,20 @@ export class OpenRouterResponsesProvider implements CampaignGenerationProvider {
         throw new Error(`OpenRouter Responses API request failed: ${detail}`);
       }
 
+      if (body.error?.message) {
+        throw new Error(`OpenRouter Responses API response error: ${body.error.message}`);
+      }
+
       const outputText = extractOutputText(body);
 
       if (!outputText) {
-        throw new Error("OpenRouter Responses API returned no output text.");
+        const status = body.status ? ` status=${body.status}.` : "";
+        const incompleteReason = body.incomplete_details?.reason
+          ? ` incomplete_reason=${body.incomplete_details.reason}.`
+          : "";
+        throw new Error(
+          `OpenRouter Responses API returned no output text.${status}${incompleteReason}`,
+        );
       }
 
       return outputText;
