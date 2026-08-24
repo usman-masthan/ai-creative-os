@@ -1,11 +1,26 @@
 {
-  "version": 1,
+  "version": 2,
+  "provider": "google-gemini",
   "roles": {
-    "strategy": {
-      "primary": "openai"
+    "campaignDefault": {
+      "model": "gemini-3.5-flash-lite",
+      "phase": "free"
+    },
+    "creativeDirector": {
+      "model": "gemini-3.6-flash",
+      "phase": "free"
+    },
+    "latestFlash": {
+      "model": "gemini-3.7-flash",
+      "phase": "free-optional",
+      "useWhen": [
+        "availability-is-good",
+        "extra-creative-quality-is-useful"
+      ]
     },
     "independentReview": {
-      "primary": "anthropic",
+      "model": "gemini-3.1-pro-preview",
+      "phase": "paid",
       "useWhen": [
         "sensitive",
         "major-campaign",
@@ -13,21 +28,39 @@
       ]
     },
     "draftImage": {
-      "primary": "getimg"
+      "model": "gemini-3.1-flash-lite-image",
+      "phase": "paid"
+    },
+    "productionImage": {
+      "model": "gemini-3.1-flash-image",
+      "phase": "paid"
     },
     "premiumImage": {
-      "primary": "google-image"
+      "model": "gemini-3-pro-image",
+      "phase": "paid"
+    },
+    "tts": {
+      "model": "gemini-3.1-flash-tts-preview",
+      "phase": "free-limited"
     },
     "routineVideo": {
-      "primary": "runway"
+      "model": "veo-3.1-lite-generate-preview",
+      "phase": "paid"
+    },
+    "fastVideo": {
+      "model": "veo-3.1-fast-generate-preview",
+      "phase": "paid"
     },
     "premiumVideo": {
-      "primary": "veo"
+      "model": "veo-3.1-generate-preview",
+      "phase": "paid"
     }
   },
   "policy": {
+    "singleProviderFamily": true,
     "premiumDuringBrainstorming": false,
     "videoRequiresApprovedStaticDirection": true,
-    "costEstimateWhenPractical": true
+    "costEstimateWhenPractical": true,
+    "paidMediaDisabledUntilBillingEnabled": true
   }
 }

@@ -2,11 +2,11 @@
 
 ## Status
 
-Campaign Generator V3: provider-routed generation behind deterministic truth, claim, brand, format, and production-safety controls, with automatic repair when a provider returns invalid creative.
+Campaign Generator V3: Gemini-backed generation behind deterministic truth, claim, brand, format, and production-safety controls, with automatic repair when generated creative is invalid.
 
 ## Core rule
 
-**AI is never called when campaign preflight fails, and generated output is never accepted until it passes every deterministic validator. Provider mistakes are repaired automatically before the workflow fails.**
+**Gemini is never called when campaign preflight fails, and generated output is never accepted until it passes every deterministic validator. Model mistakes are repaired automatically before the workflow fails.**
 
 ```text
 Campaign request
@@ -21,7 +21,9 @@ Resolve deterministic platform format
        ↓
 Build fact-safe generation prompt
        ↓
-Provider router (Groq / OpenAI)
+Gemini campaign provider
+       ↓
+Native JSON response mode
        ↓
 Parse structured JSON
        ↓
@@ -46,25 +48,42 @@ Regenerate and revalidate
 Up to 2 repairs by default
 ```
 
-## Provider strategy
+## Gemini model strategy
 
-The provider layer is abstracted behind `CampaignGenerationProvider`.
+Creative OS uses one provider family: Google Gemini.
 
-Current implementations:
+Current model roles:
 
-- `GroqResponsesProvider` for free-tier / low-cost development
-- `OpenAIResponsesProvider` for OpenAI-backed generation when API billing is available
-- `providerRouter.ts` selects the active provider without changing campaign logic
+- `gemini-3.5-flash-lite` — default/bulk campaign generation
+- `gemini-3.6-flash` — stronger creative-direction work
+- `gemini-3.7-flash` — optional latest-Flash path when availability is good
+- `gemini-3.1-pro-preview` — paid-phase deep/sensitive review
 
-Example development configuration:
+Campaign generation defaults to `gemini-3.5-flash-lite` and can be overridden with `GEMINI_CAMPAIGN_MODEL`.
+
+Example:
 
 ```bash
-export AI_CAMPAIGN_PROVIDER="groq"
-export GROQ_API_KEY="..."
-export GROQ_CAMPAIGN_MODEL="openai/gpt-oss-120b"
+export GEMINI_API_KEY="..."
+export GEMINI_CAMPAIGN_MODEL="gemini-3.5-flash-lite"
+npm run campaign:ai-demo
 ```
 
 Never commit API keys.
+
+## Structured output
+
+`GeminiCampaignProvider` calls the Gemini `generateContent` endpoint and requests:
+
+```json
+{
+  "generationConfig": {
+    "responseMimeType": "application/json"
+  }
+}
+```
+
+The model is still not trusted as a source of truth. Creative OS parses the returned JSON and applies its own deterministic validators.
 
 ## Concept strategy contract
 
@@ -92,8 +111,6 @@ The default validator blocks unsupported language such as:
 
 A word present in verified facts is allowed. Brand-specific policies can also add allowed creative terms or additional blocked terms.
 
-This separates a verified product name like `Crispy Chicken Burger` from an unverified assertion such as `juicy inside`.
-
 ## Brand governance
 
 Identity assets remain classified independently:
@@ -103,44 +120,15 @@ Identity assets remain classified independently:
 - `LEGACY`
 - `MISSING`
 
-Proposed identity cannot leak into production creative unless explicitly enabled. For T001 the current rebrand tagline, palette, typography and logo remain proposed.
+Proposed identity cannot leak into production creative unless explicitly enabled.
 
 ## Deterministic money
 
-The provider does not control how money is displayed.
-
-Provider output uses structured data:
-
-```json
-{
-  "price": {
-    "amount": 950,
-    "currency": "LKR"
-  }
-}
-```
-
-Application code validates the numeric amount against the verified truth record and creates the display value deterministically:
-
-```text
-LKR 950
-```
-
-This prevents provider-created variants such as `950`, `Rs 950`, or mutated prices from becoming the source of truth.
+The model does not control how money is displayed. Provider output uses structured numeric data, application code validates it against verified truth, and the final display value is created deterministically.
 
 ## Deterministic platform formats
 
-The campaign provider cannot choose the final aspect ratio.
-
-Current defaults include:
-
-- Instagram feed/poster: `1080x1350`, `4:5`
-- Instagram Story/Reel: `1080x1920`, `9:16`
-- TikTok: `1080x1920`, `9:16`
-- Facebook feed/poster: `1080x1350`, `4:5`
-- Facebook Story/Reel: `1080x1920`, `9:16`
-
-If provider output drifts from the resolved format, validation fails and the repair loop corrects it.
+The model cannot choose the final aspect ratio. Platform dimensions are resolved by application code and validated after generation.
 
 ## Image production contract
 
@@ -151,48 +139,13 @@ If provider output drifts from the resolved format, validation fails and the rep
 - `visualConstraints`
 - `textPolicy: NO_TEXT_OR_LOGOS`
 
-Critical text remains in `overlaySpec` for a future deterministic HTML/CSS renderer.
-
-Verified prices must never appear in the base image prompt.
-
-## Production complexity scoring
-
-After a campaign passes validation, Creative OS calculates production complexity deterministically.
-
-Complexity increases for elements such as:
-
-- people / hands
-- phones or app screens
-- third-party logos/icons
-- multiple products or sharing scenes
-- complex environments
-- flying/motion food effects
-
-The final result includes:
-
-```json
-{
-  "production": {
-    "format": { "aspectRatio": "4:5", "width": 1080, "height": 1350 },
-    "complexity": { "score": 0, "level": "low", "reasons": [] }
-  }
-}
-```
-
-For direct-response food posters, lower-complexity hero-first production is preferred unless complexity adds clear strategic value.
+Critical text remains in `overlaySpec` for deterministic HTML/CSS rendering. Verified prices must never appear in the base image prompt.
 
 ## Automatic repair
 
 `generateCampaign()` allows two repair attempts by default and supports `maxRepairAttempts` from 0 to 3.
 
-When validation fails, the provider receives:
-
-- the original campaign contract
-- the exact validator failure
-- its previous invalid output
-- an instruction to return a complete corrected JSON object
-
-The final result records `generation.attempts` and `generation.repairs` for observability.
+When validation fails, Gemini receives the original campaign contract, the exact validator failure, its previous invalid output, and an instruction to return a complete corrected JSON object.
 
 ## Demo
 
@@ -200,16 +153,16 @@ The final result records `generation.attempts` and `generation.repairs` for obse
 npm run campaign:ai-demo
 ```
 
-The T001 demo reads source-scoped Wellampitiya Uber Eats facts, loads ATTHA'S governance, resolves the Instagram production format, generates through the configured provider, repairs provider errors when needed, and exposes creative output only after all validators pass.
+The demo reads source-scoped truth, loads brand governance, resolves the production format, generates through Gemini, repairs invalid output when possible, and exposes creative output only after all validators pass.
 
-## Next milestone
+## Media phase
 
-Campaign generation is now mature enough to move into the production pipeline:
+The Gemini model catalog already defines the paid-phase media models:
 
-1. low-cost / free image draft provider
-2. deterministic HTML/CSS poster renderer
-3. visual QA
-4. human approval
-5. final export
+- image draft: `gemini-3.1-flash-lite-image`
+- image production: `gemini-3.1-flash-image`
+- image premium: `gemini-3-pro-image`
+- TTS: `gemini-3.1-flash-tts-preview`
+- video: Veo 3.1 Lite / Fast / Premium
 
-Premium generation should only be escalated after static creative direction is approved.
+Direct paid media adapters are enabled only when billing is deliberately introduced.
