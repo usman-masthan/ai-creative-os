@@ -10,7 +10,7 @@ export interface OpenRouterResponsesProviderOptions {
   sleepImpl?: (ms: number) => Promise<void>;
 }
 
-interface ResponsesApiBody {
+interface OpenRouterApiBody {
   output_text?: string;
   output?: Array<{
     type?: string;
@@ -33,33 +33,12 @@ interface ResponsesApiBody {
   } | null;
 }
 
-function extractOutputText(body: ResponsesApiBody): string {
-  if (typeof body.output_text === "string" && body.output_text.trim()) {
-    return body.output_text.trim();
-  }
-
+function extractOutputText(body: OpenRouterApiBody): string {
+  // Chat Completions is the primary OpenRouter path because response_format
+  // is mature there and lets the free router select structured-output-capable
+  // models/providers. Keep Responses shapes as defensive compatibility fallbacks.
   const chunks: string[] = [];
 
-  for (const item of body.output ?? []) {
-    for (const content of item.content ?? []) {
-      if (
-        (content.type === "output_text" || content.type === "text" || !content.type) &&
-        typeof content.text === "string" &&
-        content.text.trim()
-      ) {
-        chunks.push(content.text);
-      }
-    }
-  }
-
-  if (chunks.length > 0) {
-    return chunks.join("\n").trim();
-  }
-
-  // Defensive compatibility fallback. OpenRouter's free-router documentation
-  // primarily demonstrates the Chat Completions response shape. If a routed
-  // provider is normalized into that shape, accept it rather than discarding
-  // an otherwise valid completion.
   for (const choice of body.choices ?? []) {
     const content = choice.message?.content;
 
@@ -73,6 +52,26 @@ function extractOutputText(body: ResponsesApiBody): string {
         if (typeof part.text === "string" && part.text.trim()) {
           chunks.push(part.text);
         }
+      }
+    }
+  }
+
+  if (chunks.length > 0) {
+    return chunks.join("\n").trim();
+  }
+
+  if (typeof body.output_text === "string" && body.output_text.trim()) {
+    return body.output_text.trim();
+  }
+
+  for (const item of body.output ?? []) {
+    for (const content of item.content ?? []) {
+      if (
+        (content.type === "output_text" || content.type === "text" || !content.type) &&
+        typeof content.text === "string" &&
+        content.text.trim()
+      ) {
+        chunks.push(content.text);
       }
     }
   }
@@ -132,7 +131,7 @@ export class OpenRouterResponsesProvider implements CampaignGenerationProvider {
     let rateLimitRetries = 0;
 
     while (true) {
-      const response = await this.fetchImpl(`${this.baseUrl}/responses`, {
+      const response = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
@@ -142,12 +141,23 @@ export class OpenRouterResponsesProvider implements CampaignGenerationProvider {
         },
         body: JSON.stringify({
           model: this.model,
-          input: prompt,
-          max_output_tokens: this.maxOutputTokens,
+          messages: [
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+          max_tokens: this.maxOutputTokens,
+          response_format: {
+            type: "json_object",
+          },
+          provider: {
+            require_parameters: true,
+          },
         }),
       });
 
-      const body = (await response.json()) as ResponsesApiBody;
+      const body = (await response.json()) as OpenRouterApiBody;
 
       if (!response.ok) {
         const detail = body.error?.message ?? `HTTP ${response.status}`;
@@ -162,11 +172,11 @@ export class OpenRouterResponsesProvider implements CampaignGenerationProvider {
           continue;
         }
 
-        throw new Error(`OpenRouter Responses API request failed: ${detail}`);
+        throw new Error(`OpenRouter API request failed: ${detail}`);
       }
 
       if (body.error?.message) {
-        throw new Error(`OpenRouter Responses API response error: ${body.error.message}`);
+        throw new Error(`OpenRouter API response error: ${body.error.message}`);
       }
 
       const outputText = extractOutputText(body);
@@ -177,7 +187,7 @@ export class OpenRouterResponsesProvider implements CampaignGenerationProvider {
           ? ` incomplete_reason=${body.incomplete_details.reason}.`
           : "";
         throw new Error(
-          `OpenRouter Responses API returned no output text.${status}${incompleteReason}`,
+          `OpenRouter API returned no output text.${status}${incompleteReason}`,
         );
       }
 
