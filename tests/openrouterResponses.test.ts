@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { OpenRouterResponsesProvider } from "../src/providers/openrouterResponses.js";
 
-test("OpenRouter provider calls Responses API and extracts output text", async () => {
+test("OpenRouter provider calls Responses API and extracts nested output text", async () => {
   let requestedUrl = "";
   let requestedBody = "";
   let requestedAuthorization = "";
@@ -50,6 +50,49 @@ test("OpenRouter provider calls Responses API and extracts output text", async (
   assert.equal(output, '{"ok":true}');
 });
 
+test("OpenRouter provider extracts the documented top-level output_text", async () => {
+  const fetchImpl = (async () =>
+    new Response(
+      JSON.stringify({
+        status: "completed",
+        output_text: '{"source":"top-level"}',
+        output: [],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    )) as typeof fetch;
+
+  const provider = new OpenRouterResponsesProvider({
+    apiKey: "test-key",
+    fetchImpl,
+  });
+
+  assert.equal(await provider.generate("test"), '{"source":"top-level"}');
+});
+
+test("OpenRouter provider tolerates chat-completions shaped routed output", async () => {
+  const fetchImpl = (async () =>
+    new Response(
+      JSON.stringify({
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: '{"source":"chat-shape"}',
+            },
+          },
+        ],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    )) as typeof fetch;
+
+  const provider = new OpenRouterResponsesProvider({
+    apiKey: "test-key",
+    fetchImpl,
+  });
+
+  assert.equal(await provider.generate("test"), '{"source":"chat-shape"}');
+});
+
 test("OpenRouter provider retries a temporary 429", async () => {
   let calls = 0;
   const waits: number[] = [];
@@ -68,13 +111,7 @@ test("OpenRouter provider retries a temporary 429", async () => {
     }
 
     return new Response(
-      JSON.stringify({
-        output: [
-          {
-            content: [{ type: "output_text", text: "recovered" }],
-          },
-        ],
-      }),
+      JSON.stringify({ output_text: "recovered" }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   }) as typeof fetch;
@@ -109,5 +146,26 @@ test("OpenRouter provider surfaces non-retryable API errors", async () => {
   await assert.rejects(
     () => provider.generate("test"),
     /OpenRouter Responses API request failed: bad request/,
+  );
+});
+
+test("OpenRouter provider surfaces response-level errors even on HTTP 200", async () => {
+  const fetchImpl = (async () =>
+    new Response(
+      JSON.stringify({
+        status: "failed",
+        error: { message: "routed provider failed" },
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    )) as typeof fetch;
+
+  const provider = new OpenRouterResponsesProvider({
+    apiKey: "test-key",
+    fetchImpl,
+  });
+
+  await assert.rejects(
+    () => provider.generate("test"),
+    /OpenRouter Responses API response error: routed provider failed/,
   );
 });
