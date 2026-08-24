@@ -12,31 +12,29 @@ AI Creative OS is currently an **internal three-client operating system** for:
 - **T002 — SKK Meat Goodies**
 - **T003 — Lifeline Association Sri Lanka**
 
-Phase 1 established tenant isolation, verified-fact gates, risk handling, structured truth, brand governance and acceptance tests. Phase 2 adds Gemini-backed campaign generation behind those deterministic controls.
+The system combines deterministic tenant/truth/brand/claim controls with direct Google Gemini generation for text, images, speech and Veo video.
 
 ## Golden principle
 
 > **Facts are retrieved. Rules are enforced. Creativity is generated. Quality is reviewed. Humans decide only when judgment or risk requires them.**
 
-## AI provider policy
+## Gemini model policy
 
-Creative OS now uses **Google Gemini only**. OpenRouter, Groq, OpenAI, getimg.ai, Anthropic and Runway are not part of the active stack.
+Creative OS uses **Google Gemini only**. Active roles are centralized in `src/providers/geminiModels.ts` and `config/providers.json`:
 
-The model roles are centralized in `src/providers/geminiModels.ts` and `config/providers.json`:
-
-- default campaign/bulk: `gemini-3.5-flash-lite`
+- routine/bulk: `gemini-3.5-flash-lite`
 - creative director: `gemini-3.6-flash`
-- optional latest Flash: `gemini-3.7-flash`
-- paid deep review: `gemini-3.1-pro-preview`
-- paid image draft: `gemini-3.1-flash-lite-image`
-- paid image production: `gemini-3.1-flash-image`
-- paid premium image: `gemini-3-pro-image`
+- advanced Flash: `gemini-3.7-flash`
+- deep/sensitive review: `gemini-3.1-pro-preview`
+- draft image: `gemini-3.1-flash-lite-image`
+- production image: `gemini-3.1-flash-image`
+- premium image: `gemini-3-pro-image`
 - TTS: `gemini-3.1-flash-tts-preview`
-- paid video: Veo 3.1 Lite / Fast / Premium
+- video: Veo 3.1 Lite / Fast / Premium
 
-The current development phase uses the free Gemini project for text generation. Paid-only media models remain configured but disabled until billing is deliberately enabled.
+Paid media remains **runtime opt-in** even though billing is enabled. `ALLOW_PAID_MEDIA=true` must be set by a command that is intentionally allowed to spend on media generation.
 
-## What this repository contains
+## Repository
 
 ```text
 ai-creative-os/
@@ -46,7 +44,7 @@ ai-creative-os/
 ├── prompts/                 Versioned AI operating prompts
 ├── schemas/                 Machine-readable workflow contracts
 ├── scripts/                 Local demos and verification utilities
-├── src/                     Orchestration, truth gates and Gemini provider logic
+├── src/                     Orchestration, governance and Gemini providers
 ├── tests/                   Automated and acceptance tests
 ├── .env.example
 ├── .gitignore
@@ -76,9 +74,7 @@ npm run campaign:demo
 
 This demonstrates tenant validation, truth resolution and fact gating without calling Gemini.
 
-## Gemini AI campaign demo
-
-Set a Gemini API key in your shell, then run:
+## Gemini campaign demo
 
 ```bash
 export GEMINI_API_KEY="..."
@@ -86,20 +82,37 @@ export GEMINI_CAMPAIGN_MODEL="gemini-3.5-flash-lite"
 npm run campaign:ai-demo
 ```
 
-The Gemini API is called **only after campaign preflight passes**. Campaign generation requests JSON output and the deterministic validators still decide whether generated creative is accepted.
+Gemini is called only after preflight passes. Generated JSON must then pass deterministic structure, price, format, claim and brand validation before Creative OS accepts it.
 
-See [`docs/AI_CAMPAIGN_GENERATOR.md`](docs/AI_CAMPAIGN_GENERATOR.md) for the generation pipeline and safety boundaries.
+## Paid Gemini poster demo
 
-## Poster demo during the free phase
-
-Direct Gemini image generation is intentionally not invoked by the free-phase poster demo. Supply an existing local base image:
+Use a local image without spending:
 
 ```bash
 export POSTER_BASE_IMAGE_PATH="/absolute/path/to/base-image.jpg"
 npm run poster:demo
 ```
 
-When the project moves to paid Gemini, direct Nano Banana image generation can be wired behind the existing generic image-provider contract.
+Or intentionally allow a Nano Banana 2 Lite draft image call:
+
+```bash
+unset POSTER_BASE_IMAGE_PATH
+export ALLOW_PAID_MEDIA=true
+export GEMINI_IMAGE_RESOLUTION=1K
+npm run poster:demo
+```
+
+The generated base image contains no promotional copy or factual overlays. Creative OS writes verified headline/price/CTA data through its deterministic HTML/CSS renderer.
+
+## Cost and escalation controls
+
+- routine text starts on Flash Lite
+- stronger text models are selected by explicit roles
+- production/premium image roles require an approved concept through policy guards
+- Veo requires an approved static direction
+- premium media requires an explicit override
+- provider usage/cost telemetry is recorded when the API exposes enough information
+- price estimates are advisory and versioned; Google billing remains the source of truth
 
 ## Current milestones
 
@@ -108,8 +121,9 @@ When the project moves to paid Gemini, direct Nano Banana image generation can b
 3. T001 ATTHA'S onboarding — implemented.
 4. Deterministic campaign preflight — implemented.
 5. Fact-gated Gemini campaign generation — implemented.
-6. Deterministic poster renderer — implemented; direct Gemini image generation waits for paid tier.
-7. Gemini image/TTS/Veo production adapters — paid-phase work.
-8. Persistence, automation and dashboard — later phases.
+6. Direct Gemini image generation + deterministic poster production — implemented.
+7. Gemini TTS and Veo production providers — implemented.
+8. Usage/cost telemetry and paid-media escalation guards — implemented.
+9. Persistence, automation and dashboard — later phases.
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the broader implementation plan.
