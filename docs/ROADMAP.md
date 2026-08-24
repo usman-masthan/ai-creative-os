@@ -22,26 +22,32 @@
 - [x] Remove OpenRouter, Groq and OpenAI campaign providers
 - [x] Remove getimg.ai image dependency
 - [x] Request JSON output from Gemini campaign generation
-- [ ] Add explicit Creative Director invocation using `gemini-3.6-flash`
-- [ ] Add optional `gemini-3.7-flash` escalation with availability fallback
-- [ ] Add free-tier quota-aware request budgeting
-- [ ] Add retry budgets and stop conditions for 429/503 errors
-- [ ] Add prompt/output usage logging
+- [x] Add explicit Creative Director role using `gemini-3.6-flash`
+- [x] Add advanced Flash role using `gemini-3.7-flash`
+- [x] Add deep-review role using `gemini-3.1-pro-preview`
+- [x] Add deterministic text-role escalation policy
+- [x] Add provider usage and estimated-cost telemetry
+- [ ] Add automatic 429/503 retry/backoff and availability fallback
+- [ ] Add persistent prompt/output usage logging
 
 ## Phase 3 — Paid Gemini media
 
-Enable only after billing is deliberately turned on.
+Billing is enabled, but paid media remains runtime opt-in.
 
-- [ ] Add Nano Banana 2 Lite draft-image adapter
-- [ ] Add Nano Banana 2 production-image adapter
-- [ ] Add Nano Banana Pro premium-image adapter
-- [ ] Add Gemini 3.1 Flash TTS adapter
-- [ ] Add Veo 3.1 Lite video adapter
-- [ ] Add Veo 3.1 Fast video adapter
-- [ ] Add Veo 3.1 premium video adapter
-- [ ] Add cost estimation and per-campaign media budgets
+- [x] Add Nano Banana 2 Lite draft-image adapter
+- [x] Add Nano Banana 2 production-image adapter
+- [x] Add Nano Banana Pro premium-image adapter
+- [x] Add direct Gemini image data to deterministic poster production
+- [x] Add Gemini 3.1 Flash TTS adapter
+- [x] Add Veo 3.1 Lite video adapter
+- [x] Add Veo 3.1 Fast video role
+- [x] Add Veo 3.1 premium video role
+- [x] Add image/video cost estimation
+- [x] Add runtime paid-media opt-in and escalation guards
 - [x] Deterministic HTML/CSS poster renderer
 - [x] Deterministic factual overlays
+- [ ] Add persistent per-campaign spend ledger and hard budget caps
+- [ ] Add visual QA for generated product accuracy/crop/legibility
 
 ## Phase 4 — Storage and workflow automation
 
