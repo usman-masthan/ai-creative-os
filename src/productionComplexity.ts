@@ -46,6 +46,12 @@ function normalize(value: string): string {
   return value.toLocaleLowerCase();
 }
 
+function removeNegativeClauses(value: string): string {
+  return value
+    .replace(/\b(?:no|without|avoid|exclude|do not|don't)\s+[^,.;\n]+/gi, " ")
+    .replace(/\s+/g, " ");
+}
+
 export function evaluateProductionComplexity(
   creative: CampaignCreativeOutput,
 ): CampaignProductionComplexity {
@@ -60,7 +66,9 @@ export function evaluateProductionComplexity(
       creative.creativeBrief.composition,
       creative.imageGeneration.basePrompt,
       ...creative.imageGeneration.visualConstraints,
-    ].join("\n"),
+    ]
+      .map(removeNegativeClauses)
+      .join("\n"),
   );
 
   let score = 0;
