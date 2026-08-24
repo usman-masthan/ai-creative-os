@@ -13,6 +13,7 @@ import type {
   CampaignProductionComplexity,
   CampaignProductionFormat,
 } from "../creativeTypes.js";
+import { formatLkr } from "../money.js";
 import { resolveProductionFormat } from "../platformFormat.js";
 import { evaluateProductionComplexity } from "../productionComplexity.js";
 import type { CampaignGenerationProvider } from "../providers/types.js";
@@ -53,6 +54,30 @@ export type GenerateCampaignResult =
       creative: CampaignCreativeOutput;
     };
 
+function collectCustomerFacingPriceText(creative: CampaignCreativeOutput): string[] {
+  return [
+    ...creative.concepts.flatMap((concept) => [
+      concept.campaignName,
+      concept.coreIdea,
+      concept.headlineDirection,
+      concept.cta,
+    ]),
+    creative.creativeBrief.headline,
+    creative.creativeBrief.supportingCopy,
+    creative.creativeBrief.cta,
+    creative.caption,
+    creative.overlaySpec.headline,
+    creative.overlaySpec.supportingCopy,
+    creative.overlaySpec.cta,
+  ];
+}
+
+function containsNumericAmount(text: string, numericPrice: number): boolean {
+  const normalized = text.replace(/,/g, "");
+  const amount = String(numericPrice).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|\\D)${amount}(\\D|$)`).test(normalized);
+}
+
 function assertDeterministicFactPlacement(
   creative: CampaignCreativeOutput,
   preflight: CampaignPreflight,
@@ -66,6 +91,7 @@ function assertDeterministicFactPlacement(
     }
 
     const expectedPrice = String(numericPrice);
+    const expectedDisplay = formatLkr(numericPrice);
     if (creative.imageGeneration.basePrompt.includes(expectedPrice)) {
       throw new Error(
         `Production safety violation: verified price ${expectedPrice} appeared inside imageGeneration.basePrompt. Prices must be deterministic overlays.`,
@@ -88,6 +114,20 @@ function assertDeterministicFactPlacement(
       throw new Error(
         "Production safety violation: overlaySpec.price.currency must be LKR for this client configuration.",
       );
+    }
+
+    if (creative.overlaySpec.price.display !== expectedDisplay) {
+      throw new Error(
+        `Production safety violation: overlaySpec.price.display must equal deterministic display ${expectedDisplay}.`,
+      );
+    }
+
+    for (const text of collectCustomerFacingPriceText(creative)) {
+      if (containsNumericAmount(text, numericPrice) && !text.includes(expectedDisplay)) {
+        throw new Error(
+          `Production safety violation: customer-facing price ${expectedPrice} must be formatted exactly as ${expectedDisplay}.`,
+        );
+      }
     }
   }
 }
