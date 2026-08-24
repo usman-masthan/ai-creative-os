@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 
 import type { BrandGovernance } from "../src/brandGovernance.js";
 import { generateCampaign } from "../src/commands/generateCampaign.js";
-import { createCampaignProvider } from "../src/providers/providerRouter.js";
+import { createGeminiCampaignProvider } from "../src/providers/gemini.js";
 import type { TruthRecord } from "../src/types.js";
 
 interface PricingSnapshot {
@@ -80,7 +80,7 @@ const truthRecords: TruthRecord[] = [
 
 let provider;
 try {
-  provider = createCampaignProvider();
+  provider = createGeminiCampaignProvider();
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
