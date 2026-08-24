@@ -32,10 +32,16 @@ export interface CampaignImageGeneration {
   textPolicy: "NO_TEXT_OR_LOGOS";
 }
 
+export interface CampaignMoneyOverlay {
+  amount: number;
+  currency: "LKR";
+  display: string;
+}
+
 export interface CampaignOverlaySpec {
   headline: string;
   supportingCopy: string;
-  price?: string;
+  price?: CampaignMoneyOverlay;
   cta: string;
   logoUsage: "APPROVED_ONLY" | "OMIT";
   placementHints: {
@@ -56,4 +62,18 @@ export interface CampaignCreativeOutput {
   imageGeneration: CampaignImageGeneration;
   overlaySpec: CampaignOverlaySpec;
   factualQaNotes: string[];
+}
+
+export interface CampaignProductionFormat {
+  channel: string;
+  assetType: string;
+  aspectRatio: string;
+  width: number;
+  height: number;
+}
+
+export interface CampaignProductionComplexity {
+  score: number;
+  level: "low" | "medium" | "high";
+  reasons: string[];
 }
