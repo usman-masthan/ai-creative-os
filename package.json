@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm test",
     "campaign:demo": "tsx scripts/demo-atthas-campaign.ts",
-    "campaign:ai-demo": "tsx scripts/demo-ai-campaign.ts"
+    "campaign:ai-demo": "tsx scripts/demo-ai-campaign.ts",
+    "poster:demo": "tsx scripts/demo-atthas-poster.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
