@@ -1,0 +1,30 @@
+{
+  "tenantId": "T001",
+  "brandId": "ATTHAS_MASTER",
+  "allowProposedIdentity": false,
+  "assetStatus": {
+    "logo": "PROPOSED",
+    "colors": "PROPOSED",
+    "typography": "PROPOSED",
+    "tagline": "PROPOSED"
+  },
+  "proposedIdentityTerms": [
+    "Unlock the Flavour",
+    "Deep Red",
+    "Flame Gold",
+    "Warm Cream",
+    "Charcoal",
+    "Herb Green",
+    "Chilli Red",
+    "Fraunces SemiBold",
+    "Manrope",
+    "Barlow Condensed Bold",
+    "#8F1D14",
+    "#F3B61F",
+    "#FFF4E3",
+    "#1D1917",
+    "#3E6B4F",
+    "#D9412C"
+  ],
+  "legacyIdentityTerms": []
+}

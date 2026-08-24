@@ -1,5 +1,8 @@
+export type CampaignConceptRole = "conversion" | "crave-emotion" | "brand-building";
+
 export interface CampaignConcept {
   id: string;
+  strategicRole: CampaignConceptRole;
   campaignName: string;
   coreIdea: string;
   customerEmotion: string;
@@ -22,10 +25,26 @@ export interface CampaignCreativeBrief {
   aspectRatio: string;
 }
 
-export interface CampaignImagePrompt {
-  immutable: string[];
-  flexible: string[];
-  prompt: string;
+export interface CampaignImageGeneration {
+  basePrompt: string;
+  negativePrompt: string;
+  visualConstraints: string[];
+  textPolicy: "NO_TEXT_OR_LOGOS";
+}
+
+export interface CampaignOverlaySpec {
+  headline: string;
+  supportingCopy: string;
+  price?: string;
+  cta: string;
+  logoUsage: "APPROVED_ONLY" | "OMIT";
+  placementHints: {
+    headline: string;
+    supportingCopy: string;
+    price?: string;
+    cta: string;
+    logo: string;
+  };
 }
 
 export interface CampaignCreativeOutput {
@@ -34,6 +53,7 @@ export interface CampaignCreativeOutput {
   recommendationReason: string;
   creativeBrief: CampaignCreativeBrief;
   caption: string;
-  imagePrompt: CampaignImagePrompt;
+  imageGeneration: CampaignImageGeneration;
+  overlaySpec: CampaignOverlaySpec;
   factualQaNotes: string[];
 }
