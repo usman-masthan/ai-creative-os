@@ -252,7 +252,33 @@ test("rejects unsupported customer-facing product claims", async () => {
 
   await assert.rejects(
     () => generateCampaign(readyRequest(), provider),
-    /unsupported customer-facing product claim \"juicy\"/,
+    /unsupported product\/service claim or depiction \"juicy\"/,
+  );
+});
+
+test("rejects unsupported delivery-speed claims", async () => {
+  const provider = mockProvider(() => {
+    const creative = creativeObject();
+    creative.creativeBrief.supportingCopy = "Crisp, satisfying, delivered fast.";
+    return creative;
+  });
+
+  await assert.rejects(
+    () => generateCampaign(readyRequest(), provider),
+    /unsupported product\/service claim or depiction \"delivered fast\"/,
+  );
+});
+
+test("rejects unverified ingredient depictions in the image prompt", async () => {
+  const provider = mockProvider(() => {
+    const creative = creativeObject();
+    creative.imageGeneration.basePrompt += " Add lettuce and tomato toppings.";
+    return creative;
+  });
+
+  await assert.rejects(
+    () => generateCampaign(readyRequest(), provider),
+    /unsupported product\/service claim or depiction \"lettuce\"/,
   );
 });
 
@@ -279,6 +305,19 @@ test("rejects a mutated numeric price", async () => {
   await assert.rejects(
     () => generateCampaign(readyRequest(), provider),
     /overlaySpec\.price\.amount must preserve verified price 950/,
+  );
+});
+
+test("rejects non-deterministic customer-facing price formatting", async () => {
+  const provider = mockProvider(() => {
+    const creative = creativeObject();
+    creative.caption = "Get the Crispy Chicken Burger on Uber Eats for 950 LKR.";
+    return creative;
+  });
+
+  await assert.rejects(
+    () => generateCampaign(readyRequest(), provider),
+    /customer-facing price 950 must be formatted exactly as LKR 950/,
   );
 });
 
@@ -322,7 +361,7 @@ test("automatically repairs one invalid generation and accepts the corrected res
   assert.equal(result.generation.repairs, 1);
   assert.equal(calls, 2);
   assert.match(prompts[1] ?? "", /REPAIR MODE/);
-  assert.match(prompts[1] ?? "", /unsupported customer-facing product claim/);
+  assert.match(prompts[1] ?? "", /unsupported product\/service claim or depiction/);
 });
 
 test("scores complex phone-and-people production higher than hero-only creative", async () => {
@@ -342,4 +381,19 @@ test("scores complex phone-and-people production higher than hero-only creative"
   if (result.status !== "GENERATED") return;
   assert.equal(result.production.complexity.level, "high");
   assert.ok(result.production.complexity.score >= 6);
+});
+
+test("does not count explicitly prohibited app screens as production complexity", async () => {
+  const provider = mockProvider(() => {
+    const creative = creativeObject();
+    creative.imageGeneration.basePrompt += ", no app screens, no phones.";
+    creative.imageGeneration.visualConstraints.push("no people or hands");
+    return creative;
+  });
+
+  const result = await generateCampaign(readyRequest(), provider);
+  assert.equal(result.status, "GENERATED");
+  if (result.status !== "GENERATED") return;
+  assert.equal(result.production.complexity.score, 0);
+  assert.deepEqual(result.production.complexity.reasons, []);
 });
