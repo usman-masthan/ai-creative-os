@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { OpenRouterResponsesProvider } from "../src/providers/openrouterResponses.js";
 
-test("OpenRouter provider calls Responses API and extracts nested output text", async () => {
+test("OpenRouter provider requires JSON output on Chat Completions", async () => {
   let requestedUrl = "";
   let requestedBody = "";
   let requestedAuthorization = "";
@@ -16,15 +16,12 @@ test("OpenRouter provider calls Responses API and extracts nested output text", 
 
     return new Response(
       JSON.stringify({
-        output: [
+        choices: [
           {
-            type: "message",
-            content: [
-              {
-                type: "output_text",
-                text: "{\"ok\":true}",
-              },
-            ],
+            message: {
+              role: "assistant",
+              content: '{"ok":true}',
+            },
           },
         ],
       }),
@@ -42,15 +39,24 @@ test("OpenRouter provider calls Responses API and extracts nested output text", 
   });
 
   const output = await provider.generate("test prompt");
+  const parsedBody = JSON.parse(requestedBody) as {
+    model: string;
+    messages: Array<{ role: string; content: string }>;
+    response_format: { type: string };
+    provider: { require_parameters: boolean };
+  };
 
-  assert.equal(requestedUrl, "https://openrouter.ai/api/v1/responses");
+  assert.equal(requestedUrl, "https://openrouter.ai/api/v1/chat/completions");
   assert.equal(requestedAuthorization, "Bearer test-key");
-  assert.match(requestedBody, /openai\/gpt-oss-20b:free/);
-  assert.match(requestedBody, /test prompt/);
+  assert.equal(parsedBody.model, "openai/gpt-oss-20b:free");
+  assert.equal(parsedBody.messages[0]?.role, "user");
+  assert.equal(parsedBody.messages[0]?.content, "test prompt");
+  assert.deepEqual(parsedBody.response_format, { type: "json_object" });
+  assert.deepEqual(parsedBody.provider, { require_parameters: true });
   assert.equal(output, '{"ok":true}');
 });
 
-test("OpenRouter provider extracts the documented top-level output_text", async () => {
+test("OpenRouter provider keeps Responses output_text compatibility", async () => {
   const fetchImpl = (async () =>
     new Response(
       JSON.stringify({
@@ -69,16 +75,18 @@ test("OpenRouter provider extracts the documented top-level output_text", async 
   assert.equal(await provider.generate("test"), '{"source":"top-level"}');
 });
 
-test("OpenRouter provider tolerates chat-completions shaped routed output", async () => {
+test("OpenRouter provider keeps nested Responses compatibility", async () => {
   const fetchImpl = (async () =>
     new Response(
       JSON.stringify({
-        choices: [
+        output: [
           {
-            message: {
-              role: "assistant",
-              content: '{"source":"chat-shape"}',
-            },
+            content: [
+              {
+                type: "output_text",
+                text: '{"source":"nested"}',
+              },
+            ],
           },
         ],
       }),
@@ -90,7 +98,7 @@ test("OpenRouter provider tolerates chat-completions shaped routed output", asyn
     fetchImpl,
   });
 
-  assert.equal(await provider.generate("test"), '{"source":"chat-shape"}');
+  assert.equal(await provider.generate("test"), '{"source":"nested"}');
 });
 
 test("OpenRouter provider retries a temporary 429", async () => {
@@ -111,7 +119,15 @@ test("OpenRouter provider retries a temporary 429", async () => {
     }
 
     return new Response(
-      JSON.stringify({ output_text: "recovered" }),
+      JSON.stringify({
+        choices: [
+          {
+            message: {
+              content: '{"recovered":true}',
+            },
+          },
+        ],
+      }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   }) as typeof fetch;
@@ -126,7 +142,7 @@ test("OpenRouter provider retries a temporary 429", async () => {
 
   const output = await provider.generate("test");
 
-  assert.equal(output, "recovered");
+  assert.equal(output, '{"recovered":true}');
   assert.equal(calls, 2);
   assert.deepEqual(waits, [10]);
 });
@@ -145,7 +161,7 @@ test("OpenRouter provider surfaces non-retryable API errors", async () => {
 
   await assert.rejects(
     () => provider.generate("test"),
-    /OpenRouter Responses API request failed: bad request/,
+    /OpenRouter API request failed: bad request/,
   );
 });
 
@@ -166,6 +182,6 @@ test("OpenRouter provider surfaces response-level errors even on HTTP 200", asyn
 
   await assert.rejects(
     () => provider.generate("test"),
-    /OpenRouter Responses API response error: routed provider failed/,
+    /OpenRouter API response error: routed provider failed/,
   );
 });
