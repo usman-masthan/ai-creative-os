@@ -10,12 +10,36 @@ interface Rule {
 }
 
 const rules: Rule[] = [
-  { label: "people or hands", points: 2, terms: ["person", "people", "friend", "family", "hand", "hands", "group"] },
-  { label: "phone or app-device scene", points: 2, terms: ["phone", "smartphone", "mobile screen", "app screen"] },
-  { label: "third-party logo or icon", points: 2, terms: ["logo", "icon", "uber eats icon", "brand mark"] },
-  { label: "multiple products or complex table scene", points: 2, terms: ["several burgers", "multiple burgers", "tabletop", "table scene", "sharing burgers"] },
-  { label: "complex environmental scene", points: 1, terms: ["street backdrop", "restaurant interior", "home setting", "city", "neon"] },
-  { label: "motion or flying food elements", points: 1, terms: ["crumbs flying", "splash", "motion blur", "flying"] },
+  {
+    label: "people or hands",
+    points: 2,
+    terms: ["person", "people", "friend", "family", "hand", "hands", "group"],
+  },
+  {
+    label: "phone or app-device scene",
+    points: 2,
+    terms: ["phone", "smartphone", "mobile screen", "app screen"],
+  },
+  {
+    label: "third-party logo or icon",
+    points: 2,
+    terms: ["uber eats icon", "uber eats logo", "third-party logo", "brand mark"],
+  },
+  {
+    label: "multiple products or complex table scene",
+    points: 2,
+    terms: ["several burgers", "multiple burgers", "tabletop", "table scene", "sharing burgers"],
+  },
+  {
+    label: "complex environmental scene",
+    points: 1,
+    terms: ["street backdrop", "restaurant interior", "home setting", "city", "neon"],
+  },
+  {
+    label: "motion or flying food elements",
+    points: 1,
+    terms: ["crumbs flying", "splash", "motion blur", "flying"],
+  },
 ];
 
 function normalize(value: string): string {
