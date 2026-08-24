@@ -52,7 +52,7 @@ export class GeminiCampaignProvider implements CampaignGenerationProvider {
   readonly providerName = "gemini";
   readonly model: string;
   readonly role: GeminiTextRole;
-  lastUsage?: GeminiUsageTelemetry;
+  lastUsage: GeminiUsageTelemetry | undefined;
 
   private readonly apiKey: string;
   private readonly baseUrl: string;
