@@ -68,7 +68,7 @@ function extractAudio(body: GeminiAudioInteractionResponse): { dataBase64: strin
 export class GeminiTtsProvider implements AudioGenerationProvider {
   readonly providerName = "gemini";
   readonly model: string;
-  lastUsage?: GeminiUsageTelemetry;
+  lastUsage: GeminiUsageTelemetry | undefined;
 
   private readonly apiKey: string;
   private readonly baseUrl: string;
