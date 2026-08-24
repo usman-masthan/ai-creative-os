@@ -110,6 +110,20 @@ export function estimateVideoCostUsd(
   return roundUsd(rate * durationSeconds);
 }
 
+function estimatedTextCostFields(
+  model: string,
+  inputTokens: number | undefined,
+  outputTokens: number | undefined,
+): Pick<GeminiUsageTelemetry, "estimatedCostUsd" | "estimateBasis"> | Record<string, never> {
+  if (inputTokens === undefined && outputTokens === undefined) return {};
+  const estimatedCostUsd = estimateTextCostUsd(model, inputTokens ?? 0, outputTokens ?? 0);
+  if (estimatedCostUsd === undefined) return {};
+  return {
+    estimatedCostUsd,
+    estimateBasis: "Google Gemini standard paid-tier token pricing; estimate only.",
+  };
+}
+
 export function usageFromGenerateContent(
   model: string,
   usage: GenerateContentUsagePayload | undefined,
@@ -127,12 +141,7 @@ export function usageFromGenerateContent(
     ...(outputTokens !== undefined ? { outputTokens } : {}),
     ...(usage.thoughtsTokenCount !== undefined ? { thoughtTokens: usage.thoughtsTokenCount } : {}),
     ...(usage.totalTokenCount !== undefined ? { totalTokens: usage.totalTokenCount } : {}),
-    ...(inputTokens !== undefined || outputTokens !== undefined
-      ? {
-          estimatedCostUsd: estimateTextCostUsd(model, inputTokens ?? 0, outputTokens ?? 0),
-          estimateBasis: "Google Gemini standard paid-tier token pricing; estimate only.",
-        }
-      : {}),
+    ...estimatedTextCostFields(model, inputTokens, outputTokens),
     pricingVersion: "2026-08-13",
   };
 }
@@ -149,16 +158,7 @@ export function usageFromInteraction(
     ...(usage.total_thought_tokens !== undefined ? { thoughtTokens: usage.total_thought_tokens } : {}),
     ...(usage.total_tokens !== undefined ? { totalTokens: usage.total_tokens } : {}),
     ...(usage.service_tier ? { serviceTier: usage.service_tier } : {}),
-    ...(usage.total_input_tokens !== undefined || usage.total_output_tokens !== undefined
-      ? {
-          estimatedCostUsd: estimateTextCostUsd(
-            model,
-            usage.total_input_tokens ?? 0,
-            usage.total_output_tokens ?? 0,
-          ),
-          estimateBasis: "Google Gemini standard paid-tier token pricing; estimate only.",
-        }
-      : {}),
+    ...estimatedTextCostFields(model, usage.total_input_tokens, usage.total_output_tokens),
     pricingVersion: "2026-08-13",
   };
 }
