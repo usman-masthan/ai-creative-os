@@ -1,9 +1,11 @@
+import type { BrandGovernance } from "./brandGovernance.js";
 import type { CampaignPreflight, CreateCampaignRequest } from "./commands/createCampaign.js";
 
 export interface CampaignPromptInput {
   request: CreateCampaignRequest;
   preflight: CampaignPreflight;
   brandContext: string;
+  brandGovernance?: BrandGovernance;
 }
 
 function serializeVerifiedFacts(preflight: CampaignPreflight): string {
@@ -15,20 +17,64 @@ function serializeVerifiedFacts(preflight: CampaignPreflight): string {
     .join("\n");
 }
 
+function serializeBrandGovernance(governance?: BrandGovernance): string {
+  if (!governance) {
+    return "- No explicit brand-governance object supplied. Treat anything described as proposed, working, legacy, or unapproved in BRAND CONTEXT as internal guidance only.";
+  }
+
+  const lines = [
+    `- Proposed identity allowed in production output: ${governance.allowProposedIdentity === true ? "YES" : "NO"}`,
+    `- Asset status: ${JSON.stringify(governance.assetStatus ?? {})}`,
+  ];
+
+  if (governance.allowProposedIdentity !== true && (governance.proposedIdentityTerms?.length ?? 0) > 0) {
+    lines.push(
+      `- DO NOT USE these proposed identity terms in concepts, creative copy, captions, image-generation instructions, or overlays: ${governance.proposedIdentityTerms!.join(" | ")}`,
+    );
+  }
+
+  if ((governance.legacyIdentityTerms?.length ?? 0) > 0) {
+    lines.push(`- Legacy identity terms are reference-only: ${governance.legacyIdentityTerms!.join(" | ")}`);
+  }
+
+  return lines.join("\n");
+}
+
 export function buildCampaignGenerationPrompt(input: CampaignPromptInput): string {
-  const { request, preflight, brandContext } = input;
+  const { request, preflight, brandContext, brandGovernance } = input;
   const verifiedFacts = serializeVerifiedFacts(preflight);
+  const governance = serializeBrandGovernance(brandGovernance);
 
   return `You are the campaign-generation stage of AI Creative OS.
 
-NON-NEGOTIABLE RULES:
+NON-NEGOTIABLE FACT RULES:
 1. Use ONLY the verified facts supplied below for customer-facing factual claims.
 2. Never invent or alter prices, offers, dates, branch details, product details, availability, contact details, statistics, or claims.
 3. Do not upgrade source-specific facts into universal brand facts.
-4. Brand context may guide tone and visuals but proposed/rebrand elements must not be described as officially approved unless the context explicitly says they are approved.
-5. Generate exactly 3 meaningfully different concepts, then recommend exactly 1.
-6. Important factual text such as prices should be treated as deterministic overlay text, not embedded into generated food imagery.
-7. Return JSON only. Do not use Markdown fences or commentary outside the JSON object.
+4. If a price is supplied, keep its branch/channel scope intact.
+
+NON-NEGOTIABLE BRAND GOVERNANCE:
+5. Proposed, working, legacy, or unapproved identity elements are NOT production assets unless BRAND GOVERNANCE explicitly allows them.
+6. When proposed identity is disallowed, do not reproduce blocked tagline, colour, typography, logo, or identity terms anywhere in production-facing output.
+7. If the logo is not APPROVED, overlaySpec.logoUsage MUST be "OMIT".
+
+CREATIVE STRATEGY RULES:
+8. Generate exactly 3 meaningfully different concepts with fixed strategic roles:
+   - C1 = conversion: immediate action, product clarity, delivery/order intent.
+   - C2 = crave-emotion: appetite, sensory desire, emotional craving.
+   - C3 = brand-building: memorable brand territory without inventing claims.
+9. Recommend exactly 1 concept based on objective, channel, factual safety, visual clarity, and brand fit.
+10. Avoid generic AI-ad language, excessive hype, unsupported superlatives, fake scarcity, and cliché startup-style copy.
+11. Caption style should be concise, appetizing, and delivery-first when appropriate. Do not say "link in bio" unless that instruction is a verified/requested fact. Avoid emoji-heavy copy and hashtag stuffing.
+
+IMAGE + TEXT PRODUCTION RULES:
+12. Separate image generation from deterministic text rendering.
+13. imageGeneration.basePrompt is for the visual image ONLY. It MUST NOT ask an image model to render headlines, prices, letters, numbers, logos, badges, or promotional text.
+14. imageGeneration.textPolicy MUST equal "NO_TEXT_OR_LOGOS".
+15. Put all critical customer-facing text in overlaySpec so HTML/CSS or another deterministic renderer can place it later.
+16. If a verified price is used, put it in overlaySpec.price. Do not place that price inside imageGeneration.basePrompt.
+17. Generated food imagery must not be described as the exact served product unless approved reference photography supports that claim.
+18. Return JSON only. Do not use Markdown fences or commentary outside the JSON object.
 
 CAMPAIGN REQUEST:
 - Campaign ID: ${request.campaignId}
@@ -44,6 +90,9 @@ CAMPAIGN REQUEST:
 BRAND CONTEXT:
 ${brandContext}
 
+BRAND GOVERNANCE:
+${governance}
+
 VERIFIED FACTS AVAILABLE TO THIS GENERATION:
 ${verifiedFacts || "- No customer-facing factual claims supplied."}
 
@@ -52,6 +101,7 @@ OUTPUT CONTRACT:
   "concepts": [
     {
       "id": "C1",
+      "strategicRole": "conversion",
       "campaignName": "string",
       "coreIdea": "string",
       "customerEmotion": "string",
@@ -62,8 +112,32 @@ OUTPUT CONTRACT:
       "expectedStrength": 1,
       "risks": ["string"]
     },
-    { "id": "C2", "campaignName": "...", "coreIdea": "...", "customerEmotion": "...", "headlineDirection": "...", "visualConcept": "...", "cta": "...", "targetAudience": "...", "expectedStrength": 1, "risks": [] },
-    { "id": "C3", "campaignName": "...", "coreIdea": "...", "customerEmotion": "...", "headlineDirection": "...", "visualConcept": "...", "cta": "...", "targetAudience": "...", "expectedStrength": 1, "risks": [] }
+    {
+      "id": "C2",
+      "strategicRole": "crave-emotion",
+      "campaignName": "string",
+      "coreIdea": "string",
+      "customerEmotion": "string",
+      "headlineDirection": "string",
+      "visualConcept": "string",
+      "cta": "string",
+      "targetAudience": "string",
+      "expectedStrength": 1,
+      "risks": ["string"]
+    },
+    {
+      "id": "C3",
+      "strategicRole": "brand-building",
+      "campaignName": "string",
+      "coreIdea": "string",
+      "customerEmotion": "string",
+      "headlineDirection": "string",
+      "visualConcept": "string",
+      "cta": "string",
+      "targetAudience": "string",
+      "expectedStrength": 1,
+      "risks": ["string"]
+    }
   ],
   "recommendedConceptId": "C1",
   "recommendationReason": "string",
@@ -78,13 +152,28 @@ OUTPUT CONTRACT:
     "aspectRatio": "string"
   },
   "caption": "string",
-  "imagePrompt": {
-    "immutable": ["verified identity/fact constraints only"],
-    "flexible": ["environment, lighting, angle, atmosphere, composition, styling"],
-    "prompt": "string"
+  "imageGeneration": {
+    "basePrompt": "image-only visual prompt with no rendered promotional text, numbers, prices or logos",
+    "negativePrompt": "string",
+    "visualConstraints": ["string"],
+    "textPolicy": "NO_TEXT_OR_LOGOS"
+  },
+  "overlaySpec": {
+    "headline": "string",
+    "supportingCopy": "string",
+    "price": "optional verified price string",
+    "cta": "string",
+    "logoUsage": "APPROVED_ONLY or OMIT",
+    "placementHints": {
+      "headline": "string",
+      "supportingCopy": "string",
+      "price": "optional string",
+      "cta": "string",
+      "logo": "string"
+    }
   },
   "factualQaNotes": ["string"]
 }
 
-expectedStrength must be an integer from 1 to 10. The recommendation must refer to one of C1, C2, or C3.`;
+expectedStrength must be an integer from 1 to 10. The recommendation must refer to one of C1, C2, or C3. Respect the fixed strategicRole assigned to each concept ID.`;
 }
