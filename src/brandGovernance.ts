@@ -49,7 +49,7 @@ function collectProductionStrings(creative: CampaignCreativeOutput): string[] {
     ...creative.imageGeneration.visualConstraints,
     overlay.headline,
     overlay.supportingCopy,
-    overlay.price ?? "",
+    overlay.price?.display ?? "",
     overlay.cta,
     overlay.logoUsage,
     overlay.placementHints.headline,
