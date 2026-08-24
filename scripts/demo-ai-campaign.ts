@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 
+import type { BrandGovernance } from "../src/brandGovernance.js";
 import { generateCampaign } from "../src/commands/generateCampaign.js";
 import { createCampaignProvider } from "../src/providers/providerRouter.js";
 import type { TruthRecord } from "../src/types.js";
@@ -33,6 +34,12 @@ const masterPositioning = await readFile(
   "clients/T001-atthas/brands/master/positioning.md",
   "utf8",
 );
+const brandGovernance = JSON.parse(
+  await readFile(
+    "clients/T001-atthas/brands/master/governance.json",
+    "utf8",
+  ),
+) as BrandGovernance;
 
 const crispy = pricing.prices.find(
   (item) => item.productId === "CRISPY_CHICKEN_BURGER",
@@ -107,6 +114,7 @@ const result = await generateCampaign(
     truthRecords,
     allowSourceVerified: true,
     brandContext: `${masterPositioning}\n\n${burgerRules}`,
+    brandGovernance,
   },
   provider,
 );
