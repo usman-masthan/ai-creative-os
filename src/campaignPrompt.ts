@@ -1,10 +1,12 @@
 import type { BrandGovernance } from "./brandGovernance.js";
 import type { CampaignPreflight, CreateCampaignRequest } from "./commands/createCampaign.js";
+import type { CampaignProductionFormat } from "./creativeTypes.js";
 
 export interface CampaignPromptInput {
   request: CreateCampaignRequest;
   preflight: CampaignPreflight;
   brandContext: string;
+  productionFormat: CampaignProductionFormat;
   brandGovernance?: BrandGovernance;
 }
 
@@ -41,7 +43,7 @@ function serializeBrandGovernance(governance?: BrandGovernance): string {
 }
 
 export function buildCampaignGenerationPrompt(input: CampaignPromptInput): string {
-  const { request, preflight, brandContext, brandGovernance } = input;
+  const { request, preflight, brandContext, brandGovernance, productionFormat } = input;
   const verifiedFacts = serializeVerifiedFacts(preflight);
   const governance = serializeBrandGovernance(brandGovernance);
 
@@ -49,32 +51,35 @@ export function buildCampaignGenerationPrompt(input: CampaignPromptInput): strin
 
 NON-NEGOTIABLE FACT RULES:
 1. Use ONLY the verified facts supplied below for customer-facing factual claims.
-2. Never invent or alter prices, offers, dates, branch details, product details, availability, contact details, statistics, or claims.
+2. Never invent or alter prices, offers, dates, branch details, product details, availability, contact details, statistics, certifications, ingredients, portion sizes, or quality claims.
 3. Do not upgrade source-specific facts into universal brand facts.
 4. If a price is supplied, keep its branch/channel scope intact.
+5. Product names are not permission to invent related sensory claims. Do not add unsupported claims such as "juicy", "spicy", "fresh", "homemade", "organic", "healthy", "best", or similar unless those words are present in VERIFIED FACTS.
 
 NON-NEGOTIABLE BRAND GOVERNANCE:
-5. Proposed, working, legacy, or unapproved identity elements are NOT production assets unless BRAND GOVERNANCE explicitly allows them.
-6. When proposed identity is disallowed, do not reproduce blocked tagline, colour, typography, logo, or identity terms anywhere in production-facing output.
-7. If the logo is not APPROVED, overlaySpec.logoUsage MUST be "OMIT".
+6. Proposed, working, legacy, or unapproved identity elements are NOT production assets unless BRAND GOVERNANCE explicitly allows them.
+7. When proposed identity is disallowed, do not reproduce blocked tagline, colour, typography, logo, or identity terms anywhere in production-facing output.
+8. If the logo is not APPROVED, overlaySpec.logoUsage MUST be "OMIT".
 
 CREATIVE STRATEGY RULES:
-8. Generate exactly 3 meaningfully different concepts with fixed strategic roles:
+9. Generate exactly 3 meaningfully different concepts with fixed strategic roles:
    - C1 = conversion: immediate action, product clarity, delivery/order intent.
-   - C2 = crave-emotion: appetite, sensory desire, emotional craving.
-   - C3 = brand-building: memorable brand territory without inventing claims.
-9. Recommend exactly 1 concept based on objective, channel, factual safety, visual clarity, and brand fit.
-10. Avoid generic AI-ad language, excessive hype, unsupported superlatives, fake scarcity, and cliché startup-style copy.
-11. Caption style should be concise, appetizing, and delivery-first when appropriate. Do not say "link in bio" unless that instruction is a verified/requested fact. Avoid emoji-heavy copy and hashtag stuffing.
+   - C2 = crave-emotion: appetite and emotional desire WITHOUT inventing product attributes.
+   - C3 = brand-building: memorable territory without inventing claims.
+10. Recommend exactly 1 concept based on objective, channel, factual safety, visual clarity, production simplicity, and brand fit.
+11. Prefer one hero, one message, one CTA for direct-response food posters. People, phones, app screens, third-party logos, multiple products, or complex environments increase production complexity and should be used only when strategically necessary.
+12. Avoid generic AI-ad language, excessive hype, unsupported superlatives, fake scarcity, cliché startup-style copy, emoji-heavy captions, and hashtag stuffing.
+13. Do not say "link in bio" unless that instruction is a verified/requested fact.
 
 IMAGE + TEXT PRODUCTION RULES:
-12. Separate image generation from deterministic text rendering.
-13. imageGeneration.basePrompt is for the visual image ONLY. It MUST NOT ask an image model to render headlines, prices, letters, numbers, logos, badges, or promotional text.
-14. imageGeneration.textPolicy MUST equal "NO_TEXT_OR_LOGOS".
-15. Put all critical customer-facing text in overlaySpec so HTML/CSS or another deterministic renderer can place it later.
-16. If a verified price is used, put it in overlaySpec.price. Do not place that price inside imageGeneration.basePrompt.
-17. Generated food imagery must not be described as the exact served product unless approved reference photography supports that claim.
-18. Return JSON only. Do not use Markdown fences or commentary outside the JSON object.
+14. Separate image generation from deterministic text rendering.
+15. imageGeneration.basePrompt is for the visual image ONLY. It MUST NOT ask an image model to render headlines, prices, letters, numbers, logos, badges, app screens, or promotional text.
+16. imageGeneration.textPolicy MUST equal "NO_TEXT_OR_LOGOS".
+17. Put all critical customer-facing text in overlaySpec so HTML/CSS or another deterministic renderer can place it later.
+18. If a verified price is used, overlaySpec.price must be an object with the exact numeric amount and currency "LKR". Do NOT format the display string yourself; the application will do that deterministically.
+19. Generated food imagery must not be described as the exact served product unless approved reference photography supports that claim.
+20. The production format is deterministic. creativeBrief.aspectRatio MUST be exactly "${productionFormat.aspectRatio}" for ${productionFormat.width}x${productionFormat.height} output.
+21. Return JSON only. Do not use Markdown fences or commentary outside the JSON object.
 
 CAMPAIGN REQUEST:
 - Campaign ID: ${request.campaignId}
@@ -84,6 +89,7 @@ CAMPAIGN REQUEST:
 - Objective: ${request.objective}
 - Channel: ${request.channel}
 - Asset type: ${request.assetType}
+- Required format: ${productionFormat.width}x${productionFormat.height} (${productionFormat.aspectRatio})
 - Risk level: ${preflight.riskLevel}
 - Human approval required: ${preflight.humanApprovalRequired ? "YES" : "NO"}
 
@@ -149,11 +155,11 @@ OUTPUT CONTRACT:
     "composition": "string",
     "lighting": "string",
     "photographyStyle": "string",
-    "aspectRatio": "string"
+    "aspectRatio": "${productionFormat.aspectRatio}"
   },
   "caption": "string",
   "imageGeneration": {
-    "basePrompt": "image-only visual prompt with no rendered promotional text, numbers, prices or logos",
+    "basePrompt": "image-only visual prompt with no rendered promotional text, numbers, prices, app screens or logos",
     "negativePrompt": "string",
     "visualConstraints": ["string"],
     "textPolicy": "NO_TEXT_OR_LOGOS"
@@ -161,7 +167,7 @@ OUTPUT CONTRACT:
   "overlaySpec": {
     "headline": "string",
     "supportingCopy": "string",
-    "price": "optional verified price string",
+    "price": { "amount": 950, "currency": "LKR" },
     "cta": "string",
     "logoUsage": "APPROVED_ONLY or OMIT",
     "placementHints": {
@@ -175,5 +181,5 @@ OUTPUT CONTRACT:
   "factualQaNotes": ["string"]
 }
 
-expectedStrength must be an integer from 1 to 10. The recommendation must refer to one of C1, C2, or C3. Respect the fixed strategicRole assigned to each concept ID.`;
+If no verified price is required, omit overlaySpec.price. expectedStrength must be an integer from 1 to 10. The recommendation must refer to one of C1, C2, or C3. Respect the fixed strategicRole assigned to each concept ID.`;
 }
