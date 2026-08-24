@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 
 import { generateCampaign } from "../src/commands/generateCampaign.js";
-import { OpenAIResponsesProvider } from "../src/providers/openaiResponses.js";
+import { createCampaignProvider } from "../src/providers/providerRouter.js";
 import type { TruthRecord } from "../src/types.js";
 
 interface PricingSnapshot {
@@ -16,13 +16,6 @@ interface PricingSnapshot {
     name: string;
     price: number;
   }>;
-}
-
-if (!process.env.OPENAI_API_KEY) {
-  console.error(
-    "OPENAI_API_KEY is not set. Copy .env.example to .env or export the key in your shell before running this demo.",
-  );
-  process.exit(1);
 }
 
 const pricing = JSON.parse(
@@ -78,7 +71,17 @@ const truthRecords: TruthRecord[] = [
   },
 ];
 
-const provider = new OpenAIResponsesProvider();
+let provider;
+try {
+  provider = createCampaignProvider();
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+}
+
+console.error(
+  `Campaign AI provider: ${provider.providerName} | model: ${provider.model}`,
+);
 
 const result = await generateCampaign(
   {
