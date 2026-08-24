@@ -19,28 +19,15 @@ CHANNEL
 ASSET TYPE
 ```
 
-The system then separates information into three classes:
+The system then separates information into three classes.
 
 ### Verified truth
 
-Customer-facing facts that must not be invented:
-
-- prices
-- offers
-- product/project names
-- dates
-- locations
-- phone numbers
-- opening hours
-- availability
-- donation information
-- beneficiary/impact statistics
+Customer-facing facts that must not be invented include prices, offers, product/project names, dates, locations, phone numbers, opening hours, availability, donation information, and beneficiary/impact statistics.
 
 Missing required truth becomes `MISSING_VERIFIED_DATA`.
 
-Truth also carries provenance status: `VERIFIED`, `OWNER_SOURCE_CONFIRMED`, `SOURCE_VERIFIED`, `CONFLICT_REQUIRES_CONFIRMATION`, or `MISSING`. External platform facts do not automatically become official master truth.
-
-For commerce data, price is scoped by product, branch and sales channel. This prevents an Uber Eats delivery price from silently becoming an in-store/Instagram price and prevents one branch price from leaking into another branch.
+Truth also carries provenance status: `VERIFIED`, `OWNER_SOURCE_CONFIRMED`, `SOURCE_VERIFIED`, `CONFLICT_REQUIRES_CONFIRMATION`, or `MISSING`.
 
 ### Brand rules
 
@@ -90,22 +77,36 @@ Human approval when required
 Video only when necessary
 ```
 
-This prevents expensive models from being used during routine brainstorming.
+## 6. Gemini-only provider architecture
 
-## 6. Provider abstraction
+Creative OS uses a single provider family: **Google Gemini**.
 
-Provider choice belongs behind capability roles rather than being hard-coded into campaign logic.
+This removes provider-routing complexity and keeps one API-key/SDK surface while still allowing different model classes for different jobs.
 
-Current intended roles:
+```text
+Creative OS
+   ↓
+Google Gemini API
+   ├─ gemini-3.5-flash-lite      default / bulk
+   ├─ gemini-3.6-flash           creative director
+   ├─ gemini-3.7-flash           optional latest Flash
+   ├─ gemini-3.1-pro-preview     paid deep review
+   ├─ Nano Banana models         paid image generation
+   ├─ Gemini Flash TTS           voice
+   └─ Veo 3.1 models             paid video
+```
 
-- Strategy/orchestration: ChatGPT
-- Independent critique: Claude when needed
-- Draft image generation: getimg.ai
-- Premium image generation: Nano Banana Pro / Google image model
-- Routine video: Runway
-- Premium cinematic video: Google Veo
+The canonical model IDs live in `src/providers/geminiModels.ts`. Operational role selection lives in `config/providers.json`.
 
-## 7. Future persistence
+There is no OpenRouter, Groq, OpenAI, Anthropic, getimg.ai, or Runway provider in the active architecture.
+
+## 7. Free vs paid phase
+
+The current development project uses Gemini free-tier text models. Paid-only media and Pro models are present in configuration so the architecture does not need to be redesigned later, but they should not be invoked until billing is intentionally enabled.
+
+Free-phase poster rendering therefore accepts an existing local base image and keeps factual text in the deterministic HTML/CSS overlay.
+
+## 8. Future persistence
 
 When persistence is added, prefer:
 
@@ -113,4 +114,4 @@ When persistence is added, prefer:
 - Cloudflare R2 or equivalent for media/object storage
 - n8n for lightweight orchestration where appropriate
 
-The repository should keep tenant IDs, campaign IDs, prompt versions, provider roles, and workflow contracts stable enough to migrate into a later application.
+The repository should keep tenant IDs, campaign IDs, prompt versions, Gemini model roles, and workflow contracts stable enough to migrate into a later application.
