@@ -40,6 +40,17 @@ function mimeFromPath(path: string): string {
   }
 }
 
+function extensionForMime(mimeType: string | undefined): string {
+  switch (mimeType?.toLowerCase()) {
+    case "image/png":
+      return ".png";
+    case "image/webp":
+      return ".webp";
+    default:
+      return ".jpg";
+  }
+}
+
 function buildDraftPrompt(campaign: GeneratedCampaign): string {
   const image = campaign.creative.imageGeneration;
   const constraints = image.visualConstraints.join("; ");
@@ -71,6 +82,30 @@ async function downloadImage(url: string, destination: string, fetchFn: typeof f
   await writeFile(destination, bytes);
 }
 
+async function persistGeneratedImage(
+  imageGeneration: ImageDraftResult,
+  outputDir: string,
+  fetchFn: typeof fetch,
+): Promise<string> {
+  const destination = join(outputDir, `base-image${extensionForMime(imageGeneration.mimeType)}`);
+
+  if (imageGeneration.dataBase64) {
+    const bytes = Buffer.from(imageGeneration.dataBase64, "base64");
+    if (bytes.length < 1_000) {
+      throw new Error(`Generated image payload is unexpectedly small (${bytes.length} bytes).`);
+    }
+    await writeFile(destination, bytes);
+    return destination;
+  }
+
+  if (imageGeneration.imageUrl) {
+    await downloadImage(imageGeneration.imageUrl, destination, fetchFn);
+    return destination;
+  }
+
+  throw new Error("Image provider returned neither inline image data nor an image URL.");
+}
+
 async function imageToDataUri(path: string): Promise<string> {
   const bytes = await readFile(path);
   return `data:${mimeFromPath(path)};base64,${bytes.toString("base64")}`;
@@ -95,10 +130,14 @@ export async function producePoster(request: ProducePosterRequest): Promise<Prod
     imageGeneration = await imageProvider.generate({
       prompt: buildDraftPrompt(request.campaign),
       aspectRatio: request.campaign.production.format.aspectRatio,
+      resolution: process.env.GEMINI_IMAGE_RESOLUTION?.trim() || "1K",
       outputFormat: "jpeg",
     });
-    baseImagePath = join(outputDir, "base-image.jpg");
-    await downloadImage(imageGeneration.imageUrl, baseImagePath, request.fetchFn ?? fetch);
+    baseImagePath = await persistGeneratedImage(
+      imageGeneration,
+      outputDir,
+      request.fetchFn ?? fetch,
+    );
   }
 
   const baseImageDataUri = await imageToDataUri(baseImagePath);

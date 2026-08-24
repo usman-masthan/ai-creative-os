@@ -1,9 +1,14 @@
-import { GEMINI_MODEL_STACK } from "./geminiModels.js";
+import { geminiTextModelForRole, type GeminiTextRole } from "./geminiModels.js";
+import {
+  usageFromGenerateContent,
+  type GeminiUsageTelemetry,
+} from "./geminiUsage.js";
 import type { CampaignGenerationProvider } from "./types.js";
 
 interface GeminiCampaignProviderOptions {
   apiKey?: string;
   model?: string;
+  role?: GeminiTextRole;
   baseUrl?: string;
   maxOutputTokens?: number;
   fetchImpl?: typeof fetch;
@@ -17,6 +22,12 @@ interface GeminiGenerateContentResponse {
       }>;
     };
   }>;
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    thoughtsTokenCount?: number;
+    totalTokenCount?: number;
+  };
   error?: {
     message?: string;
     status?: string;
@@ -40,6 +51,8 @@ function extractText(body: GeminiGenerateContentResponse): string {
 export class GeminiCampaignProvider implements CampaignGenerationProvider {
   readonly providerName = "gemini";
   readonly model: string;
+  readonly role: GeminiTextRole;
+  lastUsage: GeminiUsageTelemetry | undefined;
 
   private readonly apiKey: string;
   private readonly baseUrl: string;
@@ -54,10 +67,8 @@ export class GeminiCampaignProvider implements CampaignGenerationProvider {
     }
 
     this.apiKey = apiKey.trim();
-    this.model =
-      options.model?.trim() ||
-      process.env.GEMINI_CAMPAIGN_MODEL?.trim() ||
-      GEMINI_MODEL_STACK.text.default;
+    this.role = options.role ?? "default";
+    this.model = options.model?.trim() || geminiTextModelForRole(this.role);
     this.baseUrl =
       options.baseUrl?.replace(/\/$/, "") ??
       "https://generativelanguage.googleapis.com/v1beta";
@@ -104,6 +115,8 @@ export class GeminiCampaignProvider implements CampaignGenerationProvider {
       throw new Error(`Gemini API request failed: ${detail}`);
     }
 
+    this.lastUsage = usageFromGenerateContent(this.model, body.usageMetadata);
+
     const outputText = extractText(body);
     if (!outputText) {
       throw new Error("Gemini API returned no output text.");
@@ -115,6 +128,6 @@ export class GeminiCampaignProvider implements CampaignGenerationProvider {
 
 export function createGeminiCampaignProvider(
   options: GeminiCampaignProviderOptions = {},
-): CampaignGenerationProvider {
+): GeminiCampaignProvider {
   return new GeminiCampaignProvider(options);
 }

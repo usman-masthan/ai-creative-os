@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import type { BrandGovernance } from "../src/brandGovernance.js";
 import { generateCampaign } from "../src/commands/generateCampaign.js";
 import { producePoster } from "../src/commands/producePoster.js";
+import { GeminiImageProvider } from "../src/imageProviders/gemini.js";
 import { createGeminiCampaignProvider } from "../src/providers/gemini.js";
 import type { TruthRecord } from "../src/types.js";
 
@@ -104,17 +105,23 @@ if (campaign.status !== "GENERATED") {
 }
 
 const baseImagePath = process.env.POSTER_BASE_IMAGE_PATH?.trim();
-if (!baseImagePath) {
+const paidMediaAllowed = process.env.ALLOW_PAID_MEDIA?.trim().toLowerCase() === "true";
+
+if (!baseImagePath && !paidMediaAllowed) {
   throw new Error(
-    "POSTER_BASE_IMAGE_PATH is required for the free-tier poster demo. Direct Gemini image generation is reserved for the paid media phase.",
+    "Poster generation would call a paid Gemini image model. Set ALLOW_PAID_MEDIA=true or provide POSTER_BASE_IMAGE_PATH.",
   );
 }
+
+const imageProvider = baseImagePath
+  ? undefined
+  : new GeminiImageProvider({ role: "draft" });
 
 const poster = await producePoster({
   campaignId,
   campaign,
   outputDir: `outputs/${campaignId}`,
-  baseImagePath,
+  ...(baseImagePath ? { baseImagePath } : { imageProvider: imageProvider! }),
   ...(process.env.CHROME_PATH?.trim() ? { chromePath: process.env.CHROME_PATH.trim() } : {}),
 });
 
@@ -126,6 +133,7 @@ console.log(
         generation: campaign.generation,
         production: campaign.production,
         overlaySpec: campaign.creative.overlaySpec,
+        usage: campaignProvider.lastUsage,
       },
       poster,
     },

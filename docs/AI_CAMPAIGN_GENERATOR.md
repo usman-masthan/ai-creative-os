@@ -31,7 +31,7 @@ Validate structure + concept roles
        ↓
 Validate price placement + format
        ↓
-Validate unsupported product claims
+Validate unsupported product/service claims
        ↓
 Validate brand governance
        ↓
@@ -48,42 +48,29 @@ Regenerate and revalidate
 Up to 2 repairs by default
 ```
 
-## Gemini model strategy
+## Gemini text model strategy
 
 Creative OS uses one provider family: Google Gemini.
 
-Current model roles:
+- `gemini-3.5-flash-lite` — routine/bulk generation
+- `gemini-3.6-flash` — creative-direction work
+- `gemini-3.7-flash` — advanced Flash work
+- `gemini-3.1-pro-preview` — deep/sensitive/high-reputation-risk review
 
-- `gemini-3.5-flash-lite` — default/bulk campaign generation
-- `gemini-3.6-flash` — stronger creative-direction work
-- `gemini-3.7-flash` — optional latest-Flash path when availability is good
-- `gemini-3.1-pro-preview` — paid-phase deep/sensitive review
+`GeminiCampaignProvider` accepts a text role (`default`, `creative`, `advanced`, `review`). `selectGeminiTextRole()` provides deterministic escalation from task context so stronger models are not used by default merely because billing is available.
 
-Campaign generation defaults to `gemini-3.5-flash-lite` and can be overridden with `GEMINI_CAMPAIGN_MODEL`.
-
-Example:
+Environment overrides:
 
 ```bash
-export GEMINI_API_KEY="..."
-export GEMINI_CAMPAIGN_MODEL="gemini-3.5-flash-lite"
-npm run campaign:ai-demo
+GEMINI_CAMPAIGN_MODEL=gemini-3.5-flash-lite
+GEMINI_CREATIVE_MODEL=gemini-3.6-flash
+GEMINI_ADVANCED_FLASH_MODEL=gemini-3.7-flash
+GEMINI_REVIEW_MODEL=gemini-3.1-pro-preview
 ```
-
-Never commit API keys.
 
 ## Structured output
 
-`GeminiCampaignProvider` calls the Gemini `generateContent` endpoint and requests:
-
-```json
-{
-  "generationConfig": {
-    "responseMimeType": "application/json"
-  }
-}
-```
-
-The model is still not trusted as a source of truth. Creative OS parses the returned JSON and applies its own deterministic validators.
+`GeminiCampaignProvider` calls Gemini `generateContent` and requests JSON output. The model is not trusted as a source of truth; Creative OS parses the returned JSON and applies deterministic validators.
 
 ## Concept strategy contract
 
@@ -95,32 +82,21 @@ Every accepted generation contains exactly three strategically distinct concepts
 
 ## Claim governance
 
-Product-specific customer-facing claims must be supported by verified facts or explicitly allowed by policy.
+Product/service-specific customer-facing claims must be supported by verified facts or explicitly allowed by policy.
 
-The default validator blocks unsupported language such as:
+The default validator blocks unsupported categories including:
 
-- juicy
-- spicy
-- fresh
-- homemade / handmade
-- organic
-- healthy / low calorie
-- best / biggest / largest
-- award-winning
-- 100%
+- sensory/ingredient claims such as juicy, spicy, fresh, cheese, sauce, sesame
+- superiority/award claims such as best, largest, award-winning, 100%
+- availability/urgency claims such as available now, currently available, today, limited time
+- popularity/status claims such as signature, bestseller, customer favourite, most popular, most ordered
+- service-performance claims such as reliable, consistent delivery, delivered directly, fast/instant delivery
 
-A word present in verified facts is allowed. Brand-specific policies can also add allowed creative terms or additional blocked terms.
+A term present in verified facts is allowed. Brand-specific policy can also explicitly allow creative terms or add blocked terms.
 
 ## Brand governance
 
-Identity assets remain classified independently:
-
-- `APPROVED`
-- `PROPOSED`
-- `LEGACY`
-- `MISSING`
-
-Proposed identity cannot leak into production creative unless explicitly enabled.
+Identity assets remain classified independently as `APPROVED`, `PROPOSED`, `LEGACY`, or `MISSING`. Proposed identity cannot leak into production creative unless explicitly enabled.
 
 ## Deterministic money
 
@@ -147,17 +123,25 @@ Critical text remains in `overlaySpec` for deterministic HTML/CSS rendering. Ver
 
 When validation fails, Gemini receives the original campaign contract, the exact validator failure, its previous invalid output, and an instruction to return a complete corrected JSON object.
 
+## Usage telemetry
+
+`GeminiCampaignProvider.lastUsage` records token usage when the API returns `usageMetadata`, plus a versioned estimated paid-tier token cost where pricing for the selected model is known.
+
+The estimate is observability data only. Google billing is the final cost source.
+
 ## Demo
 
 ```bash
+export GEMINI_API_KEY="..."
+export GEMINI_CAMPAIGN_MODEL="gemini-3.5-flash-lite"
 npm run campaign:ai-demo
 ```
 
 The demo reads source-scoped truth, loads brand governance, resolves the production format, generates through Gemini, repairs invalid output when possible, and exposes creative output only after all validators pass.
 
-## Media phase
+## Media production
 
-The Gemini model catalog already defines the paid-phase media models:
+The billed Gemini stack is active behind explicit spend controls:
 
 - image draft: `gemini-3.1-flash-lite-image`
 - image production: `gemini-3.1-flash-image`
@@ -165,4 +149,4 @@ The Gemini model catalog already defines the paid-phase media models:
 - TTS: `gemini-3.1-flash-tts-preview`
 - video: Veo 3.1 Lite / Fast / Premium
 
-Direct paid media adapters are enabled only when billing is deliberately introduced.
+Paid media demo commands require explicit runtime opt-in rather than treating billing access as permission to spend.

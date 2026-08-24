@@ -19,7 +19,7 @@ CHANNEL
 ASSET TYPE
 ```
 
-The system then separates information into three classes.
+The system separates information into three classes.
 
 ### Verified truth
 
@@ -27,7 +27,7 @@ Customer-facing facts that must not be invented include prices, offers, product/
 
 Missing required truth becomes `MISSING_VERIFIED_DATA`.
 
-Truth also carries provenance status: `VERIFIED`, `OWNER_SOURCE_CONFIRMED`, `SOURCE_VERIFIED`, `CONFLICT_REQUIRES_CONFIRMATION`, or `MISSING`.
+Truth carries provenance status: `VERIFIED`, `OWNER_SOURCE_CONFIRMED`, `SOURCE_VERIFIED`, `CONFLICT_REQUIRES_CONFIRMATION`, or `MISSING`.
 
 ### Brand rules
 
@@ -53,60 +53,92 @@ Initial tenants:
 - Major promotions/campaign direction: human approval.
 - Lifeline humanitarian/beneficiary content: stricter factual, ethical, consent, and reputational review.
 
-## 5. Generation ladder
+## 5. Cost-conscious generation ladder
 
 ```text
-Strategy
+Routine strategy/copy — Gemini 3.5 Flash Lite
   ↓
 Up to 3 concepts
   ↓
-AI critique/ranking
+Creative escalation only when justified — Gemini 3.6 / 3.7
   ↓
-Strongest concept
+Deep/sensitive review only when justified — Gemini 3.1 Pro
   ↓
-Low-cost draft visual
+Selected concept
   ↓
-QA
+Nano Banana 2 Lite draft
   ↓
-Final concept
+QA + concept approval
   ↓
-Premium image if justified
+Nano Banana 2 production image
+  ↓
+Nano Banana Pro only when premium escalation is justified
+  ↓
+Deterministic factual overlay
   ↓
 Human approval when required
   ↓
-Video only when necessary
+Veo only after static direction approval
 ```
 
 ## 6. Gemini-only provider architecture
 
 Creative OS uses a single provider family: **Google Gemini**.
 
-This removes provider-routing complexity and keeps one API-key/SDK surface while still allowing different model classes for different jobs.
-
 ```text
 Creative OS
    ↓
 Google Gemini API
-   ├─ gemini-3.5-flash-lite      default / bulk
-   ├─ gemini-3.6-flash           creative director
-   ├─ gemini-3.7-flash           optional latest Flash
-   ├─ gemini-3.1-pro-preview     paid deep review
-   ├─ Nano Banana models         paid image generation
-   ├─ Gemini Flash TTS           voice
-   └─ Veo 3.1 models             paid video
+   ├─ gemini-3.5-flash-lite          routine / bulk
+   ├─ gemini-3.6-flash               creative director
+   ├─ gemini-3.7-flash               advanced Flash
+   ├─ gemini-3.1-pro-preview         deep / sensitive review
+   ├─ gemini-3.1-flash-lite-image    draft image
+   ├─ gemini-3.1-flash-image         production image
+   ├─ gemini-3-pro-image             premium image
+   ├─ gemini-3.1-flash-tts-preview   TTS
+   └─ Veo 3.1 Lite / Fast / Premium  video
 ```
 
-The canonical model IDs live in `src/providers/geminiModels.ts`. Operational role selection lives in `config/providers.json`.
+Canonical model IDs live in `src/providers/geminiModels.ts`. Runtime escalation policy lives in `src/providers/geminiPolicy.ts`. Operational configuration lives in `config/providers.json`.
 
 There is no OpenRouter, Groq, OpenAI, Anthropic, getimg.ai, or Runway provider in the active architecture.
 
-## 7. Free vs paid phase
+## 7. Paid media safety
 
-The current development project uses Gemini free-tier text models. Paid-only media and Pro models are present in configuration so the architecture does not need to be redesigned later, but they should not be invoked until billing is intentionally enabled.
+Billing is enabled, but paid media is never treated as free or automatic.
 
-Free-phase poster rendering therefore accepts an existing local base image and keeps factual text in the deterministic HTML/CSS overlay.
+- `ALLOW_PAID_MEDIA=true` is required before demo commands intentionally call a paid media model.
+- draft images are the default paid visual step
+- production images require an approved concept through policy guards
+- premium images require an explicit premium override
+- all Veo roles require an approved static direction
+- premium Veo requires an explicit premium override
+- deterministic text/price/CTA overlays remain outside image generation
 
-## 8. Future persistence
+This separates **model access** from **permission to spend**.
+
+## 8. Usage and cost telemetry
+
+Provider responses expose usage where available. Creative OS records token counts, service tier and estimated cost using a versioned pricing snapshot (`2026-08-13`). Image/video providers also expose output-cost estimates based on selected model, resolution and duration.
+
+These estimates are observability aids, not invoices. Google billing remains the source of truth, and the pricing snapshot must be updated when provider pricing changes.
+
+## 9. Media providers
+
+### Image
+
+`GeminiImageProvider` uses the Gemini Interactions API and receives inline base64 image data. `producePoster()` persists the image locally and then renders factual copy through deterministic HTML/CSS.
+
+### TTS
+
+`GeminiTtsProvider` returns 24 kHz, mono, 16-bit PCM audio data plus usage telemetry when available.
+
+### Video
+
+`GeminiVeoProvider` submits Veo long-running generation jobs, polls until completion, downloads the resulting MP4, and estimates cost from model/resolution/duration.
+
+## 10. Future persistence
 
 When persistence is added, prefer:
 

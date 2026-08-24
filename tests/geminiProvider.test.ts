@@ -22,6 +22,12 @@ test("Gemini provider uses the default campaign model and JSON output mode", asy
               },
             },
           ],
+          usageMetadata: {
+            promptTokenCount: 100,
+            candidatesTokenCount: 20,
+            thoughtsTokenCount: 10,
+            totalTokenCount: 130,
+          },
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
@@ -31,6 +37,7 @@ test("Gemini provider uses the default campaign model and JSON output mode", asy
   const output = await provider.generate("Return campaign JSON");
 
   assert.equal(provider.providerName, "gemini");
+  assert.equal(provider.role, "default");
   assert.equal(provider.model, GEMINI_MODEL_STACK.text.default);
   assert.match(requestUrl, /gemini-3\.5-flash-lite:generateContent$/);
   assert.equal(new Headers(requestInit?.headers).get("x-goog-api-key"), "gemini-test-key");
@@ -45,15 +52,34 @@ test("Gemini provider uses the default campaign model and JSON output mode", asy
   assert.equal(body.generationConfig.responseMimeType, "application/json");
   assert.equal(body.generationConfig.maxOutputTokens, 3500);
   assert.equal(output, '{"status":"WORKING"}');
+  assert.equal(provider.lastUsage?.inputTokens, 100);
+  assert.equal(provider.lastUsage?.outputTokens, 30);
+  assert.equal(provider.lastUsage?.pricingVersion, "2026-08-13");
+});
+
+test("Gemini provider resolves creative and advanced roles", () => {
+  const creative = new GeminiCampaignProvider({
+    apiKey: "gemini-test-key",
+    role: "creative",
+  });
+  const advanced = new GeminiCampaignProvider({
+    apiKey: "gemini-test-key",
+    role: "advanced",
+  });
+
+  assert.equal(creative.model, "gemini-3.6-flash");
+  assert.equal(advanced.model, "gemini-3.7-flash");
 });
 
 test("Gemini provider supports an explicit model override", () => {
   const provider = new GeminiCampaignProvider({
     apiKey: "gemini-test-key",
-    model: GEMINI_MODEL_STACK.text.creative,
+    role: "review",
+    model: "custom-gemini-model",
   });
 
-  assert.equal(provider.model, "gemini-3.6-flash");
+  assert.equal(provider.role, "review");
+  assert.equal(provider.model, "custom-gemini-model");
 });
 
 test("Gemini provider surfaces API errors", async () => {

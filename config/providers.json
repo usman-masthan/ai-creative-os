@@ -1,26 +1,31 @@
 {
-  "version": 2,
+  "version": 3,
   "provider": "google-gemini",
+  "billing": {
+    "tier": "paid",
+    "paidMediaOptInEnvironment": "ALLOW_PAID_MEDIA",
+    "pricingReferenceDate": "2026-08-13"
+  },
   "roles": {
     "campaignDefault": {
       "model": "gemini-3.5-flash-lite",
-      "phase": "free"
+      "status": "active"
     },
     "creativeDirector": {
       "model": "gemini-3.6-flash",
-      "phase": "free"
+      "status": "active"
     },
-    "latestFlash": {
+    "advancedFlash": {
       "model": "gemini-3.7-flash",
-      "phase": "free-optional",
+      "status": "active",
       "useWhen": [
-        "availability-is-good",
-        "extra-creative-quality-is-useful"
+        "advanced-reasoning",
+        "higher-quality-flash-output"
       ]
     },
     "independentReview": {
       "model": "gemini-3.1-pro-preview",
-      "phase": "paid",
+      "status": "active",
       "useWhen": [
         "sensitive",
         "major-campaign",
@@ -29,38 +34,40 @@
     },
     "draftImage": {
       "model": "gemini-3.1-flash-lite-image",
-      "phase": "paid"
+      "status": "active-paid"
     },
     "productionImage": {
       "model": "gemini-3.1-flash-image",
-      "phase": "paid"
+      "status": "active-paid"
     },
     "premiumImage": {
       "model": "gemini-3-pro-image",
-      "phase": "paid"
+      "status": "active-paid"
     },
     "tts": {
       "model": "gemini-3.1-flash-tts-preview",
-      "phase": "free-limited"
+      "status": "active"
     },
     "routineVideo": {
       "model": "veo-3.1-lite-generate-preview",
-      "phase": "paid"
+      "status": "active-paid"
     },
     "fastVideo": {
       "model": "veo-3.1-fast-generate-preview",
-      "phase": "paid"
+      "status": "active-paid"
     },
     "premiumVideo": {
       "model": "veo-3.1-generate-preview",
-      "phase": "paid"
+      "status": "active-paid"
     }
   },
   "policy": {
     "singleProviderFamily": true,
     "premiumDuringBrainstorming": false,
+    "productionImageRequiresApprovedConcept": true,
     "videoRequiresApprovedStaticDirection": true,
+    "premiumMediaRequiresExplicitOverride": true,
     "costEstimateWhenPractical": true,
-    "paidMediaDisabledUntilBillingEnabled": true
+    "paidMediaRequiresRuntimeOptIn": true
   }
 }
