@@ -21,6 +21,7 @@ export type BatchVisualQaContext = Omit<
 };
 
 export interface ProduceAdaptationBatchRequest {
+  campaignId: string;
   sourceCampaign: DirectedCampaign;
   bundle: AtthasMultiFormatAdaptationBundle;
   outputDir: string;
@@ -52,8 +53,9 @@ export async function produceAdaptationBatch(
   request: ProduceAdaptationBatchRequest,
 ): Promise<ProduceAdaptationBatchResult> {
   const mode = request.mode ?? "FINAL";
-  if (request.bundle.campaignId !== request.sourceCampaign.preflight.campaignId) {
-    throw new Error("Adaptation bundle campaign ID does not match source campaign.");
+  if (!request.campaignId.trim()) throw new Error("campaignId is required for adaptation batch rendering.");
+  if (request.bundle.campaignId !== request.campaignId) {
+    throw new Error("Adaptation bundle campaign ID does not match requested campaign.");
   }
   if (request.bundle.sourceConceptId !== request.sourceCampaign.creative.recommendedConceptId) {
     throw new Error("Adaptation bundle selected concept does not match source campaign.");
@@ -101,7 +103,7 @@ export async function produceAdaptationBatch(
         : undefined;
 
     const poster = await producePoster({
-      campaignId: `${request.bundle.campaignId}-${variant.target.id}`,
+      campaignId: `${request.campaignId}-${variant.target.id}`,
       campaign: variantCampaign,
       outputDir: targetDir,
       brandId: request.bundle.brandId,
@@ -124,7 +126,7 @@ export async function produceAdaptationBatch(
   return {
     status: "BATCH_RENDERED",
     adaptationSetId: request.bundle.adaptationSetId,
-    campaignId: request.bundle.campaignId,
+    campaignId: request.campaignId,
     mode,
     assets,
   };
