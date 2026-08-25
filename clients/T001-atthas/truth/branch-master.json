@@ -1,0 +1,54 @@
+{
+  "tenantId": "T001",
+  "authority": "OWNER_CONFIRMED",
+  "confirmedAt": "2026-08-25",
+  "sourceId": "OWNER_BRANCH_MASTER_2026_08_25",
+  "status": "VERIFIED",
+  "branches": [
+    {
+      "branchId": "BURGER_WELLAMPITIYA",
+      "brandId": "ATTHAS_BURGER",
+      "name": "ATTHA’S Burger — Wellampitiya",
+      "canonicalPhysicalAddress": "Urban City Food Court, Ambagaha Junction Rd, Kotikawatta",
+      "officialPhone": "+94 76 630 6890",
+      "physicalOpeningHours": {
+        "daily": "17:00-00:00"
+      }
+    },
+    {
+      "branchId": "BURGER_MARINE_DRIVE_C04",
+      "brandId": "ATTHAS_BURGER",
+      "name": "ATTHA’S Burger — Bambalapitiya",
+      "canonicalPhysicalAddress": "Pink Beach Food Court, Marine Drive, Bambalapitiya, Colombo 04",
+      "officialPhone": "+94 77 730 6842",
+      "physicalOpeningHours": {
+        "daily": "17:00-00:00"
+      }
+    },
+    {
+      "branchId": "BURGER_HEY_MARINE_C03",
+      "brandId": "ATTHAS_BURGER",
+      "name": "ATTHA’S Burger — Kollupitiya",
+      "canonicalPhysicalAddress": "Hey Marine Food Court, 18 Marine Drive, Kollupitiya, Colombo 03",
+      "officialPhone": "+94 77 306 8864",
+      "physicalOpeningHours": {
+        "daily": "16:00-00:00"
+      }
+    },
+    {
+      "branchId": "RESTAURANT_COLOMBO_06",
+      "brandId": "ATTHAS_RESTAURANT",
+      "name": "ATTHA’S Restaurant — Wellawatte",
+      "canonicalPhysicalAddress": "24A Hampden Lane, Colombo 06",
+      "officialPhone": "+94 77 306 8311",
+      "physicalOpeningHours": {
+        "daily": "12:00-23:45"
+      }
+    }
+  ],
+  "policy": {
+    "precedence": "This owner-confirmed master overrides conflicting public address, phone and physical-hour observations for customer-facing branch facts.",
+    "deliveryHours": "Delivery-platform hours remain separately scoped and must not be inferred from physical opening hours.",
+    "phoneNormalization": "Bambalapitiya phone normalized from the owner-confirmed numeric sequence to +94 77 730 6842."
+  }
+}
