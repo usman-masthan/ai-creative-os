@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "1.0.0",
+  "tenantId": "T001",
+  "observedAt": "2026-08-24",
+  "scope": [
+    "BURGER_WELLAMPITIYA",
+    "BURGER_MARINE_DRIVE_C04",
+    "BURGER_HEY_MARINE_C03",
+    "RESTAURANT_COLOMBO_06"
+  ],
+  "policy": {
+    "publicWebIsAuthoritativeMaster": false,
+    "requiresOperationalReconciliation": true,
+    "priceMustBeChannelScoped": true,
+    "offerRequiresFreshVerification": true,
+    "branchImageDoesNotProveOtherBranch": true,
+    "generatedImageDoesNotProveProductAppearance": true
+  },
+  "branches": [
+    {
+      "branchId": "BURGER_WELLAMPITIYA",
+      "brandId": "ATTHAS_BURGER",
+      "status": "active_publicly_observed",
+      "canonicalAddress": null,
+      "addressCandidates": [
+        {
+          "value": "96/2 Avissawella Road, Wellampitiya",
+          "sourceId": "BUSINESS_WELLAMPITIYA_2026_08_24",
+          "status": "SOURCE_VERIFIED"
+        },
+        {
+          "value": "2 Avissawella Road, Wellampitiya 10600",
+          "sourceId": "UBER_BURGER_WELLAMPITIYA",
+          "status": "SOURCE_VERIFIED"
+        }
+      ],
+      "addressDecision": "CONFLICT_REQUIRES_CONFIRMATION",
+      "phone": {
+        "value": "+94 76 630 6890",
+        "sourceId": "BUSINESS_WELLAMPITIYA_2026_08_24",
+        "status": "SOURCE_VERIFIED"
+      },
+      "physicalHours": {
+        "value": "16:00-01:00 daily",
+        "status": "SOURCE_VERIFIED",
+        "sourceIds": ["BUSINESS_WELLAMPITIYA_2026_08_24", "UBER_BURGER_WELLAMPITIYA"]
+      },
+      "channels": {
+        "uber_eats": "SOURCE_VERIFIED",
+        "pickme": "BRAND_LEVEL_ONLY_NEEDS_BRANCH_VERIFICATION"
+      }
+    },
+    {
+      "branchId": "BURGER_MARINE_DRIVE_C04",
+      "brandId": "ATTHAS_BURGER",
+      "status": "active_publicly_observed",
+      "canonicalAddress": {
+        "value": "38 Frankfort Place, Marine Drive, Colombo 04",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "UBER_BURGER_MARINE_C04"
+      },
+      "legacyLocation": "Pink Beach",
+      "legacyLocationAdvertisingAllowed": false,
+      "phone": {
+        "value": "+94 77 730 6842",
+        "status": "CONFLICT_REQUIRES_CONFIRMATION",
+        "sourceId": "BUSINESS_BAMBALAPITIYA_LEGACY_2026_08_24",
+        "note": "Public profile appears tied to the older Pink Beach location."
+      },
+      "physicalHours": {
+        "value": "17:00-02:00 daily",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "UBER_BURGER_MARINE_C04"
+      },
+      "channels": {
+        "uber_eats": "SOURCE_VERIFIED",
+        "pickme": "BRAND_LEVEL_ONLY_NEEDS_BRANCH_VERIFICATION"
+      }
+    },
+    {
+      "branchId": "BURGER_HEY_MARINE_C03",
+      "brandId": "ATTHAS_BURGER",
+      "status": "active_publicly_observed",
+      "canonicalAddress": {
+        "value": "Hey Marine Food Court, 18 Marine Drive, Kollupitiya, Colombo 03, 00300",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "BUSINESS_KOLLUPITIYA_2026_08_24"
+      },
+      "phone": {
+        "value": "+94 77 306 8864",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "BUSINESS_KOLLUPITIYA_2026_08_24"
+      },
+      "physicalHours": {
+        "value": "16:00-00:00 daily",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "BUSINESS_KOLLUPITIYA_2026_08_24"
+      },
+      "uberOrderingStartApprox": "17:00",
+      "channels": {
+        "uber_eats": "SOURCE_VERIFIED",
+        "pickme": "BRAND_LEVEL_ONLY_NEEDS_BRANCH_VERIFICATION"
+      }
+    },
+    {
+      "branchId": "RESTAURANT_COLOMBO_06",
+      "brandId": "ATTHAS_RESTAURANT",
+      "status": "active_publicly_observed",
+      "canonicalAddress": {
+        "value": "24A Hampden Lane, Colombo 06",
+        "status": "SOURCE_VERIFIED",
+        "sourceIds": ["ATTHAS_INSTAGRAM_2026_08_24", "BUSINESS_WELLAWATTE_2026_08_24"]
+      },
+      "merchantAddress": {
+        "value": "24C Hampdon Lane",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "UBER_RESTAURANT_C06",
+        "advertiseAsPhysicalAddress": false
+      },
+      "phone": {
+        "value": "+94 77 306 8311",
+        "status": "SOURCE_VERIFIED",
+        "sourceIds": ["ATTHAS_INSTAGRAM_2026_08_24", "BUSINESS_WELLAWATTE_2026_08_24"]
+      },
+      "advertisingSafeHours": {
+        "value": "12:00-23:30 daily",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "ATTHAS_INSTAGRAM_2026_08_24"
+      },
+      "channels": {
+        "dine_in": "SOURCE_VERIFIED",
+        "takeaway": "SOURCE_VERIFIED",
+        "uber_eats": "SOURCE_VERIFIED",
+        "pickme": "SOURCE_VERIFIED_AT_BRAND_OR_FIRST_PARTY_LEVEL"
+      }
+    }
+  ],
+  "remainingOperationalInputs": [
+    "Uber Merchant export",
+    "PickMe Merchant export",
+    "POS/menu master",
+    "branch-specific official price lists",
+    "complete ingredients",
+    "allergen information",
+    "official branch contact list",
+    "high-resolution product-photo library",
+    "photo advertising-rights confirmation",
+    "promotion start/end dates",
+    "current availability feed"
+  ]
+}
