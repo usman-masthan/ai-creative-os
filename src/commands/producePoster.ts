@@ -6,8 +6,21 @@ import type { ImageDraftProvider, ImageDraftResult } from "../imageProviders/typ
 import { buildPosterHtml } from "../posterTemplate.js";
 import { assertPosterHtmlContract, qaPosterPng, type PosterQaResult } from "../posterQa.js";
 import { renderPosterPng } from "../posterRenderer.js";
+import type {
+  VisualQaProvider,
+  VisualQaRequest,
+  VisualQaResult,
+} from "../visualQa/types.js";
 
 export type GeneratedCampaign = Extract<GenerateCampaignResult, { status: "GENERATED" }>;
+export type ImageGenerationSummary = Omit<ImageDraftResult, "dataBase64"> & {
+  hasInlineData?: boolean;
+};
+
+export interface PosterVisualQaConfig {
+  provider: VisualQaProvider;
+  request: Omit<VisualQaRequest, "imageBase64" | "mimeType">;
+}
 
 export interface ProducePosterRequest {
   campaignId: string;
@@ -15,6 +28,7 @@ export interface ProducePosterRequest {
   outputDir: string;
   imageProvider?: ImageDraftProvider;
   baseImagePath?: string;
+  visualQa?: PosterVisualQaConfig;
   chromePath?: string;
   fetchFn?: typeof fetch;
 }
@@ -25,7 +39,8 @@ export interface ProducePosterResult {
   baseImagePath: string;
   htmlPath: string;
   pngPath: string;
-  imageGeneration?: ImageDraftResult;
+  imageGeneration?: ImageGenerationSummary;
+  visualQa?: VisualQaResult;
   qa: PosterQaResult;
 }
 
@@ -49,6 +64,14 @@ function extensionForMime(mimeType: string | undefined): string {
     default:
       return ".jpg";
   }
+}
+
+function summarizeImageGeneration(result: ImageDraftResult): ImageGenerationSummary {
+  const { dataBase64, ...summary } = result;
+  return {
+    ...summary,
+    ...(dataBase64 ? { hasInlineData: true } : {}),
+  };
 }
 
 function buildDraftPrompt(campaign: GeneratedCampaign): string {
@@ -111,6 +134,29 @@ async function imageToDataUri(path: string): Promise<string> {
   return `data:${mimeFromPath(path)};base64,${bytes.toString("base64")}`;
 }
 
+async function runVisualQa(
+  config: PosterVisualQaConfig,
+  baseImagePath: string,
+  outputDir: string,
+): Promise<VisualQaResult> {
+  const bytes = await readFile(baseImagePath);
+  const result = await config.provider.review({
+    ...config.request,
+    imageBase64: bytes.toString("base64"),
+    mimeType: mimeFromPath(baseImagePath),
+  });
+
+  await writeFile(join(outputDir, "visual-qa.json"), JSON.stringify(result, null, 2), "utf8");
+
+  if (result.decision !== "PASS") {
+    throw new Error(
+      `Poster production blocked by visual QA (${result.decision}): ${result.issues.join("; ") || "review required"}`,
+    );
+  }
+
+  return result;
+}
+
 export async function producePoster(request: ProducePosterRequest): Promise<ProducePosterResult> {
   if (!request.baseImagePath && !request.imageProvider) {
     throw new Error("Poster production requires either baseImagePath or an imageProvider.");
@@ -140,6 +186,10 @@ export async function producePoster(request: ProducePosterRequest): Promise<Prod
     );
   }
 
+  const visualQa = request.visualQa
+    ? await runVisualQa(request.visualQa, baseImagePath, outputDir)
+    : undefined;
+
   const baseImageDataUri = await imageToDataUri(baseImagePath);
   const html = buildPosterHtml({
     creative: request.campaign.creative,
@@ -161,6 +211,9 @@ export async function producePoster(request: ProducePosterRequest): Promise<Prod
   });
 
   const qa = await qaPosterPng(pngPath, request.campaign.production.format);
+  const imageGenerationSummary = imageGeneration
+    ? summarizeImageGeneration(imageGeneration)
+    : undefined;
   const manifest = {
     campaignId: request.campaignId,
     renderedAt: new Date().toISOString(),
@@ -168,7 +221,8 @@ export async function producePoster(request: ProducePosterRequest): Promise<Prod
     generation: request.campaign.generation,
     production: request.campaign.production,
     overlay: request.campaign.creative.overlaySpec,
-    imageGeneration: imageGeneration ?? { provider: "local", model: "existing-image" },
+    imageGeneration: imageGenerationSummary ?? { provider: "local", model: "existing-image" },
+    ...(visualQa ? { visualQa } : {}),
     files: {
       baseImagePath,
       htmlPath,
@@ -184,7 +238,8 @@ export async function producePoster(request: ProducePosterRequest): Promise<Prod
     baseImagePath,
     htmlPath,
     pngPath,
-    ...(imageGeneration ? { imageGeneration } : {}),
+    ...(imageGenerationSummary ? { imageGeneration: imageGenerationSummary } : {}),
+    ...(visualQa ? { visualQa } : {}),
     qa,
   };
 }
