@@ -50,6 +50,19 @@ function extractText(body: GeminiGenerateContentResponse): string {
   return chunks.join("\n").trim();
 }
 
+async function transientGeminiError(response: Response): Promise<Error & { status: number }> {
+  let detail = `HTTP ${response.status}`;
+  try {
+    const body = (await response.clone().json()) as GeminiGenerateContentResponse;
+    detail = body.error?.message ?? detail;
+  } catch {
+    // Keep the HTTP fallback when the transient error body is not valid JSON.
+  }
+  const error = new Error(`Gemini API request failed: ${detail}`) as Error & { status: number };
+  error.status = response.status;
+  return error;
+}
+
 export class GeminiCampaignProvider implements CampaignGenerationProvider {
   readonly providerName = "gemini";
   readonly model: string;
@@ -109,9 +122,7 @@ export class GeminiCampaignProvider implements CampaignGenerationProvider {
         },
       );
       if (response.status === 429 || response.status === 503) {
-        const error = new Error(`Gemini transient HTTP ${response.status}.`) as Error & { status: number };
-        error.status = response.status;
-        throw error;
+        throw await transientGeminiError(response);
       }
       return response;
     }, this.retryPolicy);
