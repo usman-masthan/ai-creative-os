@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
 import { FileCampaignStore } from "../operations/fileStore.js";
@@ -36,6 +37,11 @@ async function body(req: IncomingMessage): Promise<Record<string, unknown>> {
 function requiredString(value: unknown, name: string): string {
   if (typeof value !== "string" || !value.trim()) throw new Error(`${name} is required.`);
   return value.trim();
+}
+
+function finiteNumber(value: unknown, name: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) throw new Error(`${name} must be a finite number.`);
+  return value;
 }
 
 export function createAtthasDashboardServer(options: { rootDir?: string } = {}) {
@@ -106,6 +112,57 @@ export function createAtthasDashboardServer(options: { rootDir?: string } = {}) 
         return json(res, 201, revision);
       }
 
+      const spendMatch = url.pathname.match(/^\/api\/campaign\/([^/]+)\/spend$/);
+      if (req.method === "POST" && spendMatch) {
+        const data = await body(req);
+        const campaignId = decodeURIComponent(spendMatch[1]!);
+        const entry = {
+          spendId: randomUUID(),
+          campaignId,
+          createdAt: new Date().toISOString(),
+          category: requiredString(data.category, "category") as "text" | "image" | "visual_qa" | "final_art_qa" | "audio" | "video" | "other",
+          provider: requiredString(data.provider, "provider"),
+          model: requiredString(data.model, "model"),
+          amountUsd: finiteNumber(data.amountUsd, "amountUsd"),
+          ...(typeof data.description === "string" && data.description.trim() ? { description: data.description.trim() } : {}),
+        };
+        await workflow.addSpend(entry);
+        return json(res, 201, entry);
+      }
+
+      const publicationMatch = url.pathname.match(/^\/api\/campaign\/([^/]+)\/publication$/);
+      if (req.method === "POST" && publicationMatch) {
+        const data = await body(req);
+        const record = {
+          publicationId: randomUUID(),
+          campaignId: decodeURIComponent(publicationMatch[1]!),
+          assetId: requiredString(data.assetId, "assetId"),
+          channel: requiredString(data.channel, "channel"),
+          publishedAt: typeof data.publishedAt === "string" && data.publishedAt.trim() ? data.publishedAt.trim() : new Date().toISOString(),
+          publishedBy: requiredString(data.publishedBy, "publishedBy"),
+          ...(typeof data.url === "string" && data.url.trim() ? { url: data.url.trim() } : {}),
+          ...(typeof data.caption === "string" ? { caption: data.caption } : {}),
+        };
+        await workflow.publish(record);
+        return json(res, 201, record);
+      }
+
+      const performanceMatch = url.pathname.match(/^\/api\/campaign\/([^/]+)\/performance$/);
+      if (req.method === "POST" && performanceMatch) {
+        const data = await body(req);
+        if (!data.metrics || typeof data.metrics !== "object") throw new Error("metrics object is required.");
+        const record = {
+          performanceId: randomUUID(),
+          campaignId: decodeURIComponent(performanceMatch[1]!),
+          ...(typeof data.publicationId === "string" && data.publicationId.trim() ? { publicationId: data.publicationId.trim() } : {}),
+          observedAt: typeof data.observedAt === "string" && data.observedAt.trim() ? data.observedAt.trim() : new Date().toISOString(),
+          metrics: data.metrics as Record<string, number>,
+          ...(typeof data.notes === "string" && data.notes.trim() ? { notes: data.notes.trim() } : {}),
+        };
+        await workflow.recordPerformance(record);
+        return json(res, 201, record);
+      }
+
       if (req.method === "GET" && url.pathname === "/") {
         const campaigns = await store.listCampaigns();
         const snapshots = (await Promise.all(campaigns.map((item) => store.getSnapshot(item.campaignId))))
@@ -115,7 +172,7 @@ export function createAtthasDashboardServer(options: { rootDir?: string } = {}) 
           const spend = snapshot.spend.reduce((sum, entry) => sum + entry.amountUsd, 0);
           return `<tr><td><a href="/api/campaign/${encodeURIComponent(snapshot.campaign.campaignId)}">${escape(snapshot.campaign.campaignId)}</a></td><td>${escape(snapshot.campaign.brandId)}</td><td>${escape(snapshot.campaign.state)}</td><td>${snapshot.campaign.currentRevision}</td><td>$${spend.toFixed(4)}</td><td>${snapshot.publications.length}</td></tr>`;
         }).join("");
-        return html(res, `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ATTHA’S Creative OS</title><style>body{font-family:Inter,Arial,sans-serif;background:#171717;color:#fff;margin:0;padding:32px}h1{color:#FFD21A} .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:24px 0}.card{background:#242424;border:1px solid #3a3a3a;border-radius:12px;padding:16px}.n{font-size:28px;font-weight:700;color:#FFD21A}table{width:100%;border-collapse:collapse;background:#202020}th,td{padding:12px;border-bottom:1px solid #383838;text-align:left}th{color:#FFD21A}a{color:#FFD21A}small{color:#bbb}</style></head><body><h1>ATTHA’S Creative OS</h1><small>Internal operations dashboard — campaign lifecycle, revisions, spend, publication and validation.</small><div class="cards"><div class="card"><div class="n">${metrics.campaigns}</div>Campaigns</div><div class="card"><div class="n">${metrics.publicationCount}</div>Publications</div><div class="card"><div class="n">$${metrics.totalSpendUsd.toFixed(4)}</div>Total tracked spend</div><div class="card"><div class="n">${Math.round(metrics.productionReadyRate * 100)}%</div>Production-ready rate</div></div><table><thead><tr><th>Campaign</th><th>Brand</th><th>State</th><th>Revision</th><th>Spend</th><th>Published assets</th></tr></thead><tbody>${rows || "<tr><td colspan=6>No campaigns persisted yet.</td></tr>"}</tbody></table><p><small>JSON API: GET/POST /api/campaigns · GET /api/campaign/:id · POST /api/campaign/:id/transition · POST /api/campaign/:id/revision</small></p></body></html>`);
+        return html(res, `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ATTHA’S Creative OS</title><style>body{font-family:Inter,Arial,sans-serif;background:#171717;color:#fff;margin:0;padding:32px}h1{color:#FFD21A}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:24px 0}.card{background:#242424;border:1px solid #3a3a3a;border-radius:12px;padding:16px}.n{font-size:28px;font-weight:700;color:#FFD21A}table{width:100%;border-collapse:collapse;background:#202020}th,td{padding:12px;border-bottom:1px solid #383838;text-align:left}th{color:#FFD21A}a{color:#FFD21A}small{color:#bbb}</style></head><body><h1>ATTHA’S Creative OS</h1><small>Internal operations dashboard — campaign lifecycle, revisions, spend, publication, performance and validation.</small><div class="cards"><div class="card"><div class="n">${metrics.campaigns}</div>Campaigns</div><div class="card"><div class="n">${metrics.publicationCount}</div>Publications</div><div class="card"><div class="n">$${metrics.totalSpendUsd.toFixed(4)}</div>Total tracked spend</div><div class="card"><div class="n">${Math.round(metrics.productionReadyRate * 100)}%</div>Production-ready rate</div></div><table><thead><tr><th>Campaign</th><th>Brand</th><th>State</th><th>Revision</th><th>Spend</th><th>Published assets</th></tr></thead><tbody>${rows || "<tr><td colspan=6>No campaigns persisted yet.</td></tr>"}</tbody></table><p><small>API: campaigns · lifecycle transitions · revisions · spend · publications · performance.</small></p></body></html>`);
       }
 
       json(res, 404, { error: "not_found" });
