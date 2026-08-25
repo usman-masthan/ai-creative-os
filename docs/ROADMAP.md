@@ -11,14 +11,22 @@ ATTHA’S is the only active V1 client. Multi-client generalisation is postponed
 - [x] Reconcile public address/hour/contact conflicts into an explicit conflict register.
 - [x] Refresh public Uber pricing/menu snapshots to 24 August 2026.
 - [x] Separate branch/channel/date-scoped public truth from universal official truth.
+- [x] Import owner-confirmed official branch/address/phone/physical-hours master for the four active V1 branches.
 - [ ] Import ATTHA’S POS/menu master.
-- [ ] Import official branch/contact/hours master.
-- [ ] Import dine-in and takeaway price masters.
-- [ ] Import Uber Merchant export.
-- [ ] Import PickMe Merchant export.
-- [ ] Import complete ingredient and allergen records.
-- [ ] Import promotion start/end dates and current availability feed.
 - [ ] Reconcile public observations with operational data and lock the authoritative master dataset.
+
+### Temporarily deferred operational data
+
+Per current sprint decision, these are intentionally postponed and must remain fact-gated until revisited:
+
+- dine-in + takeaway prices
+- Uber prices / Merchant export freshness
+- PickMe prices / Merchant export
+- complete ingredients and descriptions
+- allergens
+- offers + validity dates
+- product availability by branch
+- real product photographs / photo-rights / SKU mapping
 
 ## P1 — ATTHA’S brand system
 
@@ -46,10 +54,10 @@ ATTHA’S is the only active V1 client. Multi-client generalisation is postponed
 - [x] Add machine-readable visual-asset schema and empty product-image registry.
 - [x] Enforce policy that AI imagery is not evidence of product appearance.
 - [x] Enforce branch-image isolation policy.
-- [ ] Import high-resolution original ATTHA’S food photography.
-- [ ] Map SKU → image → branch scope.
-- [ ] Record ownership/licence and advertising approval.
-- [ ] Record verified visible ingredients / must-include / must-not-include per product visual.
+- [ ] Import high-resolution original ATTHA’S food photography. **Deferred for current sprint.**
+- [ ] Map SKU → image → branch scope. **Deferred for current sprint.**
+- [ ] Record ownership/licence and advertising approval. **Deferred for current sprint.**
+- [ ] Record verified visible ingredients / must-include / must-not-include per product visual. **Deferred for current sprint.**
 
 ## P1 — Visual QA and static production
 
@@ -60,7 +68,7 @@ ATTHA’S is the only active V1 client. Multi-client generalisation is postponed
 - [x] Allow poster production to run visual QA before final rendering.
 - [x] Stop raw image base64 from being written to the manifest/result.
 - [x] Apply ATTHA’S Burger working palette/CTA/type direction to the first deterministic hero layout.
-- [ ] Connect visual QA to real approved product/reference records in the live ATTHA’S workflow.
+- [ ] Connect visual QA to real approved product/reference records in the live ATTHA’S workflow. **Blocked by deferred product-photo work.**
 - [ ] Add automatic safe regeneration loop for `REGENERATE` decisions.
 - [ ] Build approved Burger promotional / editorial layout families.
 - [ ] Build approved Restaurant dish / shared-table / promotional layout families.
@@ -80,7 +88,7 @@ ATTHA’S is the only active V1 client. Multi-client generalisation is postponed
 
 ## P2 — Creative Director and marketing operations
 
-After P0/P1 truth and visual safety are reliable:
+After the current brand/static-production sprint:
 
 - [ ] Objective → strategy → maximum three concepts.
 - [ ] Creative Director critique/ranking and explicit winner selection.
