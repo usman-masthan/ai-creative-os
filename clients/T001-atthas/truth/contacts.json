@@ -1,43 +1,52 @@
 {
   "tenantId": "T001",
-  "retrievedAt": "2026-08-23",
+  "retrievedAt": "2026-08-24",
   "contacts": [
     {
-      "branchId": "BURGER_DEHIWALA",
+      "branchId": "RESTAURANT_COLOMBO_06",
+      "type": "phone",
+      "value": "+94 77 306 8311",
+      "status": "SOURCE_VERIFIED",
+      "sourceId": "ATTHAS_INSTAGRAM_2026_08_24",
+      "advertisingSafe": true
+    },
+    {
+      "branchId": "BURGER_WELLAMPITIYA",
+      "type": "phone",
+      "value": "+94 76 630 6890",
+      "status": "SOURCE_VERIFIED",
+      "sourceId": "BUSINESS_WELLAMPITIYA_2026_08_24",
+      "advertisingSafe": true
+    },
+    {
+      "branchId": "BURGER_MARINE_DRIVE_C04",
+      "type": "phone",
+      "value": null,
+      "status": "CONFLICT_REQUIRES_CONFIRMATION",
+      "conflictId": "CONFLICT_BAMBALAPITIYA_PHONE",
+      "advertisingSafe": false,
+      "note": "The public +94 77 730 6842 profile appears tied to the older Pink Beach location and is not approved as the current Frankfort Place contact."
+    },
+    {
+      "branchId": "BURGER_HEY_MARINE_C03",
       "type": "phone",
       "value": "+94 77 306 8864",
       "status": "SOURCE_VERIFIED",
-      "sourceId": "GOOGLE_BUSINESS_DEHIWALA"
-    },
-    {
-      "branchId": "RESTAURANT_COLOMBO_06",
-      "type": "phone",
-      "value": null,
-      "status": "MISSING"
-    },
-    {
-      "branchId": "RESTAURANT_COLOMBO_06",
-      "type": "whatsapp",
-      "value": null,
-      "status": "MISSING"
-    },
-    {
-      "branchId": "BURGER_WELLAMPITIYA",
-      "type": "phone",
-      "value": null,
-      "status": "MISSING"
-    },
-    {
-      "branchId": "BURGER_WELLAMPITIYA",
-      "type": "whatsapp",
-      "value": null,
-      "status": "MISSING"
+      "sourceId": "BUSINESS_KOLLUPITIYA_2026_08_24",
+      "advertisingSafe": true
     },
     {
       "branchId": "BURGER_DEHIWALA",
-      "type": "whatsapp",
+      "type": "phone",
       "value": null,
-      "status": "MISSING"
+      "status": "CONFLICT_REQUIRES_CONFIRMATION",
+      "conflictId": "CONFLICT_DEHIWALA_KOLLUPITIYA_PHONE",
+      "advertisingSafe": false,
+      "note": "Outside current V1 scope. Fresh owner confirmation required before any use."
     }
+  ],
+  "missing": [
+    "official current Bambalapitiya branch phone",
+    "official WhatsApp/direct-order numbers by branch, if applicable"
   ]
 }
