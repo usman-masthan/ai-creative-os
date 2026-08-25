@@ -25,6 +25,7 @@ outputs/
 tmp/
 .tmp/
 .cache/
+.atthas-os/
 
 # Sensitive client material
 clients/**/private/
