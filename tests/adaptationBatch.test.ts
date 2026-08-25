@@ -7,7 +7,7 @@ import type { AtthasMultiFormatAdaptationBundle } from "../src/multiFormatTypes.
 
 const campaign = {
   status: "GENERATED",
-  preflight: { campaignId: "C1", status: "READY_FOR_CREATIVE", facts: [], missingKeys: [] },
+  preflight: { status: "READY_FOR_CREATIVE", facts: [], missing: [], conflicts: [], factGate: "PASS", riskLevel: "LOW", humanApprovalRequired: false },
   provider: { name: "test", model: "test" },
   generation: { attempts: 1, repairs: 0 },
   production: { format: { channel: "instagram", assetType: "poster", aspectRatio: "4:5", width: 1080, height: 1350 }, complexity: { score: 0, level: "low", reasons: [] } },
@@ -42,14 +42,21 @@ const bundle: AtthasMultiFormatAdaptationBundle = {
 
 test("FINAL adaptation batch requires both image and final-art QA gates", async () => {
   await assert.rejects(
-    produceAdaptationBatch({ sourceCampaign: campaign, bundle, outputDir: "out", mode: "FINAL", baseImagePath: "image.jpg" }),
+    produceAdaptationBatch({ campaignId: "C1", sourceCampaign: campaign, bundle, outputDir: "out", mode: "FINAL", baseImagePath: "image.jpg" }),
     /requires visual QA provider and context/,
   );
 });
 
 test("adaptation batch rejects a different selected concept", async () => {
   await assert.rejects(
-    produceAdaptationBatch({ sourceCampaign: campaign, bundle: { ...bundle, sourceConceptId: "C2" }, outputDir: "out", mode: "DRAFT", baseImagePath: "image.jpg" }),
+    produceAdaptationBatch({ campaignId: "C1", sourceCampaign: campaign, bundle: { ...bundle, sourceConceptId: "C2" }, outputDir: "out", mode: "DRAFT", baseImagePath: "image.jpg" }),
     /selected concept does not match/,
+  );
+});
+
+test("adaptation batch rejects campaign identity mismatch", async () => {
+  await assert.rejects(
+    produceAdaptationBatch({ campaignId: "OTHER", sourceCampaign: campaign, bundle, outputDir: "out", mode: "DRAFT", baseImagePath: "image.jpg" }),
+    /campaign ID does not match/,
   );
 });
