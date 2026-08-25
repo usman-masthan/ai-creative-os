@@ -1,38 +1,39 @@
 {
   "tenantId": "T001",
-  "retrievedAt": "2026-08-24",
+  "retrievedAt": "2026-08-25",
+  "sourceId": "OWNER_BRANCH_MASTER_2026_08_25",
   "contacts": [
     {
       "branchId": "RESTAURANT_COLOMBO_06",
       "type": "phone",
       "value": "+94 77 306 8311",
-      "status": "SOURCE_VERIFIED",
-      "sourceId": "ATTHAS_INSTAGRAM_2026_08_24",
+      "status": "VERIFIED",
+      "sourceId": "OWNER_BRANCH_MASTER_2026_08_25",
       "advertisingSafe": true
     },
     {
       "branchId": "BURGER_WELLAMPITIYA",
       "type": "phone",
       "value": "+94 76 630 6890",
-      "status": "SOURCE_VERIFIED",
-      "sourceId": "BUSINESS_WELLAMPITIYA_2026_08_24",
+      "status": "VERIFIED",
+      "sourceId": "OWNER_BRANCH_MASTER_2026_08_25",
       "advertisingSafe": true
     },
     {
       "branchId": "BURGER_MARINE_DRIVE_C04",
       "type": "phone",
-      "value": null,
-      "status": "CONFLICT_REQUIRES_CONFIRMATION",
-      "conflictId": "CONFLICT_BAMBALAPITIYA_PHONE",
-      "advertisingSafe": false,
-      "note": "The public +94 77 730 6842 profile appears tied to the older Pink Beach location and is not approved as the current Frankfort Place contact."
+      "value": "+94 77 730 6842",
+      "status": "VERIFIED",
+      "sourceId": "OWNER_BRANCH_MASTER_2026_08_25",
+      "advertisingSafe": true,
+      "note": "Owner-confirmed for the current Bambalapitiya/Pink Beach Food Court branch."
     },
     {
       "branchId": "BURGER_HEY_MARINE_C03",
       "type": "phone",
       "value": "+94 77 306 8864",
-      "status": "SOURCE_VERIFIED",
-      "sourceId": "BUSINESS_KOLLUPITIYA_2026_08_24",
+      "status": "VERIFIED",
+      "sourceId": "OWNER_BRANCH_MASTER_2026_08_25",
       "advertisingSafe": true
     },
     {
@@ -46,7 +47,6 @@
     }
   ],
   "missing": [
-    "official current Bambalapitiya branch phone",
     "official WhatsApp/direct-order numbers by branch, if applicable"
   ]
 }
