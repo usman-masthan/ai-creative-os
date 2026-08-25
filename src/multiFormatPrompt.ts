@@ -1,4 +1,5 @@
 import type { DirectedCampaign } from "./commands/directCampaign.js";
+import type { AtthasBrandId } from "./layouts/atthas.js";
 import type { AtthasAdaptationTarget } from "./multiFormatTypes.js";
 
 function compactFacts(campaign: DirectedCampaign): string {
@@ -9,6 +10,7 @@ function compactFacts(campaign: DirectedCampaign): string {
 
 export function buildAtthasMultiFormatPrompt(input: {
   campaignId: string;
+  brandId: AtthasBrandId;
   campaign: DirectedCampaign;
   targets: AtthasAdaptationTarget[];
   truthVersion: string;
@@ -33,7 +35,7 @@ export function buildAtthasMultiFormatPrompt(input: {
     "You are adapting one already-selected ATTHA’S campaign concept into platform-specific copy/composition variants.",
     "This is adaptation, not a new campaign. Do not invent new concepts, products, offers, prices, ingredients, availability, branch facts, delivery promises, slogans or brand claims.",
     `Campaign ID: ${input.campaignId}`,
-    `Brand: ${input.campaign.production.format.channel ? input.campaign.creativeDirector ? "locked" : "locked" : "locked"}`,
+    `Brand: ${input.brandId}`,
     `Source concept ID: ${source.recommendedConceptId}`,
     `Truth version: ${input.truthVersion}`,
     `Brand version: ${input.brandVersion}`,
