@@ -109,7 +109,11 @@ export type ProducePlannedCampaignResult =
       campaign: DirectedCampaign;
     })
   | (ProductionTraceBase & {
-      status: "HUMAN_REVIEW_REQUIRED" | "BLOCKED_VISUAL_QA" | "REGENERATION_EXHAUSTED" | "REGENERATION_UNAVAILABLE";
+      status:
+        | "HUMAN_REVIEW_REQUIRED"
+        | "BLOCKED_VISUAL_QA"
+        | "REGENERATION_EXHAUSTED"
+        | "REGENERATION_UNAVAILABLE";
       campaign: DirectedCampaign;
       visualQa: VisualQaResult;
       draftImagePath: string;
@@ -129,13 +133,11 @@ function normalizeImageRegenerations(value: number | undefined): number {
   return value;
 }
 
-function assertEntryCanEnterProduction(entry: MarketingCalendarEntry): void {
+function assertEntryShape(entry: MarketingCalendarEntry): void {
   if (entry.truthReadiness !== "READY_WITH_CURRENT_TRUTH" || entry.missingTruth.length > 0) {
     return;
   }
-
-  if (entry.branchScope === "BRAND_WIDE") return;
-  if (!entry.branchScope.trim()) {
+  if (entry.branchScope !== "BRAND_WIDE" && !entry.branchScope.trim()) {
     throw new Error("Planned campaign branchScope cannot be empty.");
   }
 }
@@ -166,8 +168,14 @@ function buildGenerationRequest(request: ProducePlannedCampaignRequest): Generat
     assetType: entry.assetType,
     requirements: requirementsFromEntry(entry, request.requirementScopes),
     truthRecords: request.truthRecords,
+    brandContext: request.brandContext,
     ...(request.allowSourceVerified !== undefined
       ? { allowSourceVerified: request.allowSourceVerified }
+      : {}),
+    ...(request.brandGovernance ? { brandGovernance: request.brandGovernance } : {}),
+    ...(request.claimGovernance ? { claimGovernance: request.claimGovernance } : {}),
+    ...(request.maxCampaignRepairAttempts !== undefined
+      ? { maxRepairAttempts: request.maxCampaignRepairAttempts }
       : {}),
   };
 }
@@ -208,7 +216,7 @@ function buildImagePrompt(
     `Layout composition requirements: ${layout.imageCompositionRequirements.join("; ")}.`,
     image.negativePrompt ? `Avoid: ${image.negativePrompt}.` : "",
     previousQa
-      ? `Previous visual QA required regeneration. Correct these visible issues without adding new product facts: ${previousQa.issues.join("; ") || "composition/quality did not pass"}.`
+      ? `Previous visual QA required regeneration. Correct these visible issues without adding new product facts: ${previousQa.issues.join("; ") || "composition or quality did not pass"}.`
       : "",
     "Return an image only. Do not render promotional copy, numbers, prices, logos, badges, labels or watermarks.",
   ];
@@ -299,31 +307,27 @@ async function localImage(path: string): Promise<{
   };
 }
 
-function visualQaRequest(input: {
+function buildVisualQaRequest(input: {
   context: PlannedVisualQaContext;
-  campaign: DirectedCampaign;
+  entry: MarketingCalendarEntry;
   layout: AtthasLayoutDefinition;
   bytes: Buffer;
   mimeType: string;
 }): VisualQaRequest {
-  const branchId = input.campaign.preflight.facts.find((fact) => fact.key.startsWith("branchPhysicalAddress|"))
-    ? undefined
-    : undefined;
-  const explicitBranchId = input.campaign.preflight.facts.length >= 0 ? undefined : branchId;
-  void explicitBranchId;
-
-  const requirements = [
+  const compositionRequirements = [
     ...input.layout.imageCompositionRequirements,
     ...(input.context.compositionRequirements ?? []),
   ];
+
   return {
     ...input.context,
-    brandId: input.campaign.preflight.facts.length >= 0
-      ? (input.campaign.creativeDirector ? input.layout.brandId : input.layout.brandId)
-      : input.layout.brandId,
+    brandId: input.entry.brandId,
+    ...(input.entry.branchScope !== "BRAND_WIDE"
+      ? { branchId: input.entry.branchScope }
+      : {}),
     imageBase64: input.bytes.toString("base64"),
     mimeType: input.mimeType,
-    compositionRequirements: [...new Set(requirements)],
+    compositionRequirements: [...new Set(compositionRequirements)],
   };
 }
 
@@ -333,17 +337,21 @@ async function persistOrchestration(
 ): Promise<void> {
   const serializable = {
     ...result,
-    campaign: "campaign" in result
-      ? {
-          status: result.campaign.status,
-          provider: result.campaign.status === "GENERATED" ? result.campaign.provider : undefined,
-          production: result.campaign.status === "GENERATED" ? result.campaign.production : undefined,
-          creativeDirector:
-            result.campaign.status === "GENERATED" && "creativeDirector" in result.campaign
-              ? result.campaign.creativeDirector
-              : undefined,
-        }
-      : undefined,
+    campaign:
+      "campaign" in result
+        ? {
+            status: result.campaign.status,
+            ...(result.campaign.status === "GENERATED"
+              ? {
+                  provider: result.campaign.provider,
+                  production: result.campaign.production,
+                  ...( "creativeDirector" in result.campaign
+                    ? { creativeDirector: result.campaign.creativeDirector }
+                    : {}),
+                }
+              : {}),
+          }
+        : undefined,
   };
   await writeFile(
     join(outputDir, "production-orchestration.json"),
@@ -355,7 +363,7 @@ async function persistOrchestration(
 export async function producePlannedCampaign(
   request: ProducePlannedCampaignRequest,
 ): Promise<ProducePlannedCampaignResult> {
-  assertEntryCanEnterProduction(request.entry);
+  assertEntryShape(request.entry);
   const outputDir = resolve(request.outputDir);
   await mkdir(outputDir, { recursive: true });
   const mode = request.mode ?? "FINAL";
@@ -380,18 +388,7 @@ export async function producePlannedCampaign(
   }
 
   const generationRequest = buildGenerationRequest(request);
-  const generated = await generateCampaign(
-    {
-      ...generationRequest,
-      brandContext: request.brandContext,
-      ...(request.brandGovernance ? { brandGovernance: request.brandGovernance } : {}),
-      ...(request.claimGovernance ? { claimGovernance: request.claimGovernance } : {}),
-      ...(request.maxCampaignRepairAttempts !== undefined
-        ? { maxRepairAttempts: request.maxCampaignRepairAttempts }
-        : {}),
-    },
-    request.providers.generation,
-  );
+  const generated = await generateCampaign(generationRequest, request.providers.generation);
 
   if (generated.status !== "GENERATED") {
     const result: ProducePlannedCampaignResult = {
@@ -405,12 +402,7 @@ export async function producePlannedCampaign(
 
   const directed = await directGeneratedCampaign(
     {
-      request: {
-        ...generationRequest,
-        brandContext: request.brandContext,
-        ...(request.brandGovernance ? { brandGovernance: request.brandGovernance } : {}),
-        ...(request.claimGovernance ? { claimGovernance: request.claimGovernance } : {}),
-      },
+      request: generationRequest,
       campaign: generated,
       ...(request.maxDirectorRepairAttempts !== undefined
         ? { maxDirectorRepairAttempts: request.maxDirectorRepairAttempts }
@@ -470,8 +462,9 @@ export async function producePlannedCampaign(
       });
   base.imageAttempts.push(current.summary);
 
+  const posterProducer = request.posterProducer ?? producePoster;
+
   if (mode === "DRAFT") {
-    const posterProducer = request.posterProducer ?? producePoster;
     const poster = await posterProducer({
       campaignId: request.campaignId,
       campaign: directed,
@@ -499,9 +492,9 @@ export async function producePlannedCampaign(
 
   while (true) {
     const qa = await qaProvider.review(
-      visualQaRequest({
+      buildVisualQaRequest({
         context: qaContext,
-        campaign: directed,
+        entry: request.entry,
         layout,
         bytes: current.bytes,
         mimeType: current.mimeType,
@@ -576,7 +569,6 @@ export async function producePlannedCampaign(
     base.imageAttempts.push(current.summary);
   }
 
-  const posterProducer = request.posterProducer ?? producePoster;
   const poster = await posterProducer({
     campaignId: request.campaignId,
     campaign: directed,
