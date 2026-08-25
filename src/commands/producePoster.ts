@@ -3,6 +3,12 @@ import { extname, join, resolve } from "node:path";
 
 import type { GenerateCampaignResult } from "./generateCampaign.js";
 import type { ImageDraftProvider, ImageDraftResult } from "../imageProviders/types.js";
+import {
+  selectAtthasLayout,
+  type AtthasBrandId,
+  type AtthasLayoutDefinition,
+  type AtthasLayoutId,
+} from "../layouts/atthas.js";
 import { buildPosterHtml } from "../posterTemplate.js";
 import { assertPosterHtmlContract, qaPosterPng, type PosterQaResult } from "../posterQa.js";
 import { renderPosterPng } from "../posterRenderer.js";
@@ -26,6 +32,8 @@ export interface ProducePosterRequest {
   campaignId: string;
   campaign: GeneratedCampaign;
   outputDir: string;
+  brandId?: AtthasBrandId;
+  layoutId?: AtthasLayoutId;
   imageProvider?: ImageDraftProvider;
   baseImagePath?: string;
   visualQa?: PosterVisualQaConfig;
@@ -39,6 +47,7 @@ export interface ProducePosterResult {
   baseImagePath: string;
   htmlPath: string;
   pngPath: string;
+  layout: AtthasLayoutDefinition;
   imageGeneration?: ImageGenerationSummary;
   visualQa?: VisualQaResult;
   qa: PosterQaResult;
@@ -190,11 +199,21 @@ export async function producePoster(request: ProducePosterRequest): Promise<Prod
     ? await runVisualQa(request.visualQa, baseImagePath, outputDir)
     : undefined;
 
+  const brandId = request.brandId ?? "ATTHAS_BURGER";
+  const layout = selectAtthasLayout({
+    brandId,
+    creative: request.campaign.creative,
+    format: request.campaign.production.format,
+    ...(request.layoutId ? { preferredLayoutId: request.layoutId } : {}),
+  });
+
   const baseImageDataUri = await imageToDataUri(baseImagePath);
   const html = buildPosterHtml({
     creative: request.campaign.creative,
     format: request.campaign.production.format,
     baseImageDataUri,
+    brandId,
+    layoutId: layout.id,
   });
   assertPosterHtmlContract(html, request.campaign.creative, request.campaign.production.format);
 
@@ -219,7 +238,11 @@ export async function producePoster(request: ProducePosterRequest): Promise<Prod
     renderedAt: new Date().toISOString(),
     provider: request.campaign.provider,
     generation: request.campaign.generation,
-    production: request.campaign.production,
+    production: {
+      ...request.campaign.production,
+      brandId,
+      layout,
+    },
     overlay: request.campaign.creative.overlaySpec,
     imageGeneration: imageGenerationSummary ?? { provider: "local", model: "existing-image" },
     ...(visualQa ? { visualQa } : {}),
@@ -238,6 +261,7 @@ export async function producePoster(request: ProducePosterRequest): Promise<Prod
     baseImagePath,
     htmlPath,
     pngPath,
+    layout,
     ...(imageGenerationSummary ? { imageGeneration: imageGenerationSummary } : {}),
     ...(visualQa ? { visualQa } : {}),
     qa,
