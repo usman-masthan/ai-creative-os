@@ -1,7 +1,15 @@
 {
   "tenantId": "T001",
-  "retrievedAt": "2026-08-24",
+  "retrievedAt": "2026-08-25",
   "sources": [
+    {
+      "sourceId": "OWNER_BRANCH_MASTER_2026_08_25",
+      "type": "OWNER_CONFIRMED_CHAT_RECORD",
+      "description": "ATTHA’S owner/operator confirmation of canonical physical addresses, official phone numbers and physical opening hours for the four active V1 branches.",
+      "status": "VERIFIED",
+      "confirmedAt": "2026-08-25",
+      "precedence": "Overrides conflicting public address, phone and physical-opening-hour observations for customer-facing branch facts."
+    },
     {
       "sourceId": "OWNER_BURGER_MENU_2026_08",
       "type": "OWNER_SUPPLIED_IMAGE",
@@ -47,49 +55,37 @@
     {
       "sourceId": "BUSINESS_WELLAMPITIYA_2026_08_24",
       "type": "PUBLIC_BUSINESS_LISTING",
-      "description": "Business/maps listing snapshot for ATTHA'S Burger Wellampitiya; used for 96/2 address variant, phone and hours.",
+      "description": "Superseded public snapshot for Wellampitiya address/hours; retained as historical evidence.",
       "observedAt": "2026-08-24"
     },
     {
       "sourceId": "BUSINESS_BAMBALAPITIYA_LEGACY_2026_08_24",
       "type": "PUBLIC_BUSINESS_LISTING",
-      "description": "Maps/business profile associated with the older Pink Beach Bambalapitiya location; phone cannot be promoted for the current Frankfort Place branch without confirmation.",
+      "description": "Public Bambalapitiya/Pink Beach listing retained as historical evidence; current canonical branch facts now come from OWNER_BRANCH_MASTER_2026_08_25.",
       "observedAt": "2026-08-24"
     },
     {
       "sourceId": "BUSINESS_KOLLUPITIYA_2026_08_24",
       "type": "PUBLIC_BUSINESS_LISTING",
-      "description": "Business listing for ATTHA'S Burger Hey Marine / Kollupitiya; used for address, phone and physical opening hours.",
+      "description": "Business listing for ATTHA'S Burger Hey Marine / Kollupitiya.",
       "observedAt": "2026-08-24"
     },
     {
       "sourceId": "BUSINESS_WELLAWATTE_2026_08_24",
       "type": "PUBLIC_BUSINESS_LISTING",
-      "description": "Business/maps listing for ATTHA'S Restaurant Wellawatte; supports 24A Hampden Lane and public phone details.",
+      "description": "Business/maps listing for ATTHA'S Restaurant Wellawatte.",
       "observedAt": "2026-08-24"
     },
     {
       "sourceId": "UBER_BURGER_DEHIWALA",
       "type": "PUBLIC_PLATFORM",
       "url": "https://www.ubereats.com/lk/store/atthas-burger-dehiwala/SEA5t6bPVbibVSwDJS6SFw",
-      "note": "Retained as historical/source evidence. Dehiwala is outside the current four-location V1 scope and requires fresh verification before advertising."
+      "note": "Historical evidence only. Dehiwala is outside current V1 scope."
     },
     {
       "sourceId": "GOOGLE_BUSINESS_DEHIWALA",
       "type": "PUBLIC_BUSINESS_LISTING",
-      "description": "Historical business listing previously associated with ATTHA'S Burger Dehiwala. A phone number from this listing conflicts with the current Kollupitiya business record and must not be reused without confirmation."
-    },
-    {
-      "sourceId": "USER_GOOGLE_SHARE_LINKS",
-      "type": "USER_PROVIDED_URLS",
-      "urls": [
-        "https://share.google/XddKwxvNZZpnq4jWI",
-        "https://share.google/4IemZ8vsXSmeangvf",
-        "https://share.google/wlmM5FHSDSNXaq8hv",
-        "https://share.google/ckcPh5kXqxV3ZRUB1"
-      ],
-      "status": "UNRESOLVED_BY_CURRENT_FETCHER",
-      "note": "Do not infer destination details until expanded links or screenshots are available."
+      "description": "Historical Dehiwala listing. Do not reuse as current branch truth."
     }
   ]
 }
