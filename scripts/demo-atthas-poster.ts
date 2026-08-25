@@ -1,7 +1,11 @@
 import { readFile } from "node:fs/promises";
 
 import type { BrandGovernance } from "../src/brandGovernance.js";
-import { generateCampaign } from "../src/commands/generateCampaign.js";
+import { directGeneratedCampaign } from "../src/commands/directCampaign.js";
+import {
+  generateCampaign,
+  type GenerateCampaignRequest,
+} from "../src/commands/generateCampaign.js";
 import { producePoster } from "../src/commands/producePoster.js";
 import { GeminiImageProvider } from "../src/imageProviders/gemini.js";
 import { createGeminiCampaignProvider } from "../src/providers/gemini.js";
@@ -66,43 +70,51 @@ const truthRecords: TruthRecord[] = [
   },
 ];
 
-const campaignProvider = createGeminiCampaignProvider();
+const request: GenerateCampaignRequest = {
+  campaignId,
+  tenantId: "T001",
+  brandId: "ATTHAS_BURGER",
+  branchId: "BURGER_WELLAMPITIYA",
+  objective: "Drive Crispy Chicken Burger orders on Uber Eats",
+  channel: "instagram",
+  assetType: "poster",
+  requirements: [
+    {
+      key: "productName",
+      productId: crispy.productId,
+      salesChannel: pricing.salesChannel,
+    },
+    {
+      key: "price",
+      productId: crispy.productId,
+      salesChannel: pricing.salesChannel,
+    },
+  ],
+  truthRecords,
+  allowSourceVerified: true,
+  brandContext: `${masterPositioning}\n\n${burgerRules}`,
+  brandGovernance,
+};
+
+const campaignProvider = createGeminiCampaignProvider({ role: "default" });
+const directorProvider = createGeminiCampaignProvider({ role: "creative" });
+const finalizerProvider = createGeminiCampaignProvider({ role: "default" });
 console.error(
-  `Campaign AI provider: ${campaignProvider.providerName} | model: ${campaignProvider.model}`,
+  `Campaign AI: ${campaignProvider.model} | Creative Director: ${directorProvider.model} | Finalizer: ${finalizerProvider.model}`,
 );
 
-const campaign = await generateCampaign(
-  {
-    campaignId,
-    tenantId: "T001",
-    brandId: "ATTHAS_BURGER",
-    branchId: "BURGER_WELLAMPITIYA",
-    objective: "Drive Crispy Chicken Burger orders on Uber Eats",
-    channel: "instagram",
-    assetType: "poster",
-    requirements: [
-      {
-        key: "productName",
-        productId: crispy.productId,
-        salesChannel: pricing.salesChannel,
-      },
-      {
-        key: "price",
-        productId: crispy.productId,
-        salesChannel: pricing.salesChannel,
-      },
-    ],
-    truthRecords,
-    allowSourceVerified: true,
-    brandContext: `${masterPositioning}\n\n${burgerRules}`,
-    brandGovernance,
-  },
-  campaignProvider,
-);
-
-if (campaign.status !== "GENERATED") {
-  throw new Error(`Campaign did not reach generation: ${campaign.status}`);
+const initialCampaign = await generateCampaign(request, campaignProvider);
+if (initialCampaign.status !== "GENERATED") {
+  throw new Error(`Campaign did not reach generation: ${initialCampaign.status}`);
 }
+
+const campaign = await directGeneratedCampaign(
+  { request, campaign: initialCampaign },
+  {
+    director: directorProvider,
+    finalizer: finalizerProvider,
+  },
+);
 
 const baseImagePath = process.env.POSTER_BASE_IMAGE_PATH?.trim();
 const paidMediaAllowed = process.env.ALLOW_PAID_MEDIA?.trim().toLowerCase() === "true";
@@ -132,9 +144,14 @@ console.log(
       campaign: {
         provider: campaign.provider,
         generation: campaign.generation,
+        creativeDirector: campaign.creativeDirector,
         production: campaign.production,
         overlaySpec: campaign.creative.overlaySpec,
-        usage: campaignProvider.lastUsage,
+        usage: {
+          generation: campaignProvider.lastUsage,
+          creativeDirector: directorProvider.lastUsage,
+          finalization: finalizerProvider.lastUsage,
+        },
       },
       selectedLayout: poster.layout,
       poster,

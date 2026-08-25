@@ -91,11 +91,12 @@ Per current sprint decision, these are intentionally postponed and must remain f
 
 ## P2 — Creative Director and marketing operations
 
-After the current brand/static-production sprint:
-
-- [ ] Objective → strategy → maximum three concepts.
-- [ ] Creative Director critique/ranking and explicit winner selection.
-- [ ] Selected concept → brief → draft → QA → revision → final orchestration.
+- [x] Objective → strategy → maximum three concepts.
+- [x] Creative Director 8-dimension critique/ranking with deterministic highest-score winner validation.
+- [x] Selected concept → improvement directives → production-safe brief/copy/image-direction finalization.
+- [x] Preserve original concepts, verified prices, aspect ratio and brand/claim governance through bounded finalizer repairs.
+- [ ] Add automatic Gemini 3.7 escalation when Creative Director review is close or high-risk.
+- [ ] Selected concept → draft → QA → revision → final orchestration as one command.
 - [ ] Monthly ATTHA’S marketing plan.
 - [ ] Weekly content plan and campaign calendar.
 - [ ] One approved concept → feed/story/reel-cover/Facebook/WhatsApp adaptations.
