@@ -11,6 +11,8 @@ export type VisualQaDecision =
   | "HUMAN_REVIEW"
   | "BLOCK";
 
+export type VisualRightsStatus = "cleared" | "unknown" | "blocked";
+
 export interface VisualQaRequest {
   imageBase64: string;
   mimeType: string;
@@ -19,6 +21,7 @@ export interface VisualQaRequest {
   productId?: string;
   productName?: string;
   visualClass: VisualClass;
+  rightsStatus: VisualRightsStatus;
   verifiedVisibleIngredients?: string[];
   mustInclude?: string[];
   mustNotInclude?: string[];
