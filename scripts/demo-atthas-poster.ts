@@ -120,6 +120,7 @@ const imageProvider = baseImagePath
 const poster = await producePoster({
   campaignId,
   campaign,
+  brandId: "ATTHAS_BURGER",
   outputDir: `outputs/${campaignId}`,
   ...(baseImagePath ? { baseImagePath } : { imageProvider: imageProvider! }),
   ...(process.env.CHROME_PATH?.trim() ? { chromePath: process.env.CHROME_PATH.trim() } : {}),
@@ -135,6 +136,7 @@ console.log(
         overlaySpec: campaign.creative.overlaySpec,
         usage: campaignProvider.lastUsage,
       },
+      selectedLayout: poster.layout,
       poster,
     },
     null,
