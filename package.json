@@ -12,7 +12,8 @@
     "campaign:ai-demo": "tsx scripts/demo-ai-campaign.ts",
     "poster:demo": "tsx scripts/demo-atthas-poster.ts",
     "marketing:plan-demo": "tsx scripts/demo-atthas-marketing-plan.ts",
-    "production:demo": "tsx scripts/demo-atthas-production.ts"
+    "production:demo": "tsx scripts/demo-atthas-production.ts",
+    "adaptation:demo": "tsx scripts/demo-atthas-multi-format.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
