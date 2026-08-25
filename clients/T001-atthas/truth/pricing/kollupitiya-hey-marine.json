@@ -1,0 +1,42 @@
+{
+  "tenantId": "T001",
+  "brandId": "ATTHAS_BURGER",
+  "branchId": "BURGER_HEY_MARINE_C03",
+  "salesChannel": "UBER_EATS",
+  "sourceId": "UBER_BURGER_HEY_MARINE_C03",
+  "status": "SOURCE_VERIFIED",
+  "retrievedAt": "2026-08-24",
+  "currency": "LKR",
+  "prices": [
+    { "productId": "FRENCH_FRIES_MEDIUM", "category": "Appetizer", "name": "French Fries — Medium", "price": 810 },
+    { "productId": "LOADED_FRIES_MEDIUM", "category": "Appetizer", "name": "Loaded Fries — Medium", "price": 1080 },
+    { "productId": "NO1_CRISPY_CHICKEN_BURGER", "category": "Chicken", "name": "NO.1 Crispy Chicken Burger", "price": 1070 },
+    { "productId": "TWIN_TURBO_CHICKEN", "category": "Chicken", "name": "TWIN TURBO Chicken", "price": 1490, "descriptionIngredients": ["double crispy chicken fillets", "cabbage", "onion", "pickles", "mayo", "toasted bun"] },
+    { "productId": "CHEEZY_NO_MEAT", "category": "Meatless", "name": "CHEEZY Burger — No Meat", "price": 670, "descriptionIngredients": ["two cheese layers", "pickles", "onion", "cabbage", "mayo"] },
+    { "productId": "CANNON_CHICKEN", "category": "Chicken", "name": "CANNON Chicken", "price": 950, "descriptionIngredients": ["chicken kebab", "cabbage", "onion", "pickles", "mayo/signature sauce"] },
+    { "productId": "MAYO_SPLASH_CHICKEN", "category": "Chicken", "name": "MAYO SPLASH Chicken", "price": 950 },
+    { "productId": "TIKKA_CHICKEN", "category": "Chicken", "name": "TIKKA Chicken", "price": 990, "descriptionIngredients": ["grilled chicken tikka", "spices", "cabbage", "onion", "pickles", "mayo"] },
+    { "productId": "CHEEZY_CHICKEN", "category": "Chicken", "name": "CHEEZY Chicken", "price": 890, "descriptionIngredients": ["cheese", "chicken ham or patty", "vegetables", "mayo"] },
+    { "productId": "TURBO_CHICKEN", "category": "Chicken", "name": "TURBO Chicken", "price": 750, "descriptionIngredients": ["chicken patty", "pickle", "onion", "cabbage", "mayo"] },
+    { "productId": "FIRE_CHICKEN", "category": "Chicken", "name": "FIRE Chicken", "price": 790, "descriptionIngredients": ["chicken patty or crispy chicken", "vegetables", "Kochchi mayo"] },
+    { "productId": "MAYO_SPLASH_BEEF", "category": "Beef", "name": "MAYO SPLASH Beef", "price": 1080 },
+    { "productId": "TURBO_BEEF", "category": "Beef", "name": "TURBO Beef", "price": 990, "descriptionIngredients": ["beef patty", "pickles", "onion", "cabbage", "mayo"] },
+    { "productId": "CANNON_BEEF", "category": "Beef", "name": "CANNON Beef", "price": 990, "descriptionIngredients": ["grilled beef kebab", "vegetables", "mayo"] },
+    { "productId": "BEEF_CHEESE_BURGER", "category": "Beef", "name": "Beef Cheese Burger", "price": 1080 },
+    { "productId": "HYBRID_CHICKEN_BEEF", "category": "Mixed", "name": "HYBRID Chicken & Beef", "price": 1340, "descriptionIngredients": ["crispy chicken", "beef", "cabbage", "onion", "pickles", "signature sauce"] },
+    { "productId": "TWIN_TURBO_BEEF", "category": "Beef", "name": "TWIN TURBO Beef", "price": 1890, "descriptionIngredients": ["two beef patties", "onion", "lettuce", "pickles", "signature sauce"] }
+  ],
+  "otherCurrentCategoryLabels": [
+    "Submarines",
+    "BBQ",
+    "Grill & Add-ons",
+    "Soft Drinks",
+    "Dips & Add-ons"
+  ],
+  "offersObserved": [
+    { "productId": "CHICKEN_CHEESE_BURGER_LARGE", "display": "LKR 1,390", "observedAt": "2026-08-24", "effectiveUntil": null },
+    { "productId": "CRISPY_CHICKEN_BURGER_KIK_COLA", "display": "LKR 1,340", "observedAt": "2026-08-24", "effectiveUntil": null },
+    { "productId": "BEEF_CHEESE_BURGER_KIK_COLA", "display": "LKR 1,490", "observedAt": "2026-08-24", "effectiveUntil": null }
+  ],
+  "warning": "Not all publicly visible categories were expanded. Do not infer unlisted products. Offer status must be rechecked before publication."
+}
