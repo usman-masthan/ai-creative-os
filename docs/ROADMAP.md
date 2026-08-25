@@ -101,9 +101,10 @@ Per current sprint decision, these are intentionally postponed and must remain f
 - [x] Protect operating-brand/branch scope and fixed publishing slots during AI planning.
 - [x] Planned campaign → truth gate → generation → Creative Director → deterministic layout → draft media → visual QA → bounded regeneration → final renderer as one governed command.
 - [x] Support explicit `DRAFT` output while requiring visual-QA `PASS` before `FINAL_RENDERED`.
+- [x] One approved concept → Instagram feed/story/reel-cover, Facebook feed and WhatsApp Status adaptations.
+- [x] Keep caption/headline/CTA variants tied to the same campaign ID, selected concept, truth version and brand version.
+- [x] Preserve deterministic prices and block new numeric/claim-bearing facts during adaptation.
 - [ ] Add automatic Gemini 3.7 escalation when Creative Director review is close or high-risk.
-- [ ] One approved concept → feed/story/reel-cover/Facebook/WhatsApp adaptations.
-- [ ] Caption/headline/CTA variants tied to the same approved truth/version.
 
 ## P2 — Persistence and approvals
 
