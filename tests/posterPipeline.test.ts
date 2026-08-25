@@ -76,11 +76,11 @@ test("poster template renders deterministic ATTHAS Burger price layout at exact 
 });
 
 test("poster template can render an approved Restaurant editorial family", () => {
+  const { price: _price, ...overlayWithoutPrice } = creative.overlaySpec;
   const restaurantCreative: CampaignCreativeOutput = {
     ...creative,
     overlaySpec: {
-      ...creative.overlaySpec,
-      price: undefined,
+      ...overlayWithoutPrice,
       headline: "An evening at ATTHA’S",
       supportingCopy: "Warm food. Shared moments.",
       cta: "Visit Wellawatte",
