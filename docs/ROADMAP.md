@@ -95,10 +95,12 @@ Per current sprint decision, these are intentionally postponed and must remain f
 - [x] Creative Director 8-dimension critique/ranking with deterministic highest-score winner validation.
 - [x] Selected concept → improvement directives → production-safe brief/copy/image-direction finalization.
 - [x] Preserve original concepts, verified prices, aspect ratio and brand/claim governance through bounded finalizer repairs.
+- [x] Monthly ATTHA’S marketing plan.
+- [x] Weekly content plan and deterministic campaign calendar.
+- [x] Classify each planned campaign as `READY_WITH_CURRENT_TRUTH` or `NEEDS_TRUTH_BEFORE_PRODUCTION` using application-owned requirements.
+- [x] Protect operating-brand/branch scope and fixed publishing slots during AI planning.
 - [ ] Add automatic Gemini 3.7 escalation when Creative Director review is close or high-risk.
 - [ ] Selected concept → draft → QA → revision → final orchestration as one command.
-- [ ] Monthly ATTHA’S marketing plan.
-- [ ] Weekly content plan and campaign calendar.
 - [ ] One approved concept → feed/story/reel-cover/Facebook/WhatsApp adaptations.
 - [ ] Caption/headline/CTA variants tied to the same approved truth/version.
 
