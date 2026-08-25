@@ -9,6 +9,7 @@ import {
   type AtthasLayoutDefinition,
   type AtthasLayoutId,
 } from "../layouts/atthas.js";
+import { truthRequirementsForCampaign } from "../marketingPlannerPolicy.js";
 import type { MarketingCalendarEntry } from "../marketingPlannerTypes.js";
 import type { CampaignGenerationProvider } from "../providers/types.js";
 import type { TruthRecord, TruthRequirement } from "../types.js";
@@ -42,8 +43,8 @@ export interface PlannedTruthRequirementScope {
 
 export interface PlannedCampaignProductionProviders extends CreativeDirectorProviders {
   generation: CampaignGenerationProvider;
-  image?: ImageDraftProvider;
-  visualQa?: VisualQaProvider;
+  image?: ImageDraftProvider | undefined;
+  visualQa?: VisualQaProvider | undefined;
 }
 
 export type PlannedVisualQaContext = Omit<
@@ -66,7 +67,7 @@ export interface ProducePlannedCampaignRequest {
   brandGovernance?: BrandGovernance;
   claimGovernance?: ClaimGovernance;
   baseImagePath?: string;
-  visualQaContext?: PlannedVisualQaContext;
+  visualQaContext?: PlannedVisualQaContext | undefined;
   preferredLayoutId?: AtthasLayoutId;
   maxCampaignRepairAttempts?: number;
   maxDirectorRepairAttempts?: number;
@@ -134,8 +135,25 @@ function normalizeImageRegenerations(value: number | undefined): number {
 }
 
 function assertEntryShape(entry: MarketingCalendarEntry): void {
-  if (entry.truthReadiness !== "READY_WITH_CURRENT_TRUTH" || entry.missingTruth.length > 0) {
-    return;
+  const baseline = truthRequirementsForCampaign(entry.campaignType);
+  for (const key of baseline) {
+    if (!entry.requiredTruth.includes(key)) {
+      throw new Error(
+        `Planned campaign ${entry.slotId} is missing deterministic required truth key ${key}.`,
+      );
+    }
+  }
+  for (const key of entry.missingTruth) {
+    if (!entry.requiredTruth.includes(key)) {
+      throw new Error(
+        `Planned campaign ${entry.slotId} lists missing truth ${key} outside requiredTruth.`,
+      );
+    }
+  }
+  if (entry.truthReadiness === "READY_WITH_CURRENT_TRUTH" && entry.missingTruth.length > 0) {
+    throw new Error(
+      `Planned campaign ${entry.slotId} cannot be READY_WITH_CURRENT_TRUTH while missing truth remains.`,
+    );
   }
   if (entry.branchScope !== "BRAND_WIDE" && !entry.branchScope.trim()) {
     throw new Error("Planned campaign branchScope cannot be empty.");
@@ -158,6 +176,18 @@ function requirementsFromEntry(
 
 function buildGenerationRequest(request: ProducePlannedCampaignRequest): GenerateCampaignRequest {
   const entry = request.entry;
+  const plannedContext = [
+    request.brandContext,
+    "",
+    "PLANNED CAMPAIGN CONTEXT",
+    `Calendar slot: ${entry.slotId} on ${entry.date}`,
+    `Audience: ${entry.audience}`,
+    `Campaign type: ${entry.campaignType}`,
+    `Priority: ${entry.priority}`,
+    `Concept direction: ${entry.conceptDirection}`,
+    "Treat the planned direction as creative guidance only. It does not create new verified facts.",
+  ].join("\n");
+
   return {
     campaignId: request.campaignId,
     tenantId: "T001",
@@ -168,7 +198,7 @@ function buildGenerationRequest(request: ProducePlannedCampaignRequest): Generat
     assetType: entry.assetType,
     requirements: requirementsFromEntry(entry, request.requirementScopes),
     truthRecords: request.truthRecords,
-    brandContext: request.brandContext,
+    brandContext: plannedContext,
     ...(request.allowSourceVerified !== undefined
       ? { allowSourceVerified: request.allowSourceVerified }
       : {}),
