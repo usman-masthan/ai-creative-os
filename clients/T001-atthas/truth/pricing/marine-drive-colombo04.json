@@ -5,23 +5,13 @@
   "salesChannel": "UBER_EATS",
   "sourceId": "UBER_BURGER_MARINE_C04",
   "status": "SOURCE_VERIFIED",
-  "retrievedAt": "2026-08-23",
+  "retrievedAt": "2026-08-24",
   "currency": "LKR",
   "prices": [
     {
       "productId": "CHICKEN_CHEESE_BURGER",
       "name": "Chicken Cheese Burger",
-      "price": 990
-    },
-    {
-      "productId": "CRISPY_CHICKEN_BURGER",
-      "name": "Crispy Chicken Burger",
-      "price": 900
-    },
-    {
-      "productId": "CRISPY_CHICKEN_BURGER_KIK",
-      "name": "Crispy Chicken Burger & KIK Cola",
-      "price": 960
+      "price": 1090
     },
     {
       "productId": "LOADED_FRIES",
@@ -34,14 +24,11 @@
       "price": 1650
     },
     {
-      "productId": "BEEF_CHEESE_BURGER_KIK",
-      "name": "Beef Cheese Burger & KIK Cola",
-      "price": 1080
-    },
-    {
-      "productId": "BEEF_STEW_BURGER",
-      "name": "Beef Stew Burger",
-      "price": 850
+      "productId": "CRISPY_CHICKEN_BURGER_KIK_COLA",
+      "name": "Crispy Chicken Burger + KIK Cola",
+      "price": 960,
+      "originalPrice": 1200,
+      "promotionObserved": true
     },
     {
       "productId": "BEEF_2X2_BURGER",
@@ -49,14 +36,28 @@
       "price": 1300
     },
     {
-      "productId": "BEEF_CHEESE_BURGER",
-      "name": "Beef Cheese Burger",
-      "price": 990
+      "productId": "BEEF_STEW",
+      "name": "Beef Stew",
+      "price": 850
     },
     {
-      "productId": "HYBRID_BURGER",
-      "name": "Hybrid Burger",
-      "price": 1200
+      "productId": "BEEF_CHEESE_BURGER",
+      "name": "Beef Cheese Burger",
+      "price": 1090
+    },
+    {
+      "productId": "CHICKEN_KEBAB_STICK",
+      "name": "Chicken Kebab Stick — 1 pc",
+      "price": 413,
+      "originalPrice": 590,
+      "promotionObserved": true
+    },
+    {
+      "productId": "BEEF_CHEESE_BURGER_KIK_COLA",
+      "name": "Beef Cheese Burger + KIK Cola",
+      "price": 1080,
+      "originalPrice": 1350,
+      "promotionObserved": true
     },
     {
       "productId": "BEEF_KEBAB_BURGER",
@@ -64,25 +65,45 @@
       "price": 850
     },
     {
-      "productId": "CHEESE_BURGER_NO_MEAT",
-      "name": "Cheese Burger (No Meat)",
+      "productId": "CHICKEN_PATTY_CRISPY_BURGER",
+      "name": "Chicken Patty Crispy Burger",
+      "price": 700
+    },
+    {
+      "productId": "BEEF_KEBAB_STICK",
+      "name": "Beef Kebab Stick",
+      "price": 455,
+      "originalPrice": 650,
+      "promotionObserved": true
+    },
+    {
+      "productId": "EGG_BURGER",
+      "name": "Egg Burger",
       "price": 550
     },
     {
-      "productId": "CHICKEN_KEBAB_BURGER",
-      "name": "Chicken Kebab Burger",
-      "price": 750
-    },
-    {
-      "productId": "BEEF_5X5_BURGER",
-      "name": "5x5 Beef Cheese Burger",
-      "price": 2300
-    },
-    {
-      "productId": "GRILLED_CHICKEN_SANDWICH",
-      "name": "Grilled Chicken Sandwich",
-      "price": 800
+      "productId": "CHICKEN_HAM_CHEESE_BURGER",
+      "name": "Chicken Ham & Cheese Burger",
+      "price": 650
     }
   ],
-  "warning": "Use only for Uber Eats-specific creatives after freshness recheck; not official in-store pricing."
+  "verifiedDescriptions": {
+    "LOADED_FRIES": ["fries", "chicken", "cheese", "mayo", "honey mustard"],
+    "CHICKEN_CHEESE_BURGER": ["chicken patty", "cheese", "garlic mayo", "tomato sauce", "cabbage"]
+  },
+  "historicalRecentUnconfirmedProducts": [
+    "Crispy Chicken Burger",
+    "Chicken Tikka Burger",
+    "Hybrid",
+    "Cheese Burger — No Meat",
+    "Chicken Kebab Burger",
+    "5x5 Beef Burger",
+    "Chicken Melt",
+    "Beef Melt",
+    "Grilled Chicken Sandwich",
+    "Chicken Tikka",
+    "Patties",
+    "Soft drinks"
+  ],
+  "warning": "Only the listed current snapshot may be treated as SOURCE_VERIFIED for Uber Eats on 2026-08-24. Historical/recent catalog items require fresh verification before advertising."
 }
