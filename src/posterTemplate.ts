@@ -36,80 +36,133 @@ export function buildPosterHtml(input: PosterTemplateInput): string {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=${format.width}, initial-scale=1" />
 <style>
+  :root {
+    --atthas-red-deep: #B50008;
+    --atthas-red-appetite: #D01920;
+    --atthas-red-ember: #820008;
+    --atthas-gold-flame: #FFD21A;
+    --atthas-gold-toasted: #F2B705;
+    --atthas-white: #FFFFFF;
+    --atthas-cream: #FFF8E8;
+    --atthas-ink: #171717;
+  }
   * { box-sizing: border-box; }
   html, body { margin: 0; width: ${format.width}px; height: ${format.height}px; overflow: hidden; }
-  body { font-family: Arial, Helvetica, sans-serif; background: #111; }
+  body { font-family: Inter, Arial, Helvetica, sans-serif; background: var(--atthas-ink); }
   .poster {
     position: relative;
     width: ${format.width}px;
     height: ${format.height}px;
-    background-image: linear-gradient(180deg, rgba(0,0,0,.12) 0%, rgba(0,0,0,.02) 44%, rgba(0,0,0,.62) 100%), url("${cssString(baseImageDataUri)}");
+    overflow: hidden;
+    background-image:
+      linear-gradient(180deg, rgba(23,23,23,.16) 0%, rgba(23,23,23,0) 42%, rgba(23,23,23,.78) 100%),
+      url("${cssString(baseImageDataUri)}");
     background-size: cover;
     background-position: center;
-    color: #fff;
+    color: var(--atthas-white);
+  }
+  .poster::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 350px;
+    background: linear-gradient(180deg, rgba(181,0,8,.94) 0%, rgba(181,0,8,.76) 58%, rgba(181,0,8,0) 100%);
+    pointer-events: none;
+  }
+  .brand-rail {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 16px;
+    background: var(--atthas-gold-flame);
   }
   .top {
     position: absolute;
-    left: 72px;
-    right: 72px;
-    top: 72px;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 40px;
+    z-index: 2;
+    left: 64px;
+    right: 64px;
+    top: 64px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 36px;
   }
-  .copy { max-width: 700px; }
+  .copy { max-width: 690px; }
   .headline {
+    font-family: Oswald, "Arial Narrow", Arial, sans-serif;
     font-size: 82px;
     line-height: .96;
     font-weight: 800;
-    letter-spacing: -2.5px;
+    letter-spacing: -1.8px;
     text-wrap: balance;
-    text-shadow: 0 3px 18px rgba(0,0,0,.45);
+    text-transform: none;
+    text-shadow: 0 3px 14px rgba(23,23,23,.28);
   }
   .supporting {
-    margin-top: 24px;
-    font-size: 34px;
-    line-height: 1.16;
-    font-weight: 500;
+    margin-top: 20px;
+    font-size: 32px;
+    line-height: 1.2;
+    font-weight: 600;
     max-width: 620px;
-    text-shadow: 0 2px 12px rgba(0,0,0,.55);
+    color: var(--atthas-cream);
+    text-shadow: 0 2px 10px rgba(23,23,23,.28);
   }
   .price {
     flex: 0 0 auto;
-    padding: 20px 28px;
-    border-radius: 18px;
-    background: rgba(0,0,0,.78);
-    border: 2px solid rgba(255,255,255,.8);
+    padding: 18px 26px;
+    border-radius: 12px;
+    background: var(--atthas-gold-flame);
+    color: var(--atthas-ink);
+    border: 3px solid rgba(255,255,255,.92);
+    font-family: Oswald, "Arial Narrow", Arial, sans-serif;
     font-size: 46px;
-    font-weight: 800;
-    letter-spacing: -1px;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -.5px;
     white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(23,23,23,.22);
   }
   .bottom {
     position: absolute;
-    left: 72px;
-    right: 72px;
-    bottom: 70px;
+    z-index: 2;
+    left: 64px;
+    right: 64px;
+    bottom: 64px;
     display: flex;
     justify-content: flex-end;
     align-items: flex-end;
   }
   .cta {
-    display: inline-block;
-    padding: 20px 28px;
-    border-radius: 14px;
-    background: #fff;
-    color: #111;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 64px;
+    padding: 18px 28px;
+    border-radius: 8px;
+    background: var(--atthas-gold-flame);
+    color: var(--atthas-ink);
     font-size: 30px;
     line-height: 1;
     font-weight: 800;
-    letter-spacing: -.4px;
+    letter-spacing: -.2px;
+    box-shadow: 0 10px 28px rgba(23,23,23,.30);
+  }
+  .compliance-accent {
+    position: absolute;
+    z-index: 2;
+    left: 64px;
+    bottom: 64px;
+    width: 96px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--atthas-gold-flame);
   }
 </style>
 </head>
 <body>
-  <main class="poster" data-width="${format.width}" data-height="${format.height}">
+  <main class="poster" data-width="${format.width}" data-height="${format.height}" data-template-id="ATTHAS_BURGER_HERO_V1">
+    <div class="brand-rail" aria-hidden="true"></div>
     <section class="top">
       <div class="copy">
         <div class="headline">${headline}</div>
@@ -117,6 +170,7 @@ export function buildPosterHtml(input: PosterTemplateInput): string {
       </div>
       ${price ? `<div class="price">${price}</div>` : ""}
     </section>
+    <div class="compliance-accent" aria-hidden="true"></div>
     <section class="bottom">
       <div class="cta">${cta}</div>
     </section>
