@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-creative-os.local/schemas/atthas-truth-record.schema.json",
+  "title": "ATTHA'S Scoped Truth Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["key", "value", "verificationStatus", "scope", "sourceId"],
+  "properties": {
+    "key": { "type": "string", "minLength": 1 },
+    "value": {},
+    "verificationStatus": {
+      "enum": [
+        "VERIFIED",
+        "OWNER_SOURCE_CONFIRMED",
+        "SOURCE_VERIFIED",
+        "CONFLICT_REQUIRES_CONFIRMATION",
+        "MISSING"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tenantId", "brandId"],
+      "properties": {
+        "tenantId": { "const": "T001" },
+        "brandId": {
+          "enum": ["ATTHAS_MASTER", "ATTHAS_RESTAURANT", "ATTHAS_BURGER"]
+        },
+        "branchId": { "type": ["string", "null"] },
+        "productId": { "type": ["string", "null"] },
+        "channel": {
+          "enum": ["dine_in", "takeaway", "uber_eats", "pickme", "general", null]
+        }
+      }
+    },
+    "sourceId": { "type": "string", "minLength": 1 },
+    "observedAt": { "type": ["string", "null"], "format": "date" },
+    "effectiveFrom": { "type": ["string", "null"], "format": "date" },
+    "effectiveUntil": { "type": ["string", "null"], "format": "date" },
+    "timeSensitive": { "type": "boolean" },
+    "confidence": { "enum": ["high", "medium", "low", "unknown"] },
+    "conflictId": { "type": ["string", "null"] },
+    "advertisingSafe": { "type": "boolean" },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}
