@@ -4,6 +4,7 @@ import {
   type GeminiUsageTelemetry,
 } from "./geminiUsage.js";
 import type { CampaignGenerationProvider } from "./types.js";
+import { withTransientRetry, type RetryPolicy, type RetryTrace } from "../reliability/retry.js";
 
 interface GeminiCampaignProviderOptions {
   apiKey?: string;
@@ -12,6 +13,7 @@ interface GeminiCampaignProviderOptions {
   baseUrl?: string;
   maxOutputTokens?: number;
   fetchImpl?: typeof fetch;
+  retryPolicy?: RetryPolicy;
 }
 
 interface GeminiGenerateContentResponse {
@@ -53,11 +55,13 @@ export class GeminiCampaignProvider implements CampaignGenerationProvider {
   readonly model: string;
   readonly role: GeminiTextRole;
   lastUsage: GeminiUsageTelemetry | undefined;
+  lastRetryTrace: RetryTrace | undefined;
 
   private readonly apiKey: string;
   private readonly baseUrl: string;
   private readonly maxOutputTokens: number;
   private readonly fetchImpl: typeof fetch;
+  private readonly retryPolicy: RetryPolicy;
 
   constructor(options: GeminiCampaignProviderOptions = {}) {
     const apiKey = options.apiKey ?? process.env.GEMINI_API_KEY;
@@ -74,6 +78,7 @@ export class GeminiCampaignProvider implements CampaignGenerationProvider {
       "https://generativelanguage.googleapis.com/v1beta";
     this.maxOutputTokens = options.maxOutputTokens ?? 3500;
     this.fetchImpl = options.fetchImpl ?? fetch;
+    this.retryPolicy = options.retryPolicy ?? {};
   }
 
   async generate(prompt: string): Promise<string> {
@@ -81,27 +86,37 @@ export class GeminiCampaignProvider implements CampaignGenerationProvider {
       throw new Error("Gemini campaign prompt cannot be empty.");
     }
 
-    const response = await this.fetchImpl(
-      `${this.baseUrl}/models/${encodeURIComponent(this.model)}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "x-goog-api-key": this.apiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: prompt }],
-            },
-          ],
-          generationConfig: {
-            responseMimeType: "application/json",
-            maxOutputTokens: this.maxOutputTokens,
+    const retryResult = await withTransientRetry(async () => {
+      const response = await this.fetchImpl(
+        `${this.baseUrl}/models/${encodeURIComponent(this.model)}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "x-goog-api-key": this.apiKey,
+            "Content-Type": "application/json",
           },
-        }),
-      },
-    );
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [{ text: prompt }],
+              },
+            ],
+            generationConfig: {
+              responseMimeType: "application/json",
+              maxOutputTokens: this.maxOutputTokens,
+            },
+          }),
+        },
+      );
+      if (response.status === 429 || response.status === 503) {
+        const error = new Error(`Gemini transient HTTP ${response.status}.`) as Error & { status: number };
+        error.status = response.status;
+        throw error;
+      }
+      return response;
+    }, this.retryPolicy);
+    this.lastRetryTrace = retryResult.trace;
+    const response = retryResult.value;
 
     let body: GeminiGenerateContentResponse;
     try {
