@@ -7,6 +7,7 @@ import {
   usageFromInteraction,
   type GeminiUsageTelemetry,
 } from "../providers/geminiUsage.js";
+import { withTransientRetry, type RetryPolicy, type RetryTrace } from "../reliability/retry.js";
 import type {
   ImageDraftProvider,
   ImageDraftRequest,
@@ -20,6 +21,7 @@ interface GeminiImageProviderOptions {
   baseUrl?: string;
   defaultResolution?: string;
   fetchImpl?: typeof fetch;
+  retryPolicy?: RetryPolicy;
 }
 
 interface GeminiInteractionResponse {
@@ -88,16 +90,31 @@ function extractImage(body: GeminiInteractionResponse): { dataBase64: string; mi
   return undefined;
 }
 
+async function transientGeminiImageError(response: Response): Promise<Error & { status: number }> {
+  let detail = `HTTP ${response.status}`;
+  try {
+    const body = (await response.clone().json()) as GeminiInteractionResponse;
+    detail = body.error?.message ?? detail;
+  } catch {
+    // Keep the HTTP fallback when the transient error body is not valid JSON.
+  }
+  const error = new Error(`Gemini image generation failed: ${detail}`) as Error & { status: number };
+  error.status = response.status;
+  return error;
+}
+
 export class GeminiImageProvider implements ImageDraftProvider {
   readonly providerName = "gemini";
   readonly role: GeminiImageRole;
   readonly model: string;
   lastUsage: GeminiUsageTelemetry | undefined;
+  lastRetryTrace: RetryTrace | undefined;
 
   private readonly apiKey: string;
   private readonly baseUrl: string;
   private readonly defaultResolution: string;
   private readonly fetchImpl: typeof fetch;
+  private readonly retryPolicy: RetryPolicy;
 
   constructor(options: GeminiImageProviderOptions = {}) {
     const apiKey = options.apiKey ?? process.env.GEMINI_API_KEY;
@@ -113,6 +130,7 @@ export class GeminiImageProvider implements ImageDraftProvider {
       "https://generativelanguage.googleapis.com/v1beta";
     this.defaultResolution = options.defaultResolution?.trim() || "1K";
     this.fetchImpl = options.fetchImpl ?? fetch;
+    this.retryPolicy = options.retryPolicy ?? {};
   }
 
   async generate(request: ImageDraftRequest): Promise<ImageDraftResult> {
@@ -127,23 +145,31 @@ export class GeminiImageProvider implements ImageDraftProvider {
     }
 
     const mimeType = mimeTypeForOutputFormat(request.outputFormat);
-    const response = await this.fetchImpl(`${this.baseUrl}/interactions`, {
-      method: "POST",
-      headers: {
-        "x-goog-api-key": this.apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: this.model,
-        input: prompt,
-        response_format: {
-          type: "image",
-          mime_type: mimeType,
-          aspect_ratio: request.aspectRatio,
-          image_size: resolution,
+    const retryResult = await withTransientRetry(async () => {
+      const response = await this.fetchImpl(`${this.baseUrl}/interactions`, {
+        method: "POST",
+        headers: {
+          "x-goog-api-key": this.apiKey,
+          "Content-Type": "application/json",
         },
-      }),
-    });
+        body: JSON.stringify({
+          model: this.model,
+          input: prompt,
+          response_format: {
+            type: "image",
+            mime_type: mimeType,
+            aspect_ratio: request.aspectRatio,
+            image_size: resolution,
+          },
+        }),
+      });
+      if (response.status === 429 || response.status === 503) {
+        throw await transientGeminiImageError(response);
+      }
+      return response;
+    }, this.retryPolicy);
+    this.lastRetryTrace = retryResult.trace;
+    const response = retryResult.value;
 
     let body: GeminiInteractionResponse;
     try {

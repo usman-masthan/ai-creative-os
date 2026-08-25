@@ -3,6 +3,11 @@ import { extname, join, resolve } from "node:path";
 
 import type { GenerateCampaignResult } from "./generateCampaign.js";
 import type { ImageDraftProvider, ImageDraftResult } from "../imageProviders/types.js";
+import type {
+  FinalArtQaProvider,
+  FinalArtQaRequest,
+  FinalArtQaResult,
+} from "../finalArtQa/types.js";
 import {
   selectAtthasLayout,
   type AtthasBrandId,
@@ -28,6 +33,26 @@ export interface PosterVisualQaConfig {
   request: Omit<VisualQaRequest, "imageBase64" | "mimeType">;
 }
 
+export interface PosterFinalArtQaConfig {
+  provider: FinalArtQaProvider;
+  request?: Omit<
+    FinalArtQaRequest,
+    | "imageBase64"
+    | "mimeType"
+    | "brandId"
+    | "layoutId"
+    | "channel"
+    | "assetType"
+    | "width"
+    | "height"
+    | "expectedHeadline"
+    | "expectedSupportingCopy"
+    | "expectedCta"
+    | "expectedPrice"
+    | "logoExpected"
+  >;
+}
+
 export interface ProducePosterRequest {
   campaignId: string;
   campaign: GeneratedCampaign;
@@ -37,6 +62,7 @@ export interface ProducePosterRequest {
   imageProvider?: ImageDraftProvider;
   baseImagePath?: string;
   visualQa?: PosterVisualQaConfig;
+  finalArtQa?: PosterFinalArtQaConfig;
   chromePath?: string;
   fetchFn?: typeof fetch;
 }
@@ -50,6 +76,7 @@ export interface ProducePosterResult {
   layout: AtthasLayoutDefinition;
   imageGeneration?: ImageGenerationSummary;
   visualQa?: VisualQaResult;
+  finalArtQa?: FinalArtQaResult;
   qa: PosterQaResult;
 }
 
@@ -166,6 +193,44 @@ async function runVisualQa(
   return result;
 }
 
+async function runFinalArtQa(input: {
+  config: PosterFinalArtQaConfig;
+  pngPath: string;
+  campaign: GeneratedCampaign;
+  brandId: AtthasBrandId;
+  layout: AtthasLayoutDefinition;
+  outputDir: string;
+}): Promise<FinalArtQaResult> {
+  const bytes = await readFile(input.pngPath);
+  const creative = input.campaign.creative;
+  const format = input.campaign.production.format;
+  const result = await input.config.provider.review({
+    ...(input.config.request ?? {}),
+    imageBase64: bytes.toString("base64"),
+    mimeType: "image/png",
+    brandId: input.brandId,
+    layoutId: input.layout.id,
+    channel: format.channel,
+    assetType: format.assetType,
+    width: format.width,
+    height: format.height,
+    expectedHeadline: creative.overlaySpec.headline,
+    expectedSupportingCopy: creative.overlaySpec.supportingCopy,
+    expectedCta: creative.overlaySpec.cta,
+    ...(creative.overlaySpec.price?.display
+      ? { expectedPrice: creative.overlaySpec.price.display }
+      : {}),
+    logoExpected: creative.overlaySpec.logoUsage === "APPROVED_ONLY",
+  });
+  await writeFile(join(input.outputDir, "final-art-qa.json"), JSON.stringify(result, null, 2), "utf8");
+  if (result.decision !== "PASS") {
+    throw new Error(
+      `Poster production blocked by final-art QA (${result.decision}): ${result.issues.join("; ") || "review required"}`,
+    );
+  }
+  return result;
+}
+
 export async function producePoster(request: ProducePosterRequest): Promise<ProducePosterResult> {
   if (!request.baseImagePath && !request.imageProvider) {
     throw new Error("Poster production requires either baseImagePath or an imageProvider.");
@@ -230,6 +295,16 @@ export async function producePoster(request: ProducePosterRequest): Promise<Prod
   });
 
   const qa = await qaPosterPng(pngPath, request.campaign.production.format);
+  const finalArtQa = request.finalArtQa
+    ? await runFinalArtQa({
+        config: request.finalArtQa,
+        pngPath,
+        campaign: request.campaign,
+        brandId,
+        layout,
+        outputDir,
+      })
+    : undefined;
   const imageGenerationSummary = imageGeneration
     ? summarizeImageGeneration(imageGeneration)
     : undefined;
@@ -246,6 +321,7 @@ export async function producePoster(request: ProducePosterRequest): Promise<Prod
     overlay: request.campaign.creative.overlaySpec,
     imageGeneration: imageGenerationSummary ?? { provider: "local", model: "existing-image" },
     ...(visualQa ? { visualQa } : {}),
+    ...(finalArtQa ? { finalArtQa } : {}),
     files: {
       baseImagePath,
       htmlPath,
@@ -264,6 +340,7 @@ export async function producePoster(request: ProducePosterRequest): Promise<Prod
     layout,
     ...(imageGenerationSummary ? { imageGeneration: imageGenerationSummary } : {}),
     ...(visualQa ? { visualQa } : {}),
+    ...(finalArtQa ? { finalArtQa } : {}),
     qa,
   };
 }
