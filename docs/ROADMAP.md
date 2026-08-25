@@ -68,12 +68,15 @@ Per current sprint decision, these are intentionally postponed and must remain f
 - [x] Allow poster production to run visual QA before final rendering.
 - [x] Stop raw image base64 from being written to the manifest/result.
 - [x] Apply ATTHA’S Burger working palette/CTA/type direction to the first deterministic hero layout.
+- [x] Build deterministic five-family Burger layout library: hero, promotional price, offer/deal, minimal premium and story vertical.
+- [x] Build deterministic five-family Restaurant layout library: food hero, editorial, multi-dish, hospitality and story vertical.
+- [x] Add deterministic brand/aspect-safe layout selector and persist the selected layout in poster manifests.
 - [ ] Connect visual QA to real approved product/reference records in the live ATTHA’S workflow. **Blocked by deferred product-photo work.**
 - [ ] Add automatic safe regeneration loop for `REGENERATE` decisions.
-- [ ] Build approved Burger promotional / editorial layout families.
-- [ ] Build approved Restaurant dish / shared-table / promotional layout families.
+- [ ] Feed selected layout negative-space requirements back into image generation.
 - [ ] Add approved master/Burger/Restaurant logo placement once final lockups exist.
 - [ ] Add stronger final-art legibility/crop/platform QA.
+- [ ] Validate all ten layout families with real ATTHA’S campaigns.
 
 ## P1 — Gemini reliability and spend
 
