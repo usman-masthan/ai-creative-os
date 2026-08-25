@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "tenantId": "T001",
+  "status": "AWAITING_APPROVED_PRODUCT_PHOTO_LIBRARY",
+  "images": [],
+  "requiredOperationalInputs": [
+    "high-resolution original ATTHA'S food photographs",
+    "SKU-to-photo mapping",
+    "branch scope for each photo",
+    "ownership or licensed-use status",
+    "advertising approval",
+    "identity confidence",
+    "effective dates where appearance or serving style can change"
+  ],
+  "defaultPolicy": {
+    "publicPlatformImageApprovedForAds": false,
+    "ugcApprovedForAds": false,
+    "aiGeneratedImageIsRealProductEvidence": false,
+    "crossBranchVisualProofAllowed": false,
+    "genericConceptMayPublishAsActualProduct": false
+  }
+}
