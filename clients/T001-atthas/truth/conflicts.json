@@ -1,30 +1,181 @@
 {
   "tenantId": "T001",
+  "observedAt": "2026-08-24",
   "conflicts": [
     {
-      "conflictId": "CONFLICT_WELLAMPITIYA_CRISPY_PRICE",
-      "fact": "Crispy Chicken Burger price",
+      "conflictId": "CONFLICT_WELLAMPITIYA_ADDRESS",
+      "fact": "Wellampitiya physical address street number",
       "branchId": "BURGER_WELLAMPITIYA",
       "observations": [
         {
-          "value": 890,
-          "currency": "LKR",
-          "sourceId": "OWNER_BURGER_MENU_2026_08",
-          "context": "owner-supplied menu image"
+          "value": "96/2 Avissawella Road, Wellampitiya",
+          "sourceId": "BUSINESS_WELLAMPITIYA_2026_08_24",
+          "context": "public business/maps listing"
         },
         {
-          "value": 950,
-          "currency": "LKR",
+          "value": "2 Avissawella Road, Wellampitiya 10600",
           "sourceId": "UBER_BURGER_WELLAMPITIYA",
-          "context": "Uber Eats"
+          "context": "Uber merchant metadata"
         }
       ],
       "status": "CONFLICT_REQUIRES_CONFIRMATION",
-      "resolutionNeeded": "Confirm current official in-store price and whether delivery-channel markup is intentional."
+      "advertisingDecision": "Do not publish a canonical street number until management confirms it.",
+      "resolutionNeeded": "ATTHA’S management confirmation of the canonical physical address."
+    },
+    {
+      "conflictId": "CONFLICT_BAMBALAPITIYA_LOCATION_HISTORY",
+      "fact": "Bambalapitiya current vs legacy location",
+      "branchId": "BURGER_MARINE_DRIVE_C04",
+      "observations": [
+        {
+          "value": "Pink Beach / older Marine Drive outlet",
+          "sourceId": "BUSINESS_BAMBALAPITIYA_LEGACY_2026_08_24",
+          "context": "legacy public profile / older promotion"
+        },
+        {
+          "value": "38 Frankfort Place, Marine Drive, Colombo 04",
+          "sourceId": "UBER_BURGER_MARINE_C04",
+          "context": "current Uber/newer public evidence"
+        }
+      ],
+      "status": "RESOLVED_PUBLIC_BASELINE",
+      "advertisingDecision": "38 Frankfort Place is the current working location. Pink Beach is legacy and must not be advertised as current.",
+      "resolutionNeeded": "Operational owner data should still confirm the final canonical spelling/address."
+    },
+    {
+      "conflictId": "CONFLICT_BAMBALAPITIYA_PHONE",
+      "fact": "Bambalapitiya current phone",
+      "branchId": "BURGER_MARINE_DRIVE_C04",
+      "observations": [
+        {
+          "value": "+94 77 730 6842",
+          "sourceId": "BUSINESS_BAMBALAPITIYA_LEGACY_2026_08_24",
+          "context": "public maps profile apparently connected to the older Pink Beach location"
+        }
+      ],
+      "status": "CONFLICT_REQUIRES_CONFIRMATION",
+      "advertisingDecision": "Do not advertise this number for the current 38 Frankfort Place branch.",
+      "resolutionNeeded": "ATTHA’S management confirmation of the current branch phone."
+    },
+    {
+      "conflictId": "CONFLICT_WELLAWATTE_ADDRESS",
+      "fact": "Wellawatte physical vs Uber merchant address",
+      "branchId": "RESTAURANT_COLOMBO_06",
+      "observations": [
+        {
+          "value": "24A Hampden Lane, Colombo 06",
+          "sourceId": "ATTHAS_INSTAGRAM_2026_08_24",
+          "context": "first-party/public physical address"
+        },
+        {
+          "value": "24C Hampdon Lane",
+          "sourceId": "UBER_RESTAURANT_C06",
+          "context": "Uber merchant metadata"
+        }
+      ],
+      "status": "RESOLVED_PUBLIC_BASELINE",
+      "advertisingDecision": "Use 24A Hampden Lane as the working physical address; retain 24C Hampdon Lane only as Uber merchant metadata.",
+      "resolutionNeeded": "Owner/POS master should confirm canonical spelling and number."
+    },
+    {
+      "conflictId": "CONFLICT_RESTAURANT_CLOSING_TIME",
+      "fact": "ATTHA’S Restaurant Wellawatte closing time",
+      "branchId": "RESTAURANT_COLOMBO_06",
+      "observations": [
+        {
+          "value": "approximately 23:30",
+          "sourceId": "ATTHAS_INSTAGRAM_2026_08_24",
+          "context": "first-party social"
+        },
+        {
+          "value": "approximately 23:45",
+          "sourceId": "UBER_RESTAURANT_C06",
+          "context": "Uber"
+        },
+        {
+          "value": "approximately 00:00",
+          "sourceId": "BUSINESS_WELLAWATTE_2026_08_24",
+          "context": "public maps/business listing"
+        }
+      ],
+      "status": "RESOLVED_PUBLIC_BASELINE",
+      "advertisingDecision": "Use 12:00-23:30 as the conservative advertising-safe public value until management confirms the official schedule.",
+      "resolutionNeeded": "Official branch hours from management."
+    },
+    {
+      "conflictId": "CONFLICT_KOLLUPITIYA_UBER_HOURS",
+      "fact": "Kollupitiya physical vs delivery-platform hours",
+      "branchId": "BURGER_HEY_MARINE_C03",
+      "observations": [
+        {
+          "value": "16:00-00:00 daily",
+          "sourceId": "BUSINESS_KOLLUPITIYA_2026_08_24",
+          "context": "physical/business listing"
+        },
+        {
+          "value": "ordering starts at approximately 17:00; closing wording inconsistent",
+          "sourceId": "UBER_BURGER_HEY_MARINE_C03",
+          "context": "Uber delivery state"
+        }
+      ],
+      "status": "RESOLVED_PUBLIC_BASELINE",
+      "advertisingDecision": "Use 16:00-00:00 only for the physical branch. Preserve Uber delivery hours separately and do not infer them from physical hours.",
+      "resolutionNeeded": "Management confirmation of official physical hours and merchant-platform schedules."
+    },
+    {
+      "conflictId": "CONFLICT_WELLAMPITIYA_BEEF_CHEESE_PRICE",
+      "fact": "Wellampitiya Beef Cheese Burger Uber reference price",
+      "branchId": "BURGER_WELLAMPITIYA",
+      "salesChannel": "UBER_EATS",
+      "observations": [
+        {
+          "value": 1390,
+          "currency": "LKR",
+          "sourceId": "UBER_BURGER_WELLAMPITIYA",
+          "context": "standard category reference"
+        },
+        {
+          "value": 1350,
+          "currency": "LKR",
+          "sourceId": "UBER_BURGER_WELLAMPITIYA",
+          "context": "offer reference price"
+        }
+      ],
+      "status": "CONFLICT_REQUIRES_CONFIRMATION",
+      "advertisingDecision": "Treat current advertizable price as dynamic/checkout-required. Do not state either value as a regular price without a fresh live verification.",
+      "resolutionNeeded": "Fresh merchant checkout or official pricing master."
+    },
+    {
+      "conflictId": "CONFLICT_DEHIWALA_HOURS",
+      "fact": "Dehiwala opening hours",
+      "branchId": "BURGER_DEHIWALA",
+      "status": "CONFLICT_REQUIRES_CONFIRMATION",
+      "advertisingDecision": "Dehiwala is outside current V1 scope. Do not advertise until fresh verification is completed.",
+      "resolutionNeeded": "Current management/merchant verification."
+    },
+    {
+      "conflictId": "CONFLICT_DEHIWALA_KOLLUPITIYA_PHONE",
+      "fact": "Historical Dehiwala phone overlaps current Kollupitiya business record",
+      "branchId": "BURGER_DEHIWALA",
+      "observations": [
+        {
+          "value": "+94 77 306 8864",
+          "sourceId": "GOOGLE_BUSINESS_DEHIWALA",
+          "context": "historical Dehiwala listing"
+        },
+        {
+          "value": "+94 77 306 8864",
+          "sourceId": "BUSINESS_KOLLUPITIYA_2026_08_24",
+          "context": "current Kollupitiya listing"
+        }
+      ],
+      "status": "CONFLICT_REQUIRES_CONFIRMATION",
+      "advertisingDecision": "Do not use the number as evidence for Dehiwala. Current public baseline assigns it to Kollupitiya only.",
+      "resolutionNeeded": "Official branch contact master."
     },
     {
       "conflictId": "CONFLICT_WELLAMPITIYA_HYBRID_PRICE",
-      "fact": "Hybrid Burger price",
+      "fact": "Hybrid Burger owner-menu vs Uber price",
       "branchId": "BURGER_WELLAMPITIYA",
       "observations": [
         {
@@ -37,45 +188,20 @@
           "value": 1200,
           "currency": "LKR",
           "sourceId": "UBER_BURGER_WELLAMPITIYA",
-          "context": "Uber Eats"
+          "context": "Uber Eats public snapshot"
         }
       ],
       "status": "CONFLICT_REQUIRES_CONFIRMATION",
-      "resolutionNeeded": "Confirm current recipe/product mapping and official price; difference is too large to assume channel markup."
-    },
-    {
-      "conflictId": "CONFLICT_DEHIWALA_HOURS",
-      "fact": "Dehiwala opening hours",
-      "branchId": "BURGER_DEHIWALA",
-      "observations": [
-        {
-          "value": "16:00-01:00",
-          "sourceId": "UBER_BURGER_DEHIWALA"
-        },
-        {
-          "value": "16:00-00:00",
-          "sourceId": "GOOGLE_BUSINESS_DEHIWALA"
-        }
-      ],
-      "status": "CONFLICT_REQUIRES_CONFIRMATION",
-      "resolutionNeeded": "Confirm closing time with management."
+      "advertisingDecision": "Do not assume these describe the same current recipe/size/channel offer.",
+      "resolutionNeeded": "Current POS/menu product mapping and official channel price master."
     },
     {
       "conflictId": "MAPPING_WELLAMPITIYA_WEDGES",
       "fact": "Loaded/Potato wedges product mapping",
       "branchId": "BURGER_WELLAMPITIYA",
-      "observations": [
-        {
-          "value": "Loaded Wedges Medium 850 / Large 1550",
-          "sourceId": "OWNER_BURGER_MENU_2026_08"
-        },
-        {
-          "value": "Potato Wedges 600 / Loaded Potato Wedges 1000",
-          "sourceId": "UBER_BURGER_WELLAMPITIYA"
-        }
-      ],
       "status": "CONFLICT_REQUIRES_CONFIRMATION",
-      "resolutionNeeded": "Confirm whether these are renamed/new products or size/channel variants."
+      "advertisingDecision": "Do not merge owner-menu and older public wedge names/prices without product-master confirmation.",
+      "resolutionNeeded": "POS/menu SKU mapping."
     }
   ]
 }
