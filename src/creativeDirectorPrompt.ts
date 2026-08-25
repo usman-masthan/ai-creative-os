@@ -1,5 +1,6 @@
 import type { CampaignCreativeOutput, CampaignProductionFormat } from "./creativeTypes.js";
-import type { CampaignPreflight, GenerateCampaignRequest } from "./commands/generateCampaign.js";
+import type { CampaignPreflight } from "./commands/createCampaign.js";
+import type { GenerateCampaignRequest } from "./commands/generateCampaign.js";
 import type { CreativeDirectorReview } from "./creativeDirectorTypes.js";
 
 function json(value: unknown): string {
