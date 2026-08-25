@@ -90,6 +90,19 @@ function extractImage(body: GeminiInteractionResponse): { dataBase64: string; mi
   return undefined;
 }
 
+async function transientGeminiImageError(response: Response): Promise<Error & { status: number }> {
+  let detail = `HTTP ${response.status}`;
+  try {
+    const body = (await response.clone().json()) as GeminiInteractionResponse;
+    detail = body.error?.message ?? detail;
+  } catch {
+    // Keep the HTTP fallback when the transient error body is not valid JSON.
+  }
+  const error = new Error(`Gemini image generation failed: ${detail}`) as Error & { status: number };
+  error.status = response.status;
+  return error;
+}
+
 export class GeminiImageProvider implements ImageDraftProvider {
   readonly providerName = "gemini";
   readonly role: GeminiImageRole;
@@ -151,9 +164,7 @@ export class GeminiImageProvider implements ImageDraftProvider {
         }),
       });
       if (response.status === 429 || response.status === 503) {
-        const error = new Error(`Gemini image transient HTTP ${response.status}.`) as Error & { status: number };
-        error.status = response.status;
-        throw error;
+        throw await transientGeminiImageError(response);
       }
       return response;
     }, this.retryPolicy);
