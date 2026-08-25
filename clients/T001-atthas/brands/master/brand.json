@@ -1,40 +1,48 @@
 {
   "tenantId": "T001",
   "brandId": "ATTHAS_MASTER",
-  "name": "ATTHA'S",
-  "status": "REBRAND_IN_PROGRESS",
+  "name": "ATTHA’S",
+  "status": "WORKING_BRAND_SYSTEM_V0_1",
   "brandArchitecture": {
-    "model": "BRANDED_HOUSE",
+    "model": "ENDORSED_SUB_BRANDS",
     "operatingBrands": [
       "ATTHAS_RESTAURANT",
       "ATTHAS_BURGER"
-    ]
+    ],
+    "sharedSymbol": "A_FORK",
+    "dominantName": "ATTHA’S"
   },
   "positioning": {
-    "core": "Authentic flavour that feels familiar, generous and worth coming back for.",
-    "emotionalTerritory": [
-      "comfort",
-      "belonging",
-      "craving",
-      "sharing"
+    "promise": "Generous food made with passion for flavour and served with warmth.",
+    "values": [
+      "generosity",
+      "flavour",
+      "care",
+      "consistency",
+      "accessibility",
+      "local relevance"
     ],
     "personality": [
       "warm",
       "confident",
       "generous",
-      "premium-without-pretension",
       "flavour-led"
     ]
   },
   "tagline": {
-    "official": null,
-    "workingRecommendation": "Unlock the Flavour",
-    "status": "PROPOSED_REBRAND_V1"
+    "working": "Passion for flavour",
+    "status": "EXISTING_WORKING_LINE_PENDING_FORMAL_REBRAND_DECISION",
+    "replacementApproved": false
   },
   "identityStatus": {
-    "logo": "PROPOSED_NOT_APPROVED",
-    "colors": "PROPOSED_NOT_APPROVED",
-    "fonts": "PROPOSED_NOT_APPROVED",
-    "website": "PLANNED_NOT_LIVE"
-  }
+    "designDirection": "APPROVED",
+    "sharedAForkSymbol": "OWNER_SUPPLIED_WORKING_MASTER",
+    "masterWordmarkVector": "PENDING_FINAL_APPROVAL",
+    "burgerLockup": "PENDING_FINAL_APPROVAL",
+    "restaurantLockup": "PENDING_FINAL_APPROVAL",
+    "colors": "APPROVED_WORKING_VALUES_PENDING_PRINT_CALIBRATION",
+    "fonts": "WORKING_PENDING_LICENSE_CONFIRMATION",
+    "multilingualFonts": "PENDING_CONFIRMATION"
+  },
+  "brandSystemPath": "clients/T001-atthas/brands/brand-system"
 }

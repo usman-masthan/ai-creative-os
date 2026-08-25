@@ -54,7 +54,7 @@ const creative: CampaignCreativeOutput = {
   factualQaNotes: [],
 };
 
-test("poster template renders deterministic overlay copy at exact campaign dimensions", () => {
+test("poster template renders deterministic ATTHAS overlay copy at exact campaign dimensions", () => {
   const html = buildPosterHtml({
     creative,
     format,
@@ -67,6 +67,9 @@ test("poster template renders deterministic overlay copy at exact campaign dimen
   assert.match(html, /LKR 950/);
   assert.match(html, /Order on Uber Eats/);
   assert.match(html, /data:image\/jpeg;base64,ZmFrZQ==/);
+  assert.match(html, /data-template-id="ATTHAS_BURGER_HERO_V1"/);
+  assert.match(html, /--atthas-red-deep: #B50008/);
+  assert.match(html, /--atthas-gold-flame: #FFD21A/);
   assert.doesNotMatch(html, /<img[^>]+logo/i);
   assert.doesNotThrow(() => assertPosterHtmlContract(html, creative, format));
 });

@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0.0",
+  "tenantId": "T001",
+  "assets": [
+    {
+      "assetId": "ATTHAS_MASTER_SYMBOL_A_FORK",
+      "brandId": "ATTHAS_MASTER",
+      "assetType": "logo_symbol",
+      "path": "source/atthas-master-symbol-a-fork.svg",
+      "format": "svg",
+      "background": "transparent",
+      "colourVariant": "flame_gold",
+      "source": "owner_supplied",
+      "status": "OWNER_SUPPLIED_WORKING_MASTER",
+      "approvedForProduction": true,
+      "notes": "Shared A/fork endorsement symbol. Full ATTHA’S wordmark and Restaurant/Burger lockups still require approved vector masters."
+    }
+  ],
+  "requiredPendingAssets": [
+    "atthas-master-horizontal-colour.svg",
+    "atthas-master-horizontal-white.svg",
+    "atthas-master-horizontal-black.svg",
+    "atthas-burger-horizontal-colour.svg",
+    "atthas-burger-stacked-colour.svg",
+    "atthas-restaurant-horizontal-colour.svg",
+    "atthas-restaurant-stacked-colour.svg"
+  ],
+  "rules": {
+    "neverRecreateWordmarkWithSubstituteFont": true,
+    "neverAskImageModelToRenderLogo": true,
+    "minimumFullLogoDigitalWidthPx": 160,
+    "minimumSymbolDigitalSizePx": 32,
+    "minimumClearSpaceX": 0.5,
+    "preferredClearSpaceX": 1
+  }
+}

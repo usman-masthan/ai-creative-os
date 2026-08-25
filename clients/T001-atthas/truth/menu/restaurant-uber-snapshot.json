@@ -4,124 +4,88 @@
   "branchId": "RESTAURANT_COLOMBO_06",
   "sourceId": "UBER_RESTAURANT_C06",
   "status": "SOURCE_VERIFIED",
-  "retrievedAt": "2026-08-23",
+  "retrievedAt": "2026-08-24",
   "completeness": "PARTIAL_VISIBLE_SNAPSHOT",
-  "cuisineLabels": [
-    "Sri Lankan",
-    "American",
-    "Italian"
-  ],
   "categories": [
-    "Featured items",
-    "New",
-    "SKK Offer",
     "Appetizers",
     "Burgers",
     "Noodles",
-    "Wraps / Shawarma",
-    "Fried Rice (Basmati)",
-    "Submarine",
-    "Cheese Kottu",
-    "Milkshakes",
-    "Grill",
-    "Pasta",
-    "Cheese Steak",
-    "Protein Diet Meal",
+    "Wraps/Shawarma",
+    "Fried Rice",
     "Mongolian Rice",
+    "Submarines",
+    "Cheese Kottu",
+    "Grill",
+    "Cheese Steak",
     "Seafood",
     "Kottu",
     "Rotti",
-    "Devil and Sides",
+    "Devil/Sides",
     "Desserts",
     "Fresh Juices",
+    "Milkshakes",
     "Mojitos",
-    "Coffee Bar",
+    "Coffee",
     "Virgin Margaritas",
     "Soft Drinks",
     "Falooda"
   ],
-  "featuredSnapshot": [
+  "currentRecentSnapshot": [
+    { "productId": "CRISPY_CHICKEN_FRIED_RICE", "name": "Crispy Chicken Fried Rice", "price": 1450 },
+    { "productId": "BEEF_SHAWARMA", "name": "Beef Shawarma", "price": 1650 },
+    { "productId": "CHICKEN_WRAP_SHAWARMA", "name": "Chicken Wrap / Shawarma", "price": 1270 },
+    { "productId": "CHICKEN_MAYO_SHAWARMA", "name": "Chicken Mayo Shawarma", "price": 990 },
+    { "productId": "CRISPY_CHICKEN_BURGER", "name": "Crispy Chicken Burger", "basePrice": 1900, "promotionalSnapshotPrice": 1330, "priceState": "PROMOTIONAL_SNAPSHOT_REQUIRES_FRESHNESS_CHECK" },
+    { "productId": "CHICKEN_KOTTU", "name": "Chicken Kottu", "price": 1250 },
+    { "productId": "SPICY_CHICKEN_SUBMARINE_CHEESE", "name": "Spicy Chicken Submarine with Cheese", "price": 1450 },
+    { "productId": "LOADED_FRIES", "name": "Loaded Fries", "price": 1000 },
+    { "productId": "BEEF_KOTTU", "name": "Beef Kottu", "price": 1250 },
+    { "productId": "CRISPY_CHICKEN_SUBMARINE", "name": "Crispy Chicken Submarine", "price": 1500 },
+    { "productId": "CHICKEN_SUBMARINE", "name": "Chicken Submarine", "price": 1390 },
+    { "productId": "DOUBLE_BEEF_CHEESE_BURGER", "name": "Double Beef Cheese Burger", "price": 2590 },
+    { "productId": "BEEF_FRIED_RICE", "name": "Beef Fried Rice", "price": 1450 },
+    { "productId": "BEEF_SUBMARINE", "name": "Beef Submarine", "price": 1650 },
+    { "productId": "MIXED_FRIED_RICE", "name": "Mixed Fried Rice", "price": 1600 },
+    { "productId": "BEEF_BURGER", "name": "Beef Burger", "price": 1500 }
+  ],
+  "historicalRecentUnconfirmedProducts": [
+    "Hot Butter Cuttlefish",
+    "Chicken Noodles",
+    "Chicken Tikka Wrap",
+    "Fish Burger",
+    "Potato Wedges",
+    "French Fries",
+    "Battered Prawns",
+    "Chicken & Chips",
+    "Crispy Calamari",
+    "Chicken Strips"
+  ],
+  "offersObserved": [
     {
-      "name": "Chicken Kottu",
-      "price": 1250
+      "productId": "CRISPY_CHICKEN_FRIED_RICE",
+      "display": "Buy 1 Get 1 Free",
+      "observedAt": "2026-08-24",
+      "effectiveUntil": null
     },
     {
-      "name": "Chicken Mayo Shawarma",
-      "price": 990
+      "productId": "DOUBLE_BEEF_CHEESE_BURGER",
+      "display": "Buy 1 Get 1 Free",
+      "observedAt": "2026-08-24",
+      "effectiveUntil": null
     },
     {
-      "name": "Crispy Chicken Burger",
-      "price": 1350,
-      "promotionObserved": "Buy 1, get a free item"
-    },
-    {
-      "name": "Loaded Fries",
-      "price": 1000
-    },
-    {
-      "name": "Chicken Fried Rice (Basmati)",
-      "price": 1250
-    },
-    {
-      "name": "Crispy Chicken Fried Rice (Basmati)",
-      "price": 1350
-    },
-    {
-      "name": "Double Crispy Chicken Burger",
-      "price": 1500
-    },
-    {
-      "name": "Beef Kottu",
-      "price": 1250
-    },
-    {
-      "name": "Chicken Submarine with Cheese",
-      "price": 1300
-    },
-    {
-      "name": "Mixed Fried Rice (Basmati)",
-      "price": 1600
-    },
-    {
-      "name": "Beef Fried Rice (Basmati)",
-      "price": 1250
-    },
-    {
-      "name": "Spicy Chicken Submarine with Cheese",
-      "price": 1350
-    },
-    {
-      "name": "Crispy Chicken Submarine with Cheese",
-      "price": 1500
-    },
-    {
-      "name": "Spaghetti Beef Meatballs",
-      "price": 1400
-    },
-    {
-      "name": "Tomato Chicken Pasta",
-      "price": 1300
-    },
-    {
-      "name": "Alfredo Pasta Cheesy and Creamy",
-      "price": 1780
-    },
-    {
-      "name": "Chicken Kebab Wrap",
-      "price": 990
-    },
-    {
-      "name": "Beef Mongolian Rice",
-      "price": 1800
-    },
-    {
-      "name": "Hot Butter Cuttlefish",
-      "price": 1400
-    },
-    {
-      "name": "Chicken Noodles",
-      "price": 1500
+      "productId": "CRISPY_LARGE_PRAWNS_WRAP",
+      "display": "LKR 1,520 from LKR 1,900 — 20% off",
+      "observedAt": "2026-08-24",
+      "effectiveUntil": null,
+      "descriptionIngredients": [
+        "four large crispy prawns",
+        "cheese",
+        "ATTHA’S mayo",
+        "vegetables",
+        "pickles"
+      ]
     }
   ],
-  "warning": "Platform prices and promotions are time-sensitive and are not the official master menu until owner-confirmed."
+  "warning": "This is a partial public Uber snapshot, not the official physical master menu. Current/recent items and promotions must be freshness-checked before publication; historical/recent-unconfirmed items may not be advertised without new verification."
 }

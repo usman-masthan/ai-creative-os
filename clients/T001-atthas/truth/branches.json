@@ -1,37 +1,63 @@
 {
   "tenantId": "T001",
-  "retrievedAt": "2026-08-23",
+  "retrievedAt": "2026-08-24",
   "branches": [
     {
       "branchId": "RESTAURANT_COLOMBO_06",
       "brandId": "ATTHAS_RESTAURANT",
-      "name": "Attha's Restaurant - Colombo 06",
+      "name": "ATTHA’S Restaurant — Wellawatte",
+      "currentV1Scope": true,
+      "status": "ACTIVE_PUBLICLY_OBSERVED",
       "address": {
-        "value": "No. 24C, Hampdon Lane, Colombo 06",
+        "value": "24A Hampden Lane, Colombo 06",
         "status": "SOURCE_VERIFIED",
-        "sourceId": "UBER_RESTAURANT_C06"
+        "sourceId": "ATTHAS_INSTAGRAM_2026_08_24"
+      },
+      "merchantAddress": {
+        "value": "24C Hampdon Lane",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "UBER_RESTAURANT_C06",
+        "advertiseAsPhysicalAddress": false
+      },
+      "phone": {
+        "value": "+94 77 306 8311",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "ATTHAS_INSTAGRAM_2026_08_24"
       },
       "openingHours": {
         "value": {
-          "sun-thu": "12:00-23:45",
-          "fri": "13:30-23:45",
-          "sat": "12:00-23:45"
+          "daily": "12:00-23:30"
         },
         "status": "SOURCE_VERIFIED",
-        "sourceId": "UBER_RESTAURANT_C06"
-      },
-      "notes": [
-        "Uber source renders an inconsistent regional country label; street/city text retained, country not promoted from that label."
-      ]
+        "sourceId": "ATTHAS_INSTAGRAM_2026_08_24",
+        "note": "Advertising-safe public value; Uber/maps expose later closing variants."
+      }
     },
     {
       "branchId": "BURGER_WELLAMPITIYA",
       "brandId": "ATTHAS_BURGER",
-      "name": "ATTHA's Burger - Wellampitiya",
+      "name": "ATTHA’S Burger — Wellampitiya",
+      "currentV1Scope": true,
+      "status": "ACTIVE_PUBLICLY_OBSERVED",
       "address": {
-        "value": "2 Avissawella Road, Wellampitiya 10600",
+        "value": null,
+        "status": "CONFLICT_REQUIRES_CONFIRMATION",
+        "conflictId": "CONFLICT_WELLAMPITIYA_ADDRESS"
+      },
+      "addressCandidates": [
+        {
+          "value": "96/2 Avissawella Road, Wellampitiya",
+          "sourceId": "BUSINESS_WELLAMPITIYA_2026_08_24"
+        },
+        {
+          "value": "2 Avissawella Road, Wellampitiya 10600",
+          "sourceId": "UBER_BURGER_WELLAMPITIYA"
+        }
+      ],
+      "phone": {
+        "value": "+94 76 630 6890",
         "status": "SOURCE_VERIFIED",
-        "sourceId": "UBER_BURGER_WELLAMPITIYA"
+        "sourceId": "BUSINESS_WELLAMPITIYA_2026_08_24"
       },
       "openingHours": {
         "value": {
@@ -47,33 +73,25 @@
       }
     },
     {
-      "branchId": "BURGER_DEHIWALA",
-      "brandId": "ATTHAS_BURGER",
-      "name": "ATTHA'S Burger - Dehiwala",
-      "address": {
-        "value": "Sara Beach 60A/4, Frazer Ave, Dehiwala 10350",
-        "status": "SOURCE_VERIFIED",
-        "sourceId": "UBER_BURGER_DEHIWALA"
-      },
-      "openingHours": {
-        "value": null,
-        "status": "CONFLICT_REQUIRES_CONFIRMATION",
-        "conflictId": "CONFLICT_DEHIWALA_HOURS"
-      },
-      "phone": {
-        "value": "+94 77 306 8864",
-        "status": "SOURCE_VERIFIED",
-        "sourceId": "GOOGLE_BUSINESS_DEHIWALA"
-      }
-    },
-    {
       "branchId": "BURGER_MARINE_DRIVE_C04",
       "brandId": "ATTHAS_BURGER",
-      "name": "ATTHA'S Burger Marine Drive - Colombo 04",
+      "name": "ATTHA’S Burger — Bambalapitiya",
+      "currentV1Scope": true,
+      "status": "ACTIVE_PUBLICLY_OBSERVED",
       "address": {
-        "value": "38 Frankfurt Place, Marine Drive, Colombo 04 00400",
+        "value": "38 Frankfort Place, Marine Drive, Colombo 04",
         "status": "SOURCE_VERIFIED",
         "sourceId": "UBER_BURGER_MARINE_C04"
+      },
+      "legacyLocation": {
+        "value": "Pink Beach",
+        "status": "SOURCE_VERIFIED",
+        "advertiseAsCurrent": false
+      },
+      "phone": {
+        "value": null,
+        "status": "CONFLICT_REQUIRES_CONFIRMATION",
+        "conflictId": "CONFLICT_BAMBALAPITIYA_PHONE"
       },
       "openingHours": {
         "value": {
@@ -86,16 +104,53 @@
     {
       "branchId": "BURGER_HEY_MARINE_C03",
       "brandId": "ATTHAS_BURGER",
-      "name": "ATTHA'S Burger Hey Marine",
+      "name": "ATTHA’S Burger — Kollupitiya",
+      "currentV1Scope": true,
+      "status": "ACTIVE_PUBLICLY_OBSERVED",
       "address": {
-        "value": "Hey Marine Food Court, Marine Drive, Kollupitiya, Colombo 03 00300",
+        "value": "Hey Marine Food Court, 18 Marine Drive, Kollupitiya, Colombo 03, 00300",
         "status": "SOURCE_VERIFIED",
-        "sourceId": "UBER_DIRECTORY_HEY_MARINE"
+        "sourceId": "BUSINESS_KOLLUPITIYA_2026_08_24"
+      },
+      "phone": {
+        "value": "+94 77 306 8864",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "BUSINESS_KOLLUPITIYA_2026_08_24"
+      },
+      "openingHours": {
+        "value": {
+          "daily": "16:00-00:00"
+        },
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "BUSINESS_KOLLUPITIYA_2026_08_24",
+        "note": "Physical/public business listing value; Uber ordering appears to start around 17:00 and delivery hours must remain separately scoped."
+      }
+    },
+    {
+      "branchId": "BURGER_DEHIWALA",
+      "brandId": "ATTHAS_BURGER",
+      "name": "ATTHA’S Burger — Dehiwala",
+      "currentV1Scope": false,
+      "status": "LEGACY_OR_REQUIRES_FRESH_VERIFICATION",
+      "address": {
+        "value": "Sara Beach 60A/4, Frazer Ave, Dehiwala 10350",
+        "status": "SOURCE_VERIFIED",
+        "sourceId": "UBER_BURGER_DEHIWALA"
       },
       "openingHours": {
         "value": null,
-        "status": "MISSING"
-      }
+        "status": "CONFLICT_REQUIRES_CONFIRMATION",
+        "conflictId": "CONFLICT_DEHIWALA_HOURS"
+      },
+      "phone": {
+        "value": null,
+        "status": "CONFLICT_REQUIRES_CONFIRMATION",
+        "conflictId": "CONFLICT_DEHIWALA_KOLLUPITIYA_PHONE"
+      },
+      "notes": [
+        "Outside the current four-location V1 scope.",
+        "Do not advertise until management/current merchant data confirms status, address, phone and hours."
+      ]
     }
   ]
 }

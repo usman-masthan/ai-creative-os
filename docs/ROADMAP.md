@@ -1,78 +1,138 @@
-# Roadmap
+# Roadmap — ATTHA’S V1 First
 
-## Phase 1 — Operating foundation
+ATTHA’S is the only active V1 client. Multi-client generalisation is postponed until the ATTHA’S system has survived real production validation.
 
-- [x] Define tenant registry
-- [x] Define verified-truth gate
-- [x] Define risk model
-- [x] Version the master operator prompt
-- [x] Add campaign and approval schemas
-- [x] Add acceptance scenarios
-- [x] Add minimal TypeScript domain logic
-- [x] Start T001 source-aware truth onboarding
-- [ ] Confirm T001 official master prices/hours/contacts with management
-- [ ] Populate brand rules/assets
-- [ ] Run all acceptance scenarios manually against the master prompt
-- [x] Add deterministic T001 campaign preflight / truth resolver
+## P0 — ATTHA’S operating foundation
 
-## Phase 2 — Gemini orchestration
+- [x] Define tenant/truth/risk foundation.
+- [x] Define deterministic fact gate and scope-aware truth resolver.
+- [x] Model ATTHA’S master / Restaurant / Burger relationship.
+- [x] Add public-web baseline for Wellawatte, Wellampitiya, Bambalapitiya and Kollupitiya.
+- [x] Reconcile public address/hour/contact conflicts into an explicit conflict register.
+- [x] Refresh public Uber pricing/menu snapshots to 24 August 2026.
+- [x] Separate branch/channel/date-scoped public truth from universal official truth.
+- [ ] Import ATTHA’S POS/menu master.
+- [ ] Import official branch/contact/hours master.
+- [ ] Import dine-in and takeaway price masters.
+- [ ] Import Uber Merchant export.
+- [ ] Import PickMe Merchant export.
+- [ ] Import complete ingredient and allergen records.
+- [ ] Import promotion start/end dates and current availability feed.
+- [ ] Reconcile public observations with operational data and lock the authoritative master dataset.
 
-- [x] Add Gemini text campaign adapter
-- [x] Centralize Gemini model roles
-- [x] Remove OpenRouter, Groq and OpenAI campaign providers
-- [x] Remove getimg.ai image dependency
-- [x] Request JSON output from Gemini campaign generation
-- [x] Add explicit Creative Director role using `gemini-3.6-flash`
-- [x] Add advanced Flash role using `gemini-3.7-flash`
-- [x] Add deep-review role using `gemini-3.1-pro-preview`
-- [x] Add deterministic text-role escalation policy
-- [x] Add provider usage and estimated-cost telemetry
-- [ ] Add automatic 429/503 retry/backoff and availability fallback
-- [ ] Add persistent prompt/output usage logging
+## P1 — ATTHA’S brand system
 
-## Phase 3 — Paid Gemini media
+- [x] Add approved working colour system.
+- [x] Add working typography hierarchy.
+- [x] Add endorsed sub-brand architecture.
+- [x] Add tone-of-voice and CTA rules.
+- [x] Add photography/visual rules.
+- [x] Add layout, spacing and social-zone rules.
+- [x] Add AI visual-consistency rules.
+- [x] Add brand governance/release checklist.
+- [x] Add machine-readable brand tokens.
+- [x] Source-control owner-supplied A/fork symbol.
+- [ ] Approve/source-control final ATTHA’S master wordmark vector.
+- [ ] Approve Burger logo lockups and variants.
+- [ ] Approve Restaurant logo lockups and variants.
+- [ ] Confirm `Passion for flavour` final decision.
+- [ ] Confirm primary font licences and multilingual typefaces.
+- [ ] Confirm halal-mark rules/certification evidence.
+- [ ] Calibrate print colour when print production is required.
 
-Billing is enabled, but paid media remains runtime opt-in.
+## P1 — Product visual truth
 
-- [x] Add Nano Banana 2 Lite draft-image adapter
-- [x] Add Nano Banana 2 production-image adapter
-- [x] Add Nano Banana Pro premium-image adapter
-- [x] Add direct Gemini image data to deterministic poster production
-- [x] Add Gemini 3.1 Flash TTS adapter
-- [x] Add Veo 3.1 Lite video adapter
-- [x] Add Veo 3.1 Fast video role
-- [x] Add Veo 3.1 premium video role
-- [x] Add image/video cost estimation
-- [x] Add runtime paid-media opt-in and escalation guards
-- [x] Deterministic HTML/CSS poster renderer
-- [x] Deterministic factual overlays
-- [ ] Add persistent per-campaign spend ledger and hard budget caps
-- [ ] Add visual QA for generated product accuracy/crop/legibility
+- [x] Define `VERIFIED_PRODUCT_VISUAL`, `CONSTRAINED_PRODUCT_GENERATION` and `GENERIC_CONCEPT_VISUAL`.
+- [x] Add machine-readable visual-asset schema and empty product-image registry.
+- [x] Enforce policy that AI imagery is not evidence of product appearance.
+- [x] Enforce branch-image isolation policy.
+- [ ] Import high-resolution original ATTHA’S food photography.
+- [ ] Map SKU → image → branch scope.
+- [ ] Record ownership/licence and advertising approval.
+- [ ] Record verified visible ingredients / must-include / must-not-include per product visual.
 
-## Phase 4 — Storage and workflow automation
+## P1 — Visual QA and static production
 
-- [ ] Add PostgreSQL/Supabase persistence
-- [ ] Add R2 media storage
-- [ ] Add campaign history
-- [ ] Add approval records
-- [ ] Add n8n workflows where they reduce manual work
+- [x] Add Gemini multimodal visual-QA provider foundation.
+- [x] Define QA categories: product truth, brand fit, realism, composition, governance and rights.
+- [x] Define `PASS / REGENERATE / HUMAN_REVIEW / BLOCK` decisions.
+- [x] Add deterministic rights/concept/score guards around model review.
+- [x] Allow poster production to run visual QA before final rendering.
+- [x] Stop raw image base64 from being written to the manifest/result.
+- [x] Apply ATTHA’S Burger working palette/CTA/type direction to the first deterministic hero layout.
+- [ ] Connect visual QA to real approved product/reference records in the live ATTHA’S workflow.
+- [ ] Add automatic safe regeneration loop for `REGENERATE` decisions.
+- [ ] Build approved Burger promotional / editorial layout families.
+- [ ] Build approved Restaurant dish / shared-table / promotional layout families.
+- [ ] Add approved master/Burger/Restaurant logo placement once final lockups exist.
+- [ ] Add stronger final-art legibility/crop/platform QA.
 
-## Phase 5 — Internal dashboard
+## P1 — Gemini reliability and spend
 
-- [ ] Campaign creation interface
-- [ ] Tenant switcher with isolation safeguards
-- [ ] Creative review screen
-- [ ] Fact/brand QA display
-- [ ] Human approval queue
-- [ ] Gemini usage and cost visibility
+- [x] Gemini-only text/image/TTS/Veo provider stack.
+- [x] Centralised text/image/video model roles.
+- [x] Native structured campaign JSON generation and repair loop.
+- [x] Provider usage and estimated-cost telemetry.
+- [x] Runtime paid-media opt-in and premium escalation guards.
+- [ ] Add automatic 429/503 retry/backoff and availability fallback.
+- [ ] Add persistent prompt/output usage logging.
+- [ ] Add per-campaign spend ledger and hard budget caps.
 
-## Postponed until justified
+## P2 — Creative Director and marketing operations
 
-- Public signup
-- SaaS billing
-- Marketplace
-- Advanced RBAC
-- Automatic publishing everywhere
-- Large industry-pack catalog
-- Advanced RAG
-- Client-facing SaaS dashboard
+After P0/P1 truth and visual safety are reliable:
+
+- [ ] Objective → strategy → maximum three concepts.
+- [ ] Creative Director critique/ranking and explicit winner selection.
+- [ ] Selected concept → brief → draft → QA → revision → final orchestration.
+- [ ] Monthly ATTHA’S marketing plan.
+- [ ] Weekly content plan and campaign calendar.
+- [ ] One approved concept → feed/story/reel-cover/Facebook/WhatsApp adaptations.
+- [ ] Caption/headline/CTA variants tied to the same approved truth/version.
+
+## P2 — Persistence and approvals
+
+- [ ] Add campaign persistence.
+- [ ] Add asset/media persistence.
+- [ ] Store truth/brand/model/prompt versions per campaign.
+- [ ] Store visual-QA and revision history.
+- [ ] Store approval records and final-use locations.
+- [ ] Persist campaign spend.
+
+Approval lifecycle:
+
+`draft → internal_review → client_review → approved → published → archived`
+
+## P3 — Internal ATTHA’S interface
+
+Only after the CLI workflow is trustworthy:
+
+- [ ] Campaign creation interface.
+- [ ] Truth/conflict review.
+- [ ] Product/image library.
+- [ ] Creative review screen.
+- [ ] Approval queue.
+- [ ] Campaign calendar.
+- [ ] Usage/cost visibility.
+
+## Production validation before scaling
+
+- [ ] Run 20–30 real ATTHA’S campaigns across Restaurant and Burger.
+- [ ] Measure fact-gate blocks, repairs, visual-QA failures, human revision rate, cost and time-to-approval.
+- [ ] Fix recurring production failures.
+- [ ] Confirm the system can produce publishable work with minimal manual correction.
+
+## Deliberately postponed
+
+- SKK-specific workflows
+- Lifeline-specific workflows
+- public signup
+- SaaS billing/subscriptions
+- generalized tenant dashboard/switcher
+- marketplace
+- advanced RBAC
+- automatic publishing everywhere
+- large industry packs
+- broad RAG/platform generalisation
+
+Scale only after ATTHA’S V1 is proven.

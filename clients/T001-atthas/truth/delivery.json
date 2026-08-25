@@ -1,45 +1,94 @@
 {
   "tenantId": "T001",
-  "retrievedAt": "2026-08-23",
+  "retrievedAt": "2026-08-24",
   "providers": [
     {
       "provider": "Uber Eats",
       "branchId": "RESTAURANT_COLOMBO_06",
-      "profileUrl": "https://www.ubereats.com/lk/store/atthas-restaurant-colombo-06/rx0DsSbYXXSxprXGuNAfRA",
-      "status": "SOURCE_VERIFIED"
+      "profileUrl": "https://guava.failover.uber.com/lk/store/atthas-restaurant-colombo-06/rx0DsSbYXXSxprXGuNAfRA",
+      "status": "SOURCE_VERIFIED",
+      "branchCatalogVerified": true
+    },
+    {
+      "provider": "PickMe Food",
+      "branchId": "RESTAURANT_COLOMBO_06",
+      "profileUrl": null,
+      "status": "SOURCE_VERIFIED",
+      "sourceId": "ATTHAS_INSTAGRAM_2026_08_24",
+      "branchCatalogVerified": false,
+      "note": "Service/channel confirmed publicly; current SKU-level PickMe catalog still requires merchant verification."
+    },
+    {
+      "provider": "Dine-in",
+      "branchId": "RESTAURANT_COLOMBO_06",
+      "profileUrl": null,
+      "status": "SOURCE_VERIFIED",
+      "sourceId": "ATTHAS_INSTAGRAM_2026_08_24"
+    },
+    {
+      "provider": "Takeaway",
+      "branchId": "RESTAURANT_COLOMBO_06",
+      "profileUrl": null,
+      "status": "SOURCE_VERIFIED",
+      "sourceId": "ATTHAS_INSTAGRAM_2026_08_24"
     },
     {
       "provider": "Uber Eats",
       "branchId": "BURGER_WELLAMPITIYA",
-      "profileUrl": "https://www.ubereats.com/lk/store/atthas-burger-wellampitiya/nS5FOAf2V0-1R1kdHNj-tA",
-      "status": "SOURCE_VERIFIED"
+      "profileUrl": "https://guava.failover.uber.com/lk/store/atthas-burger-wellampitiya/nS5FOAf2V0-1R1kdHNj-tA",
+      "status": "SOURCE_VERIFIED",
+      "branchCatalogVerified": true
+    },
+    {
+      "provider": "PickMe Food",
+      "branchId": "BURGER_WELLAMPITIYA",
+      "profileUrl": null,
+      "status": "OWNER_SOURCE_CONFIRMED",
+      "sourceId": "OWNER_BURGER_MENU_2026_08",
+      "branchCatalogVerified": false,
+      "note": "Brand/channel evidence exists; current branch-specific PickMe catalog requires direct verification."
+    },
+    {
+      "provider": "Uber Eats",
+      "branchId": "BURGER_MARINE_DRIVE_C04",
+      "profileUrl": "https://guava.failover.uber.com/lk/store/atthas-burger-marine-drive-colombo-04/HO5gh8T7Ur6onmwvUhAVXQ",
+      "status": "SOURCE_VERIFIED",
+      "branchCatalogVerified": true
+    },
+    {
+      "provider": "PickMe Food",
+      "branchId": "BURGER_MARINE_DRIVE_C04",
+      "profileUrl": null,
+      "status": "SOURCE_VERIFIED",
+      "sourceId": "ATTHAS_INSTAGRAM_2026_08_24",
+      "branchCatalogVerified": false,
+      "note": "Brand-level PickMe evidence only. Branch-specific catalog requires direct verification."
+    },
+    {
+      "provider": "Uber Eats",
+      "branchId": "BURGER_HEY_MARINE_C03",
+      "profileUrl": "https://www.ubereats.com/lk/store/atthas-burger-hey-marine/IE49dGB2WgCvrj12Xo1G8Q",
+      "status": "SOURCE_VERIFIED",
+      "branchCatalogVerified": true
+    },
+    {
+      "provider": "PickMe Food",
+      "branchId": "BURGER_HEY_MARINE_C03",
+      "profileUrl": null,
+      "status": "SOURCE_VERIFIED",
+      "sourceId": "ATTHAS_INSTAGRAM_2026_08_24",
+      "branchCatalogVerified": false,
+      "note": "Brand-level PickMe evidence only. Branch-specific catalog requires direct verification."
     },
     {
       "provider": "Uber Eats",
       "branchId": "BURGER_DEHIWALA",
       "profileUrl": "https://www.ubereats.com/lk/store/atthas-burger-dehiwala/SEA5t6bPVbibVSwDJS6SFw",
-      "status": "SOURCE_VERIFIED"
-    },
-    {
-      "provider": "Uber Eats",
-      "branchId": "BURGER_MARINE_DRIVE_C04",
-      "profileUrl": "https://www.ubereats.com/lk/store/atthas-burger-marine-drive-colombo-04/HO5gh8T7Ur6onmwvUhAVXQ",
-      "status": "SOURCE_VERIFIED"
-    },
-    {
-      "provider": "Uber Eats",
-      "branchId": "BURGER_HEY_MARINE_C03",
-      "profileUrl": null,
-      "status": "SOURCE_VERIFIED",
-      "note": "Store presence/address observed in Uber Eats directory; direct profile URL not resolved."
-    },
-    {
-      "provider": "PickMe",
-      "branchId": "BURGER_WELLAMPITIYA",
-      "profileUrl": null,
-      "status": "OWNER_SOURCE_CONFIRMED",
-      "sourceId": "OWNER_BURGER_MENU_2026_08",
-      "note": "PickMe logo/order channel is printed on the owner-supplied Wellampitiya menu; profile URL still required."
+      "status": "STALE_REQUIRES_FRESH_VERIFICATION",
+      "branchCatalogVerified": false,
+      "note": "Dehiwala is outside current V1 scope and may not be advertised from this historical source."
     }
-  ]
+  ],
+  "availabilityRule": "A platform temporarily showing delivery unavailable does not prove that the physical branch is closed. Delivery state depends on address, service radius, rider availability, merchant state and current platform conditions.",
+  "hardRule": "A delivery-platform price, offer, catalog or availability state must remain scoped to its branch, platform and observation time."
 }

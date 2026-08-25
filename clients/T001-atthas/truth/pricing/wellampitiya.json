@@ -5,28 +5,23 @@
   "salesChannel": "UBER_EATS",
   "sourceId": "UBER_BURGER_WELLAMPITIYA",
   "status": "SOURCE_VERIFIED",
-  "retrievedAt": "2026-08-23",
+  "retrievedAt": "2026-08-24",
   "currency": "LKR",
   "prices": [
     {
+      "productId": "CHICKEN_CHEESE_BURGER_LARGE",
+      "name": "Chicken Cheese Burger (Large)",
+      "price": 1390
+    },
+    {
       "productId": "CRISPY_CHICKEN_BURGER",
-      "name": "Crispy Chicken Burger",
-      "price": 950
+      "name": "Crispy Chicken Burger (Large)",
+      "price": 1090
     },
     {
       "productId": "CRISPY_2X_CHICKEN_BURGER",
       "name": "Crispy 2X Chicken Burger",
-      "price": 1300
-    },
-    {
-      "productId": "CHICKEN_PATTY_BURGER_CHEESE",
-      "name": "Chicken Patty Burger with Cheese",
-      "price": 990
-    },
-    {
-      "productId": "CRISPY_PATTY_CHICKEN_BURGER",
-      "name": "Crispy Patty Chicken Burger",
-      "price": 850
+      "price": 1490
     },
     {
       "productId": "CHICKEN_TIKKA_BURGER",
@@ -34,19 +29,19 @@
       "price": 950
     },
     {
+      "productId": "CHICKEN_HAM_2X_CHEESE_BURGER",
+      "name": "Chicken Ham & 2x Cheese Burger",
+      "price": 750
+    },
+    {
       "productId": "HYBRID_BURGER",
-      "name": "Hybrid Burger",
+      "name": "Hybrid",
       "price": 1200
     },
     {
       "productId": "CHEESE_BURGER_NO_MEAT",
-      "name": "Cheese Burger (no meat)",
+      "name": "Cheese Burger — No Meat",
       "price": 650
-    },
-    {
-      "productId": "CHICKEN_KEBAB_BURGER",
-      "name": "Chicken Kebab Burger",
-      "price": 850
     },
     {
       "productId": "CHICKEN_MAYO_BURGER",
@@ -54,44 +49,9 @@
       "price": 800
     },
     {
-      "productId": "BEEF_CHEESE_BURGER",
-      "name": "Beef Cheese Burger",
-      "price": 1000
-    },
-    {
       "productId": "BEEF_2X2_BURGER",
       "name": "Beef 2X2 Burger",
       "price": 1300
-    },
-    {
-      "productId": "BEEF_STEW_BURGER",
-      "name": "Beef Stew Burger",
-      "price": 950
-    },
-    {
-      "productId": "LOADED_FRIES",
-      "name": "Loaded Fries",
-      "price": 1000
-    },
-    {
-      "productId": "POTATO_WEDGES",
-      "name": "Potato Wedges",
-      "price": 600
-    },
-    {
-      "productId": "FRENCH_FRIES",
-      "name": "French Fries",
-      "price": 600
-    },
-    {
-      "productId": "BEEF_SHAWARMA",
-      "name": "Beef Shawarma",
-      "price": 950
-    },
-    {
-      "productId": "SPICY_CHICKEN_SHAWARMA",
-      "name": "Spicy Chicken Shawarma",
-      "price": 900
     },
     {
       "productId": "BEEF_3X3_BURGER",
@@ -99,15 +59,65 @@
       "price": 1600
     },
     {
-      "productId": "SKK_CHICKEN_PATTY_BURGER",
-      "name": "SKK Chicken Patty Burger",
+      "productId": "BEEF_PATTY_BURGER",
+      "name": "Beef Patty Burger",
+      "price": 990
+    },
+    {
+      "productId": "CHICKEN_SUBMARINE_WITH_CHEESE",
+      "name": "Chicken Submarine with Cheese",
+      "price": 750
+    },
+    {
+      "productId": "CHICKEN_KEBAB_STICK",
+      "name": "Chicken Kebab Stick",
+      "price": 590
+    },
+    {
+      "productId": "BEEF_KEBAB_STICK",
+      "name": "Beef Kebab Stick",
+      "price": 650
+    },
+    {
+      "productId": "SKK_CHICKEN_PATTY",
+      "name": "SKK Chicken Patty",
       "price": 580
     },
     {
-      "productId": "SKK_BEEF_PATTY_BURGER",
-      "name": "SKK Beef Patty Burger",
+      "productId": "SKK_BEEF_PATTY",
+      "name": "SKK Beef Patty",
       "price": 580
     }
   ],
-  "warning": "Use only for Uber Eats-specific creatives after freshness recheck; not official in-store pricing."
+  "conflictedPrices": [
+    {
+      "productId": "BEEF_CHEESE_BURGER",
+      "name": "Beef Cheese Burger",
+      "standardCategoryReference": 1390,
+      "offerReference": 1350,
+      "currentAdvertisablePrice": "dynamic_checkout_required",
+      "status": "CONFLICT_REQUIRES_CONFIRMATION"
+    }
+  ],
+  "offersObserved": [
+    {
+      "productId": "CHICKEN_CHEESE_BURGER_LARGE",
+      "display": "LKR 1,390 — Buy 1 Get 1 Free",
+      "observedAt": "2026-08-24",
+      "effectiveUntil": null
+    },
+    {
+      "productId": "CRISPY_CHICKEN_BURGER_KIK_COLA",
+      "display": "LKR 1,040, shown from LKR 1,300",
+      "observedAt": "2026-08-24",
+      "effectiveUntil": null
+    },
+    {
+      "productId": "BEEF_CHEESE_BURGER",
+      "display": "LKR 1,080, shown from LKR 1,350",
+      "observedAt": "2026-08-24",
+      "effectiveUntil": null
+    }
+  ],
+  "warning": "Uber Eats prices are branch + channel + observed-date facts. Do not reuse as dine-in, takeaway or PickMe pricing. Offers require freshness verification before publication."
 }

@@ -1,6 +1,6 @@
 {
   "tenantId": "T001",
-  "retrievedAt": "2026-08-23",
+  "retrievedAt": "2026-08-24",
   "sources": [
     {
       "sourceId": "OWNER_BURGER_MENU_2026_08",
@@ -11,51 +11,73 @@
     {
       "sourceId": "UBER_RESTAURANT_C06",
       "type": "PUBLIC_PLATFORM",
-      "url": "https://www.ubereats.com/lk/store/atthas-restaurant-colombo-06/rx0DsSbYXXSxprXGuNAfRA"
-    },
-    {
-      "sourceId": "UBER_RESTAURANT_RECENT_FAILOVER",
-      "type": "PUBLIC_PLATFORM",
-      "url": "https://guava.failover.uber.com/lk/store/atthas-restaurant-colombo-06/rx0DsSbYXXSxprXGuNAfRA"
+      "url": "https://guava.failover.uber.com/lk/store/atthas-restaurant-colombo-06/rx0DsSbYXXSxprXGuNAfRA",
+      "observedAt": "2026-08-24"
     },
     {
       "sourceId": "UBER_BURGER_WELLAMPITIYA",
       "type": "PUBLIC_PLATFORM",
-      "url": "https://www.ubereats.com/lk/store/atthas-burger-wellampitiya/nS5FOAf2V0-1R1kdHNj-tA"
-    },
-    {
-      "sourceId": "UBER_BURGER_DEHIWALA",
-      "type": "PUBLIC_PLATFORM",
-      "url": "https://www.ubereats.com/lk/store/atthas-burger-dehiwala/SEA5t6bPVbibVSwDJS6SFw"
+      "url": "https://guava.failover.uber.com/lk/store/atthas-burger-wellampitiya/nS5FOAf2V0-1R1kdHNj-tA",
+      "observedAt": "2026-08-24"
     },
     {
       "sourceId": "UBER_BURGER_MARINE_C04",
       "type": "PUBLIC_PLATFORM",
-      "url": "https://www.ubereats.com/lk/store/atthas-burger-marine-drive-colombo-04/HO5gh8T7Ur6onmwvUhAVXQ"
+      "url": "https://guava.failover.uber.com/lk/store/atthas-burger-marine-drive-colombo-04/HO5gh8T7Ur6onmwvUhAVXQ",
+      "observedAt": "2026-08-24"
     },
     {
-      "sourceId": "UBER_DIRECTORY_HEY_MARINE",
-      "type": "PUBLIC_PLATFORM_DIRECTORY",
-      "description": "Uber Eats directory entry for ATTHA'S Burger Hey Marine, Hey Marine Food Court, Marine Drive, Kollupitiya, Colombo 03"
+      "sourceId": "UBER_BURGER_HEY_MARINE_C03",
+      "type": "PUBLIC_PLATFORM",
+      "url": "https://www.ubereats.com/lk/store/atthas-burger-hey-marine/IE49dGB2WgCvrj12Xo1G8Q",
+      "observedAt": "2026-08-24"
+    },
+    {
+      "sourceId": "ATTHAS_INSTAGRAM_2026_08_24",
+      "type": "FIRST_PARTY_SOCIAL",
+      "url": "https://www.instagram.com/atthas.lk/",
+      "observedAt": "2026-08-24"
+    },
+    {
+      "sourceId": "ATTHAS_FACEBOOK_2026_08_24",
+      "type": "FIRST_PARTY_SOCIAL",
+      "url": "https://www.facebook.com/p/Atthas-Restaurant-100093899397096/",
+      "observedAt": "2026-08-24"
+    },
+    {
+      "sourceId": "BUSINESS_WELLAMPITIYA_2026_08_24",
+      "type": "PUBLIC_BUSINESS_LISTING",
+      "description": "Business/maps listing snapshot for ATTHA'S Burger Wellampitiya; used for 96/2 address variant, phone and hours.",
+      "observedAt": "2026-08-24"
+    },
+    {
+      "sourceId": "BUSINESS_BAMBALAPITIYA_LEGACY_2026_08_24",
+      "type": "PUBLIC_BUSINESS_LISTING",
+      "description": "Maps/business profile associated with the older Pink Beach Bambalapitiya location; phone cannot be promoted for the current Frankfort Place branch without confirmation.",
+      "observedAt": "2026-08-24"
+    },
+    {
+      "sourceId": "BUSINESS_KOLLUPITIYA_2026_08_24",
+      "type": "PUBLIC_BUSINESS_LISTING",
+      "description": "Business listing for ATTHA'S Burger Hey Marine / Kollupitiya; used for address, phone and physical opening hours.",
+      "observedAt": "2026-08-24"
+    },
+    {
+      "sourceId": "BUSINESS_WELLAWATTE_2026_08_24",
+      "type": "PUBLIC_BUSINESS_LISTING",
+      "description": "Business/maps listing for ATTHA'S Restaurant Wellawatte; supports 24A Hampden Lane and public phone details.",
+      "observedAt": "2026-08-24"
+    },
+    {
+      "sourceId": "UBER_BURGER_DEHIWALA",
+      "type": "PUBLIC_PLATFORM",
+      "url": "https://www.ubereats.com/lk/store/atthas-burger-dehiwala/SEA5t6bPVbibVSwDJS6SFw",
+      "note": "Retained as historical/source evidence. Dehiwala is outside the current four-location V1 scope and requires fresh verification before advertising."
     },
     {
       "sourceId": "GOOGLE_BUSINESS_DEHIWALA",
       "type": "PUBLIC_BUSINESS_LISTING",
-      "description": "Business listing for Attha's Burger Dehiwala; address, phone and hours snapshot"
-    },
-    {
-      "sourceId": "UBER_MARINE_C04_DIRECTORY_PROMO",
-      "type": "PUBLIC_PLATFORM_DIRECTORY",
-      "description": "Uber Eats directory snapshot showing a Buy 1, get 1 store promotion"
-    },
-    {
-      "sourceId": "USER_SOCIAL_LINKS",
-      "type": "USER_PROVIDED_URLS",
-      "urls": [
-        "https://www.facebook.com/100093899397096/",
-        "https://www.instagram.com/atthas.lk/",
-        "https://www.tiktok.com/@atthas.lk"
-      ]
+      "description": "Historical business listing previously associated with ATTHA'S Burger Dehiwala. A phone number from this listing conflicts with the current Kollupitiya business record and must not be reused without confirmation."
     },
     {
       "sourceId": "USER_GOOGLE_SHARE_LINKS",

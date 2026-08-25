@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-creative-os.local/schemas/atthas-product-visual.schema.json",
+  "title": "ATTHA'S Product Visual Asset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "imageId",
+    "imageType",
+    "brandId",
+    "branchScope",
+    "sourceType",
+    "ownershipStatus",
+    "approvedForAds",
+    "identityConfidence",
+    "appearanceVerified",
+    "ingredientMatchVerified",
+    "approvalStatus"
+  ],
+  "properties": {
+    "imageId": { "type": "string", "minLength": 1 },
+    "imageType": {
+      "enum": [
+        "real_product_photo",
+        "enhanced_real_photo",
+        "ai_generated_reference",
+        "ai_generated_concept",
+        "ugc",
+        "delivery_partner_image"
+      ]
+    },
+    "visualClass": {
+      "enum": [
+        "VERIFIED_PRODUCT_VISUAL",
+        "CONSTRAINED_PRODUCT_GENERATION",
+        "GENERIC_CONCEPT_VISUAL"
+      ]
+    },
+    "brandId": {
+      "enum": ["ATTHAS_MASTER", "ATTHAS_RESTAURANT", "ATTHAS_BURGER"]
+    },
+    "branchScope": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
+      "minItems": 1
+    },
+    "productId": { "type": ["string", "null"] },
+    "sourceType": {
+      "enum": [
+        "first_party",
+        "owner_supplied",
+        "merchant_platform",
+        "ugc",
+        "ai_generated"
+      ]
+    },
+    "sourceUrl": { "type": ["string", "null"], "format": "uri" },
+    "observedAt": { "type": ["string", "null"], "format": "date" },
+    "ownershipStatus": {
+      "enum": [
+        "first_party_owned",
+        "licensed",
+        "delivery_partner",
+        "ugc_unknown",
+        "ai_generated",
+        "unknown"
+      ]
+    },
+    "approvedForAds": { "type": "boolean" },
+    "identityConfidence": { "enum": ["high", "medium", "low", "unknown"] },
+    "appearanceVerified": { "type": "boolean" },
+    "ingredientMatchVerified": { "type": "boolean" },
+    "effectiveFrom": { "type": ["string", "null"], "format": "date" },
+    "effectiveUntil": { "type": ["string", "null"], "format": "date" },
+    "approvalStatus": {
+      "enum": [
+        "draft",
+        "internal_review",
+        "client_review",
+        "approved",
+        "published",
+        "archived",
+        "blocked"
+      ]
+    },
+    "referenceImageIds": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "verifiedVisibleIngredients": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "mustInclude": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "mustNotInclude": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}
