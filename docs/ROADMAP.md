@@ -71,9 +71,9 @@ Per current sprint decision, these are intentionally postponed and must remain f
 - [x] Build deterministic five-family Burger layout library: hero, promotional price, offer/deal, minimal premium and story vertical.
 - [x] Build deterministic five-family Restaurant layout library: food hero, editorial, multi-dish, hospitality and story vertical.
 - [x] Add deterministic brand/aspect-safe layout selector and persist the selected layout in poster manifests.
+- [x] Add automatic bounded safe regeneration loop for `REGENERATE` visual-QA decisions.
+- [x] Feed each selected layout’s copy-safe / negative-space composition requirements into initial and regenerated image prompts.
 - [ ] Connect visual QA to real approved product/reference records in the live ATTHA’S workflow. **Blocked by deferred product-photo work.**
-- [ ] Add automatic safe regeneration loop for `REGENERATE` decisions.
-- [ ] Feed selected layout negative-space requirements back into image generation.
 - [ ] Add approved master/Burger/Restaurant logo placement once final lockups exist.
 - [ ] Add stronger final-art legibility/crop/platform QA.
 - [ ] Validate all ten layout families with real ATTHA’S campaigns.
@@ -99,8 +99,9 @@ Per current sprint decision, these are intentionally postponed and must remain f
 - [x] Weekly content plan and deterministic campaign calendar.
 - [x] Classify each planned campaign as `READY_WITH_CURRENT_TRUTH` or `NEEDS_TRUTH_BEFORE_PRODUCTION` using application-owned requirements.
 - [x] Protect operating-brand/branch scope and fixed publishing slots during AI planning.
+- [x] Planned campaign → truth gate → generation → Creative Director → deterministic layout → draft media → visual QA → bounded regeneration → final renderer as one governed command.
+- [x] Support explicit `DRAFT` output while requiring visual-QA `PASS` before `FINAL_RENDERED`.
 - [ ] Add automatic Gemini 3.7 escalation when Creative Director review is close or high-risk.
-- [ ] Selected concept → draft → QA → revision → final orchestration as one command.
 - [ ] One approved concept → feed/story/reel-cover/Facebook/WhatsApp adaptations.
 - [ ] Caption/headline/CTA variants tied to the same approved truth/version.
 
