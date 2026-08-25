@@ -1,0 +1,27 @@
+{
+  "tenantId": "T001",
+  "decisionDate": "2026-08-25",
+  "status": "DEFERRED_BY_OWNER",
+  "reason": "These data areas are intentionally postponed so ATTHA’S V1 work can continue on the remaining implementation priorities. Existing truth gates and safety restrictions must remain active for any affected claims.",
+  "deferred": [
+    "dine_in_and_takeaway_prices",
+    "uber_prices",
+    "pickme_prices",
+    "ingredients_and_descriptions",
+    "allergens",
+    "offers_and_validity_dates",
+    "product_availability_by_branch",
+    "real_product_photographs"
+  ],
+  "productionPolicy": {
+    "doNotInvent": true,
+    "doNotPromoteUnverifiedAsConfirmed": true,
+    "pricing": "Use only facts that already pass the existing branch/channel/freshness truth gate. Otherwise omit price or block the price-dependent creative.",
+    "ingredients": "Do not state or visually require unverified ingredients as factual product attributes.",
+    "allergens": "Do not make allergen claims until authoritative data is supplied.",
+    "offers": "Do not publish deferred offers without a fresh verified state.",
+    "availability": "Do not claim branch-level product availability unless already verified for the requested scope.",
+    "productPhotos": "Without an approved real product reference, generated food imagery remains concept/reference imagery and cannot be represented as a verified real ATTHA’S product photograph."
+  },
+  "resumeWhen": "Owner elects to provide/reconcile these operational datasets later."
+}
