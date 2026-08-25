@@ -54,7 +54,7 @@ const creative: CampaignCreativeOutput = {
   factualQaNotes: [],
 };
 
-test("poster template renders deterministic ATTHAS overlay copy at exact campaign dimensions", () => {
+test("poster template renders deterministic ATTHAS Burger price layout at exact campaign dimensions", () => {
   const html = buildPosterHtml({
     creative,
     format,
@@ -67,11 +67,38 @@ test("poster template renders deterministic ATTHAS overlay copy at exact campaig
   assert.match(html, /LKR 950/);
   assert.match(html, /Order on Uber Eats/);
   assert.match(html, /data:image\/jpeg;base64,ZmFrZQ==/);
-  assert.match(html, /data-template-id="ATTHAS_BURGER_HERO_V1"/);
+  assert.match(html, /data-brand-id="ATTHAS_BURGER"/);
+  assert.match(html, /data-template-id="ATTHAS_BURGER_PROMOTIONAL_PRICE_V1"/);
   assert.match(html, /--atthas-red-deep: #B50008/);
   assert.match(html, /--atthas-gold-flame: #FFD21A/);
   assert.doesNotMatch(html, /<img[^>]+logo/i);
   assert.doesNotThrow(() => assertPosterHtmlContract(html, creative, format));
+});
+
+test("poster template can render an approved Restaurant editorial family", () => {
+  const restaurantCreative: CampaignCreativeOutput = {
+    ...creative,
+    overlaySpec: {
+      ...creative.overlaySpec,
+      price: undefined,
+      headline: "An evening at ATTHA’S",
+      supportingCopy: "Warm food. Shared moments.",
+      cta: "Visit Wellawatte",
+    },
+  };
+  const html = buildPosterHtml({
+    creative: restaurantCreative,
+    format,
+    baseImageDataUri: "data:image/jpeg;base64,ZmFrZQ==",
+    brandId: "ATTHAS_RESTAURANT",
+    layoutId: "ATTHAS_RESTAURANT_EDITORIAL_V1",
+  });
+
+  assert.match(html, /data-brand-id="ATTHAS_RESTAURANT"/);
+  assert.match(html, /data-template-id="ATTHAS_RESTAURANT_EDITORIAL_V1"/);
+  assert.match(html, /Libre Baskerville/);
+  assert.match(html, /Visit Wellawatte/);
+  assert.doesNotMatch(html, /<div class="price">/);
 });
 
 test("poster template escapes customer-facing HTML", () => {
