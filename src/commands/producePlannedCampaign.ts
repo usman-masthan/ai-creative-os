@@ -29,6 +29,10 @@ import {
   compileStructuredImagePrompt,
   type StructuredImageBrief,
 } from "../structuredImageBrief.js";
+import {
+  governStructuredImageBrief,
+  type StructuredBriefGovernanceIssue,
+} from "../structuredBriefGovernance.js";
 import type { TruthRecord, TruthRequirement, VerifiedFact } from "../types.js";
 import type {
   VisualQaProvider,
@@ -54,11 +58,18 @@ import {
 export type PlannedProductionMode = "DRAFT" | "FINAL";
 export type PlannedImagePromptMode = "legacy" | "structured-brief";
 
+export interface PlannedStructuredBriefGovernanceTrace {
+  status: "VALID" | "REPAIRED";
+  repairs: number;
+  issuesBeforeRepair: StructuredBriefGovernanceIssue[];
+}
+
 export interface PlannedImagePromptPlan {
   mode: PlannedImagePromptMode;
   prompt: string;
   structuredBrief?: StructuredImageBrief;
   foodComposition?: DeterministicFoodComposition;
+  briefGovernance?: PlannedStructuredBriefGovernanceTrace;
 }
 
 export interface PlannedTruthRequirementScope {
@@ -98,6 +109,7 @@ export interface ProducePlannedCampaignRequest {
   maxDirectorRepairAttempts?: number;
   maxFinalizerRepairAttempts?: number;
   maxImageRegenerations?: number;
+  maxStructuredBriefRepairAttempts?: number;
   featureFlags?: Partial<CreativeFeatureFlags>;
   chromePath?: string;
   fetchFn?: typeof fetch;
@@ -114,6 +126,7 @@ export interface ProductionImageAttempt {
   promptMode?: PlannedImagePromptMode;
   structuredBrief?: StructuredImageBrief;
   foodComposition?: DeterministicFoodComposition;
+  briefGovernance?: PlannedStructuredBriefGovernanceTrace;
   visualQa?: VisualQaResult;
 }
 
@@ -139,6 +152,14 @@ export type ProducePlannedCampaignResult =
       campaign: Extract<GenerateCampaignResult, { status: "GENERATED" }>;
       productName: string;
       missingTruth: string[];
+    })
+  | (ProductionTraceBase & {
+      status: "HUMAN_REVIEW_STRUCTURED_BRIEF_REQUIRED";
+      campaign: DirectedCampaign;
+      structuredBrief: StructuredImageBrief;
+      issues: StructuredBriefGovernanceIssue[];
+      repairs: number;
+      draftImagePath?: string;
     })
   | (ProductionTraceBase & {
       status: "BLOCKED_MEDIA_INPUT" | "BLOCKED_VISUAL_QA_REQUIRED";
@@ -329,6 +350,61 @@ export function buildPlannedImagePrompt(input: {
   };
 }
 
+type GovernPlannedImagePromptResult =
+  | { status: "READY"; plan: PlannedImagePromptPlan }
+  | {
+      status: "HUMAN_REVIEW";
+      brief: StructuredImageBrief;
+      issues: StructuredBriefGovernanceIssue[];
+      repairs: number;
+    };
+
+async function governPlannedImagePrompt(input: {
+  plan: PlannedImagePromptPlan;
+  campaign: DirectedCampaign;
+  repairProvider: CampaignGenerationProvider;
+  claimGovernance?: ClaimGovernance;
+  maxRepairAttempts?: number;
+}): Promise<GovernPlannedImagePromptResult> {
+  if (!input.plan.structuredBrief) {
+    return { status: "READY", plan: input.plan };
+  }
+
+  const governed = await governStructuredImageBrief({
+    brief: input.plan.structuredBrief,
+    preflight: input.campaign.preflight,
+    creative: input.campaign.creative,
+    repairProvider: input.repairProvider,
+    ...(input.claimGovernance ? { claimGovernance: input.claimGovernance } : {}),
+    ...(input.maxRepairAttempts !== undefined
+      ? { maxRepairAttempts: input.maxRepairAttempts }
+      : {}),
+  });
+
+  if (governed.status === "HUMAN_REVIEW") {
+    return {
+      status: "HUMAN_REVIEW",
+      brief: governed.brief,
+      issues: governed.issues,
+      repairs: governed.repairs,
+    };
+  }
+
+  return {
+    status: "READY",
+    plan: {
+      ...input.plan,
+      prompt: compileStructuredImagePrompt(governed.brief),
+      structuredBrief: governed.brief,
+      briefGovernance: {
+        status: governed.status,
+        repairs: governed.repairs,
+        issuesBeforeRepair: governed.issuesBeforeRepair,
+      },
+    },
+  };
+}
+
 async function downloadImage(
   url: string,
   destination: string,
@@ -391,6 +467,9 @@ async function persistGeneratedImage(input: {
         : {}),
       ...(input.promptPlan.foodComposition
         ? { foodComposition: input.promptPlan.foodComposition }
+        : {}),
+      ...(input.promptPlan.briefGovernance
+        ? { briefGovernance: input.promptPlan.briefGovernance }
         : {}),
     },
   };
@@ -588,7 +667,7 @@ export async function producePlannedCampaign(
   const maxRegenerations = normalizeImageRegenerations(request.maxImageRegenerations);
   const branchId =
     request.entry.branchScope !== "BRAND_WIDE" ? request.entry.branchScope : undefined;
-  const initialPromptPlan = !request.baseImagePath
+  const initialPromptCandidate = !request.baseImagePath
     ? buildPlannedImagePrompt({
         campaignId: request.campaignId,
         brandId: request.entry.brandId,
@@ -601,6 +680,31 @@ export async function producePlannedCampaign(
         ...(foodComposition ? { foodComposition } : {}),
       })
     : undefined;
+  const initialPromptGovernance = initialPromptCandidate
+    ? await governPlannedImagePrompt({
+        plan: initialPromptCandidate,
+        campaign: directed,
+        repairProvider: request.providers.finalizer,
+        ...(request.claimGovernance ? { claimGovernance: request.claimGovernance } : {}),
+        ...(request.maxStructuredBriefRepairAttempts !== undefined
+          ? { maxRepairAttempts: request.maxStructuredBriefRepairAttempts }
+          : {}),
+      })
+    : undefined;
+  if (initialPromptGovernance?.status === "HUMAN_REVIEW") {
+    const result: ProducePlannedCampaignResult = {
+      ...base,
+      status: "HUMAN_REVIEW_STRUCTURED_BRIEF_REQUIRED",
+      campaign: directed,
+      structuredBrief: initialPromptGovernance.brief,
+      issues: initialPromptGovernance.issues,
+      repairs: initialPromptGovernance.repairs,
+    };
+    await persistOrchestration(outputDir, result);
+    return result;
+  }
+  const initialPromptPlan =
+    initialPromptGovernance?.status === "READY" ? initialPromptGovernance.plan : undefined;
   let current = request.baseImagePath
     ? await localImage(request.baseImagePath)
     : await persistGeneratedImage({
@@ -710,7 +814,7 @@ export async function producePlannedCampaign(
     }
 
     regenerations += 1;
-    const regenerationPromptPlan = buildPlannedImagePrompt({
+    const regenerationPromptCandidate = buildPlannedImagePrompt({
       campaignId: request.campaignId,
       brandId: request.entry.brandId,
       ...(branchId ? { branchId } : {}),
@@ -722,6 +826,29 @@ export async function producePlannedCampaign(
       ...(foodComposition ? { foodComposition } : {}),
       previousQa: qa,
     });
+    const regenerationPromptGovernance = await governPlannedImagePrompt({
+      plan: regenerationPromptCandidate,
+      campaign: directed,
+      repairProvider: request.providers.finalizer,
+      ...(request.claimGovernance ? { claimGovernance: request.claimGovernance } : {}),
+      ...(request.maxStructuredBriefRepairAttempts !== undefined
+        ? { maxRepairAttempts: request.maxStructuredBriefRepairAttempts }
+        : {}),
+    });
+    if (regenerationPromptGovernance.status === "HUMAN_REVIEW") {
+      const result: ProducePlannedCampaignResult = {
+        ...base,
+        status: "HUMAN_REVIEW_STRUCTURED_BRIEF_REQUIRED",
+        campaign: directed,
+        structuredBrief: regenerationPromptGovernance.brief,
+        issues: regenerationPromptGovernance.issues,
+        repairs: regenerationPromptGovernance.repairs,
+        draftImagePath: current.path,
+      };
+      await persistOrchestration(outputDir, result);
+      return result;
+    }
+    const regenerationPromptPlan = regenerationPromptGovernance.plan;
     current = await persistGeneratedImage({
       result: await request.providers.image.generate({
         prompt: regenerationPromptPlan.prompt,
