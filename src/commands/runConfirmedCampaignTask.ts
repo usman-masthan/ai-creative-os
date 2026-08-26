@@ -1,4 +1,5 @@
 import type { MarketingCalendarEntry } from "../marketingPlannerTypes.js";
+import type { CampaignGenerationProvider } from "../providers/types.js";
 import {
   confirmTaskTruth,
   prepareTaskTruthConfirmation,
@@ -8,6 +9,7 @@ import {
   type TaskTruthQuestionnaire,
   type TaskTruthSnapshot,
 } from "../taskTruth.js";
+import { confirmTaskTruthWithSemanticClassifier } from "../taskTruthSemanticClassifier.js";
 import type { TruthRequirement } from "../types.js";
 import {
   producePlannedCampaign,
@@ -99,6 +101,24 @@ export function answerConfirmedCampaignTask(input: {
     confirmedBy: input.confirmedBy,
     ...(input.confirmedAt ? { confirmedAt: input.confirmedAt } : {}),
   });
+}
+
+export async function answerConfirmedCampaignTaskSemantically(input: {
+  questionnaire: TaskTruthQuestionnaire;
+  answers: TaskTruthAnswer[];
+  confirmedBy: string;
+  confirmedAt?: string;
+  classifierProvider: CampaignGenerationProvider;
+}): Promise<TaskTruthSnapshot> {
+  return confirmTaskTruthWithSemanticClassifier(
+    {
+      questionnaire: input.questionnaire,
+      answers: input.answers,
+      confirmedBy: input.confirmedBy,
+      ...(input.confirmedAt ? { confirmedAt: input.confirmedAt } : {}),
+    },
+    input.classifierProvider,
+  );
 }
 
 /**
