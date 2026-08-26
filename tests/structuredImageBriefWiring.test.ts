@@ -102,8 +102,7 @@ const format: CampaignProductionFormat = {
 
 const layout = ATTHAS_LAYOUTS.find(
   (item) => item.id === "ATTHAS_BURGER_PROMOTIONAL_PRICE_V1",
-);
-if (!layout) throw new Error("Expected ATTHAS Burger promotional price layout fixture.");
+)!;
 
 function plan(useStructuredBrief: boolean, previousQa?: VisualQaResult): PlannedImagePromptPlan {
   return buildPlannedImagePrompt({
