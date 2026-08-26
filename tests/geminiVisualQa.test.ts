@@ -2,8 +2,30 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { GeminiVisualQaProvider } from "../src/visualQa/gemini.js";
+import type { VisualQaCompositionEvidence } from "../src/visualQa/types.js";
 
-function visualQaResponse(decision = "PASS"): Response {
+function evidence(
+  overrides: Partial<VisualQaCompositionEvidence> = {},
+): VisualQaCompositionEvidence {
+  return {
+    heroPlacement: "MATCH",
+    heroScale: "MATCH",
+    cropQuality: "GOOD",
+    copyZones: {
+      upperLeft: "GOOD",
+      upperRight: "POOR",
+      lowerLeft: "ACCEPTABLE",
+      lowerRight: "POOR",
+    },
+    notes: ["Upper-left is structurally calm and suitable for copy."],
+    ...overrides,
+  };
+}
+
+function visualQaResponse(
+  decision = "PASS",
+  compositionEvidence: VisualQaCompositionEvidence = evidence(),
+): Response {
   return new Response(
     JSON.stringify({
       candidates: [
@@ -17,7 +39,9 @@ function visualQaResponse(decision = "PASS"): Response {
                     productTruth: 92,
                     brandFit: 90,
                     realism: 91,
+                    foodTexture: 86,
                     composition: 88,
+                    copyZoneSuitability: 84,
                     governance: 95,
                     rights: 100,
                   },
@@ -25,6 +49,7 @@ function visualQaResponse(decision = "PASS"): Response {
                   observedIngredients: ["crispy chicken", "cabbage"],
                   unexpectedVisibleElements: [],
                   notes: ["Copy-safe negative space is available."],
+                  compositionEvidence,
                 }),
               },
             ],
@@ -41,7 +66,7 @@ function visualQaResponse(decision = "PASS"): Response {
   );
 }
 
-test("Gemini visual QA sends image pixels and returns structured review", async () => {
+test("Gemini visual QA sends image pixels and returns composition-aware structured review", async () => {
   let requestUrl = "";
   let requestInit: RequestInit | undefined;
 
@@ -66,6 +91,12 @@ test("Gemini visual QA sends image pixels and returns structured review", async 
     verifiedVisibleIngredients: ["crispy chicken", "cabbage"],
     mustNotInclude: ["generated text", "logo"],
     compositionRequirements: ["copy-safe negative space"],
+    compositionExpectation: {
+      heroPosition: "centre-right",
+      heroScale: "dominant food hero",
+      cropBehavior: "protect the food edges",
+      requestedQuietZones: ["upperLeft"],
+    },
   });
 
   assert.match(requestUrl, /gemini-3\.7-flash:generateContent$/);
@@ -89,12 +120,74 @@ test("Gemini visual QA sends image pixels and returns structured review", async 
   };
 
   assert.equal(body.contents[0]?.parts[0]?.inline_data?.mime_type, "image/jpeg");
-  assert.equal(body.contents[0]?.parts[0]?.inline_data?.data, Buffer.from("fake-image-bytes").toString("base64"));
+  assert.equal(
+    body.contents[0]?.parts[0]?.inline_data?.data,
+    Buffer.from("fake-image-bytes").toString("base64"),
+  );
+  assert.match(body.contents[0]?.parts[1]?.text ?? "", /Requested quiet copy zones: upperLeft/);
   assert.equal(body.generationConfig.responseFormat.text.mimeType, "application/json");
   assert.equal(body.generationConfig.responseFormat.text.schema.type, "object");
   assert.equal(result.decision, "PASS");
   assert.equal(result.scores.productTruth, 92);
+  assert.equal(result.scores.foodTexture, 86);
+  assert.equal(result.scores.copyZoneSuitability, 84);
+  assert.equal(result.compositionEvidence?.copyZones.upperLeft, "GOOD");
+  assert.equal(result.compositionEvidence?.copyZones.upperRight, "POOR");
   assert.equal(result.usage?.inputTokens, 100);
+});
+
+test("a POOR requested copy zone deterministically forces regeneration", async () => {
+  const provider = new GeminiVisualQaProvider({
+    apiKey: "gemini-test-key",
+    fetchImpl: async () =>
+      visualQaResponse(
+        "PASS",
+        evidence({
+          copyZones: {
+            upperLeft: "POOR",
+            upperRight: "GOOD",
+            lowerLeft: "ACCEPTABLE",
+            lowerRight: "GOOD",
+          },
+        }),
+      ),
+  });
+
+  const result = await provider.review({
+    imageBase64: "ZmFrZQ==",
+    mimeType: "image/jpeg",
+    brandId: "ATTHAS_BURGER",
+    visualClass: "GENERIC_CONCEPT_VISUAL",
+    rightsStatus: "cleared",
+    compositionExpectation: { requestedQuietZones: ["upperLeft"] },
+  });
+
+  // Generic concept imagery cannot PASS; the composition failure must still be surfaced.
+  assert.notEqual(result.decision, "PASS");
+  assert.ok(result.issues.some((issue) => issue.includes("Generic concept imagery")));
+});
+
+test("hero-placement mismatch forces regeneration for a pass-eligible visual", async () => {
+  const provider = new GeminiVisualQaProvider({
+    apiKey: "gemini-test-key",
+    fetchImpl: async () => visualQaResponse("PASS", evidence({ heroPlacement: "MISMATCH" })),
+  });
+
+  const result = await provider.review({
+    imageBase64: "ZmFrZQ==",
+    mimeType: "image/jpeg",
+    brandId: "ATTHAS_BURGER",
+    visualClass: "CONSTRAINED_PRODUCT_GENERATION",
+    rightsStatus: "cleared",
+    verifiedVisibleIngredients: ["crispy chicken", "cabbage"],
+    compositionExpectation: {
+      heroPosition: "centre-right",
+      requestedQuietZones: ["upperLeft"],
+    },
+  });
+
+  assert.equal(result.decision, "REGENERATE");
+  assert.ok(result.issues.some((issue) => issue.includes("hero placement")));
 });
 
 test("generic concept imagery cannot deterministically PASS as an actual product visual", async () => {
