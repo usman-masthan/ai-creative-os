@@ -1,3 +1,4 @@
+import { ATTHAS_TOKENS, atthasCssVariables } from "./atthasTokens.js";
 import type {
   CampaignCreativeOutput,
   CampaignProductionFormat,
@@ -52,15 +53,7 @@ export function buildPosterHtml(input: PosterTemplateInput): string {
 <meta name="viewport" content="width=${format.width}, initial-scale=1" />
 <style>
   :root {
-    --atthas-red-deep: #B50008;
-    --atthas-red-appetite: #D01920;
-    --atthas-red-ember: #820008;
-    --atthas-gold-flame: #FFD21A;
-    --atthas-gold-toasted: #F2B705;
-    --atthas-white: #FFFFFF;
-    --atthas-cream: #FFF8E8;
-    --atthas-ink: #171717;
-    --atthas-grey: #68635E;
+    ${atthasCssVariables()}
     --safe: 5%;
   }
   * { box-sizing: border-box; }
@@ -71,7 +64,7 @@ export function buildPosterHtml(input: PosterTemplateInput): string {
     overflow: hidden;
   }
   body {
-    font-family: Inter, Arial, Helvetica, sans-serif;
+    font-family: "${ATTHAS_TOKENS.typography.body}", Arial, Helvetica, sans-serif;
     background: var(--atthas-ink);
   }
   .poster {
@@ -109,7 +102,7 @@ export function buildPosterHtml(input: PosterTemplateInput): string {
     max-width: 68%;
   }
   .headline {
-    font-family: Oswald, "Arial Narrow", Arial, sans-serif;
+    font-family: "${ATTHAS_TOKENS.typography.burgerDisplay}", "Arial Narrow", Arial, sans-serif;
     font-size: clamp(58px, 7.4vw, 88px);
     line-height: .96;
     font-weight: 800;
@@ -138,7 +131,7 @@ export function buildPosterHtml(input: PosterTemplateInput): string {
     border-radius: 12px;
     background: var(--atthas-gold-flame);
     color: var(--atthas-ink);
-    font-family: Oswald, "Arial Narrow", Arial, sans-serif;
+    font-family: "${ATTHAS_TOKENS.typography.price}", "Arial Narrow", Arial, sans-serif;
     font-size: clamp(38px, 4.4vw, 54px);
     line-height: 1;
     font-weight: 700;
@@ -285,7 +278,7 @@ export function buildPosterHtml(input: PosterTemplateInput): string {
     background: var(--atthas-red-deep);
   }
   [data-brand-id="ATTHAS_RESTAURANT"] .headline {
-    font-family: "Libre Baskerville", Georgia, serif;
+    font-family: "${ATTHAS_TOKENS.typography.restaurantDisplay}", Georgia, serif;
     letter-spacing: -1px;
     line-height: 1.02;
   }
