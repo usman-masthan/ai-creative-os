@@ -17,6 +17,7 @@
     "truth:task-demo": "tsx scripts/demo-task-truth-confirmation.ts",
     "operations:demo": "tsx scripts/demo-atthas-operations.ts",
     "dashboard:serve": "tsx scripts/serve-atthas-dashboard.ts",
+    "marketing:workspace": "tsx scripts/serve-atthas-marketing-manager.ts",
     "validation:report": "tsx scripts/atthas-validation-report.ts"
   },
   "devDependencies": {
