@@ -3,13 +3,14 @@ import test from "node:test";
 
 import { ATTHAS_TOKENS, atthasBrandIdentifier, atthasCssVariables } from "../src/atthasTokens.js";
 import { assertConceptDifferentiation } from "../src/conceptDifferentiation.js";
+import type { CampaignCreativeOutput } from "../src/creativeTypes.js";
 import {
   DEFAULT_CREATIVE_FEATURE_FLAGS,
   resolveCreativeFeatureFlags,
 } from "../src/featureFlags.js";
 import { confirmTaskTruth, type TaskTruthQuestionnaire } from "../src/taskTruth.js";
+import { confirmTaskTruthWithSemanticClassifier } from "../src/taskTruthSemanticClassifier.js";
 import { classifyTaskTruthValue } from "../src/taskTruthValidation.js";
-import type { CampaignCreativeOutput } from "../src/creativeTypes.js";
 
 function creativeWithCoreIdeas(c1: string, c2: string, c3: string): CampaignCreativeOutput {
   return {
@@ -89,6 +90,26 @@ function creativeWithCoreIdeas(c1: string, c2: string, c3: string): CampaignCrea
   };
 }
 
+function oneQuestionQuestionnaire(): TaskTruthQuestionnaire {
+  return {
+    schemaVersion: 1,
+    sessionId: "M1-SESSION",
+    campaignId: "M1-CAMPAIGN",
+    tenantId: "T001",
+    brandId: "ATTHAS_BURGER",
+    createdAt: "2026-08-26T00:00:00.000Z",
+    questions: [
+      {
+        label: "serviceNote",
+        requirement: { key: "serviceNote" },
+        scope: { tenantId: "T001", brandId: "ATTHAS_BURGER" },
+        kind: "PROVIDE_MISSING",
+        prompt: "Please provide the current service note.",
+      },
+    ],
+  };
+}
+
 test("ATTHA'S tokens expose the approved palette and deterministic identifiers", () => {
   assert.equal(ATTHAS_TOKENS.colours.primaryRed, "#B50008");
   assert.equal(ATTHAS_TOKENS.colours.primaryYellow, "#FFD21A");
@@ -122,36 +143,60 @@ test("task truth semantic guard separates facts from instructions", () => {
   assert.equal(classifyTaskTruthValue("LKR 1,290").classification, "FACT");
   assert.equal(classifyTaskTruthValue("Please provide the current price").classification, "INSTRUCTION");
   assert.equal(classifyTaskTruthValue("TBD").classification, "INSTRUCTION");
+  assert.equal(
+    classifyTaskTruthValue("counter collection - choose at checkout").classification,
+    "AMBIGUOUS",
+  );
 });
 
 test("instructional task answers cannot be frozen into an immutable snapshot", () => {
-  const questionnaire: TaskTruthQuestionnaire = {
-    schemaVersion: 1,
-    sessionId: "M1-SESSION",
-    campaignId: "M1-CAMPAIGN",
-    tenantId: "T001",
-    brandId: "ATTHAS_BURGER",
-    createdAt: "2026-08-26T00:00:00.000Z",
-    questions: [
-      {
-        label: "price",
-        requirement: { key: "price" },
-        scope: { tenantId: "T001", brandId: "ATTHAS_BURGER" },
-        kind: "PROVIDE_MISSING",
-        prompt: "Please provide the current price.",
-      },
-    ],
-  };
-
+  const questionnaire = oneQuestionQuestionnaire();
   assert.throws(
     () =>
       confirmTaskTruth({
         questionnaire,
         confirmedBy: "owner",
-        answers: [{ label: "price", action: "PROVIDE", value: "Please provide price" }],
+        answers: [
+          {
+            label: "serviceNote",
+            action: "PROVIDE",
+            value: "Please provide the service note",
+          },
+        ],
       }),
     /instruction rather than a confirmed fact/,
   );
+});
+
+test("only ambiguous task truth spends a semantic classifier call", async () => {
+  let calls = 0;
+  const provider = {
+    providerName: "cheap-semantic-test",
+    model: "cheap-model",
+    async generate(prompt: string) {
+      calls += 1;
+      assert.match(prompt, /counter collection/);
+      return JSON.stringify({ classification: "FACT" });
+    },
+  };
+
+  const snapshot = await confirmTaskTruthWithSemanticClassifier(
+    {
+      questionnaire: oneQuestionQuestionnaire(),
+      confirmedBy: "owner",
+      answers: [
+        {
+          label: "serviceNote",
+          action: "PROVIDE",
+          value: "counter collection - choose at checkout",
+        },
+      ],
+    },
+    provider,
+  );
+
+  assert.equal(calls, 1);
+  assert.equal(snapshot.facts[0]?.value, "counter collection - choose at checkout");
 });
 
 test("concept differentiation rejects CTA variants of the same central idea", () => {
