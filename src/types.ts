@@ -50,6 +50,7 @@ export interface TruthRecord {
 
 export interface TruthRequirement {
   key: string;
+  branchId?: string;
   productId?: string;
   salesChannel?: string;
 }
