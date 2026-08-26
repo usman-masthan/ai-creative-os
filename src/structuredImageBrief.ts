@@ -94,7 +94,8 @@ export interface BuildStructuredImageBriefInput {
   branchId?: string;
   creative: CampaignCreativeOutput;
   format: CampaignProductionFormat;
-  layout: AtthasLayoutDefinition;
+  layout?: AtthasLayoutDefinition;
+  compositionRequirements?: string[];
   verifiedFacts?: StructuredImageBriefFact[];
   subject?: Partial<StructuredImageBriefSubject>;
   photographyPresetId?: PhotographyPresetId;
@@ -147,6 +148,10 @@ function deriveQuietZones(requirements: string[]): string[] {
     /reserve|protect|quiet|uncluttered|negative space|message zone|action zone/i.test(requirement),
   );
   return compactUnique(quiet.length ? quiet : ["preserve one visually quiet overlay-safe area"]);
+}
+
+function fallbackPresetId(brandId: string): PhotographyPresetId {
+  return brandId === "ATTHAS_RESTAURANT" ? "RESTAURANT_PLATED" : "QSR_MACRO_HERO";
 }
 
 function generatedVisualText(brief: StructuredImageBrief): string {
@@ -294,13 +299,15 @@ export function assertStructuredImageBrief(
 export function buildStructuredImageBrief(
   input: BuildStructuredImageBriefInput,
 ): StructuredImageBrief {
-  const presetId = selectPhotographyPresetId({
-    brandId: input.brandId,
-    layout: input.layout,
-    ...(input.photographyPresetId ? { explicitPreset: input.photographyPresetId } : {}),
-  });
+  const presetId = input.photographyPresetId
+    ? input.photographyPresetId
+    : input.layout
+      ? selectPhotographyPresetId({ brandId: input.brandId, layout: input.layout })
+      : fallbackPresetId(input.brandId);
   const preset = getPhotographyPreset(presetId);
-  const requirements = compactUnique(input.layout.imageCompositionRequirements);
+  const requirements = compactUnique(
+    input.layout?.imageCompositionRequirements ?? input.compositionRequirements ?? [],
+  );
   const visualConstraints = compactUnique(input.creative.imageGeneration.visualConstraints);
   const subject: StructuredImageBriefSubject = {
     productName:
@@ -356,7 +363,7 @@ export function buildStructuredImageBrief(
         "place the primary subject in the layout-defined focal region",
       ),
       heroScale:
-        input.layout.copyDensity === "low"
+        input.layout?.copyDensity === "low"
           ? "single dominant subject with generous breathing room"
           : "dominant food subject with enough scale to remain immediately readable",
       quietZones: deriveQuietZones(requirements),
