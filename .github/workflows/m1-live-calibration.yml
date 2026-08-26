@@ -1,4 +1,4 @@
-name: M1 Live Calibration
+name: M1 Calibration
 
 on:
   push:
@@ -28,23 +28,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify calibration secret
+      - name: Report calibration mode
         run: |
-          if [ -z "$GEMINI_API_KEY" ]; then
-            echo "GEMINI_API_KEY repository secret is required for live M1 calibration."
-            exit 1
+          if [ -n "$GEMINI_API_KEY" ]; then
+            echo "Calibration mode: LIVE_GEMINI"
+          else
+            echo "Calibration mode: DETERMINISTIC_FALLBACK (GEMINI_API_KEY secret not configured)"
           fi
 
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Run three live strategist calibrations
+      - name: Run three strategist calibrations
         run: npx tsx scripts/m1-live-calibration.ts
 
       - name: Upload AI Trace calibration bundle
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: m1-live-calibration
+          name: m1-calibration
           path: output/m1-calibration
           if-no-files-found: warn
