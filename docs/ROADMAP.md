@@ -32,8 +32,9 @@ Creative OS now treats stored operational truth as reference material, not autom
 - [x] Record whether the user requested the corrected value to be written back to stored truth.
 - [x] Keep branch/product/sales-channel scope attached to every confirmed fact.
 - [x] Require separate branch confirmations even when the same item currently has the same price at multiple branches.
-- [ ] Build the polished conversational UI that renders these questions as user-friendly forms/buttons.
-- [ ] Add governed write-back from confirmed corrections into the persistent master truth store.
+- [x] Build a local conversational workspace that renders the confirmation questions as user-friendly forms.
+- [x] Add governed local runtime write-back for user-requested corrections using exact key/branch/product/channel scope.
+- [ ] Migrate operational truth to a production-grade shared master data store when multi-user deployment is justified.
 
 ### Temporarily deferred operational data
 
@@ -144,17 +145,19 @@ Approval lifecycle:
 
 ## P3 — Internal ATTHA’S interface
 
-Current V1 includes a local operations dashboard/API for campaign lifecycle, revisions, spend, publications, performance and validation. A polished marketing-manager interface is still intentionally separate product work.
+V1 now includes both the low-level operations dashboard/API and a local Marketing Manager workspace. The workspace is intentionally local/internal; it is not yet a hardened public multi-user SaaS application.
 
-- [ ] Natural-language campaign request interface.
-- [ ] Smart task clarification / task-intent review screen.
-- [ ] Task-truth confirmation form generated from the just-in-time questionnaire.
-- [ ] Truth/conflict management UI and governed write-back.
-- [ ] Product/image library.
-- [ ] Creative concept review screen.
-- [ ] Poster preview/revision screen.
-- [ ] Approval queue.
-- [ ] Visual campaign calendar.
+- [x] Natural-language campaign request interface.
+- [x] Smart task clarification / editable task-intent review screen.
+- [x] Task-truth confirmation form generated from the just-in-time questionnaire.
+- [x] Truth-memory view and governed local runtime write-back.
+- [ ] Full product/image asset library with product/branch/rights metadata.
+- [x] Basic Creative Director concept review cards.
+- [x] Poster preview after governed production.
+- [ ] Rich poster revision controls (change copy/image/layout while preserving campaign locks).
+- [ ] Interactive approval queue / lifecycle transition controls.
+- [ ] Visual campaign calendar UI.
+- [x] Governed local image upload area.
 - [x] Local usage/cost/campaign-state visibility.
 
 ## Production validation before scaling
