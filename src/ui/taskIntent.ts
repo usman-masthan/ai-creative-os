@@ -218,7 +218,7 @@ export function normalizeAtthasTaskIntent(input: AtthasTaskIntent): NormalizedAt
     brandId: input.brandId,
     branchScope,
     campaignType: input.campaignType,
-    productId: productId || undefined,
+    ...(productId ? { productId } : {}),
     missingFields: [],
   };
   const entry: MarketingCalendarEntry = {
@@ -235,9 +235,6 @@ export function normalizeAtthasTaskIntent(input: AtthasTaskIntent): NormalizedAt
     conceptDirection: `Fulfil the user's task: ${input.rawRequest}. Use only task-confirmed customer-facing facts.`,
     additionalTruthNeeded,
     requiredTruth,
-    // The confirmation gateway intentionally collects these values just in time.
-    // Planner readiness is marked ready so production can proceed only after the
-    // immutable task snapshot replaces stored truth.
     missingTruth: [],
     truthReadiness: "READY_WITH_CURRENT_TRUTH",
   };
