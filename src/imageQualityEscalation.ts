@@ -1,6 +1,13 @@
+import type { ImageDraftProvider } from "./imageProviders/types.js";
 import type { VisualQaResult } from "./visualQa/types.js";
 
 export type ImageQualityTier = "FLASH_LITE" | "FLASH" | "PRO";
+
+export interface ImageQualityTierProviders {
+  FLASH_LITE: ImageDraftProvider;
+  FLASH: ImageDraftProvider;
+  PRO: ImageDraftProvider;
+}
 
 export type ImageQualityDimension =
   | "productTruth"
