@@ -1,5 +1,5 @@
 import type { TruthRecord } from "./types.js";
-import type { VisualQaResult } from "./visualQa/types.js";
+import type { VisualQaCompositionEvidence, VisualQaResult } from "./visualQa/types.js";
 
 export const M2_EXIT_CALIBRATION_SOURCE = "M2_EXIT_SYNTHETIC_DO_NOT_PUBLISH";
 export const M2_EXIT_CALIBRATION_PRODUCT_ID = "CALIBRATION_CHICKEN_TIKKA_WRAP";
@@ -81,11 +81,7 @@ export interface M2ExitCalibrationQaSummary {
     governance: boolean;
   };
   copyZoneEvidencePresent: boolean;
-  copyZones?: VisualQaResult["compositionEvidence"] extends infer T
-    ? T extends { copyZones: infer C }
-      ? C
-      : never
-    : never;
+  copyZones?: VisualQaCompositionEvidence["copyZones"];
   issues: string[];
   unexpectedVisibleElements: string[];
 }
