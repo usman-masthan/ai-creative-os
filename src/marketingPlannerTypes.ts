@@ -50,6 +50,7 @@ export interface MarketingCalendarEntry {
   requiredTruth: string[];
   missingTruth: string[];
   truthReadiness: MarketingTruthReadiness;
+  truthConfirmationHints?: Record<string, unknown>;
 }
 
 export interface MarketingWeeklyPlan {

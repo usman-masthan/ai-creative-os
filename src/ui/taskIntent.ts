@@ -57,6 +57,10 @@ export interface AtthasTaskIntent {
   mode: TaskProductionMode;
   assumptions: string[];
   missingFields: string[];
+  requestedProductClaims?: string[];
+  lockedHeadline?: string;
+  lockedSubheadline?: string;
+  packagingDirectionRequested?: boolean;
 }
 
 const CAMPAIGN_TYPES: MarketingCampaignType[] = [
@@ -89,15 +93,15 @@ function removeNegatedOfferLanguage(text: string): string {
     .replace(/\bdon['’]?t\s+(?:make|use|include|mention)\s+(?:it\s+)?(?:an?\s+)?offers?\b/g, " ");
 }
 
-function inferCampaignType(text: string): MarketingCampaignType {
+function inferCampaignType(text: string, productId?: string): MarketingCampaignType {
   const positiveText = removeNegatedOfferLanguage(text);
   if (includesAny(positiveText, ["offer", "discount", "% off", "deal", "promotion"])) return "OFFER";
+  if (productId) return "PRODUCT_PUSH";
   if (includesAny(text, ["uber", "pickme", "delivery", "deliver", "order online"])) return "DELIVERY";
   if (includesAny(text, ["poll", "vote", "comment", "engagement", "question", "tag a friend"])) return "ENGAGEMENT";
   if (includesAny(text, ["eid", "ramadan", "christmas", "new year", "seasonal", "festival", "festive"])) return "SEASONAL";
-  // Explicit product verbs win over incidental phrases such as "dine-in price".
   if (includesAny(text, ["promote", "feature", "product", "menu item", "dish", "meal"])) return "PRODUCT_PUSH";
-  if (includesAny(text, ["dine", "visit", "footfall", "come in", "tonight", "family dinner", "table", "walk in"])) return "DINE_IN";
+  if (includesAny(text, ["dine", "family-dining", "family dining", "visit", "footfall", "come in", "tonight", "family dinner", "table", "walk in"])) return "DINE_IN";
   return "BRAND_BUILDING";
 }
 
@@ -117,13 +121,48 @@ function inferSalesChannel(text: string): string | undefined {
   return undefined;
 }
 
+function cleanCandidateProduct(value: string | undefined): string | undefined {
+  const candidate = value?.trim().replace(/\s+/g, " ");
+  if (!candidate || candidate.length > 80) return undefined;
+  if (/^(burger|restaurant)\b/i.test(candidate)) return undefined;
+  if (!/\b(wrap|burger|pizza|shawarma|sandwich|kottu|rice|noodles|pasta|meal|platter|dish)\b/i.test(candidate)) {
+    return undefined;
+  }
+  return candidate;
+}
+
 function inferProduct(text: string): string | undefined {
   const quoted = text.match(/["“”']([^"“”']{2,80})["“”']/)?.[1]?.trim();
-  if (quoted) return quoted;
+  if (quoted && /\b(wrap|burger|pizza|shawarma|sandwich|kottu|rice|noodles|pasta|meal|platter|dish)\b/i.test(quoted)) {
+    return quoted;
+  }
 
   const promote = text.match(/(?:promote|feature)\s+(?:our\s+)?(.+?)(?:\s+(?:at|in|for|on|this|tonight|across)\b|[.!?]|$)/i)?.[1]?.trim();
-  if (promote && promote.length <= 80) return promote;
-  return undefined;
+  const promoted = cleanCandidateProduct(promote);
+  if (promoted) return promoted;
+
+  const branded = text.match(/ATTHA[’']S\s+(.+?)(?:,\s*(?:using|with|for)|\s+(?:using|with)\b|[.!?]|$)/i)?.[1];
+  return cleanCandidateProduct(branded);
+}
+
+function extractProductClaimClause(request: string): string[] {
+  const match = request.match(/\bwrap\s+with\s+(.+?)\s*,?\s*presented\b/i);
+  if (!match?.[1]) return [];
+  const normalized = match[1]
+    .replace(/\band\b/gi, ",")
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 2 && part.length <= 80);
+  return [...new Set(normalized)];
+}
+
+function extractCreativeLocks(request: string): { headline?: string; subheadline?: string } {
+  const headlineMatch = request.match(/headline\s+[“"]([^”"]{2,120})[”"]/i);
+  const subheadlineMatch = request.match(/headline\s+[“"][^”"]+[”"]\s+with\s+[“"]([^”"]{2,120})[”"]\s+(?:clearly\s+)?beneath/i);
+  return {
+    ...(headlineMatch?.[1] ? { headline: headlineMatch[1].trim() } : {}),
+    ...(subheadlineMatch?.[1] ? { subheadline: subheadlineMatch[1].trim() } : {}),
+  };
 }
 
 function branchRequired(type: MarketingCampaignType): boolean {
@@ -150,20 +189,26 @@ export function interpretAtthasTaskRequest(rawRequest: string): AtthasTaskIntent
   if (!request) throw new Error("Campaign request cannot be empty.");
   const text = ` ${request.toLowerCase()} `;
   const branch = inferBranch(text);
-  const campaignType = inferCampaignType(text);
+  const productId = inferProduct(request);
+  const campaignType = inferCampaignType(text, productId);
   const channel = inferChannel(text);
   const salesChannel = inferSalesChannel(text);
-  const productId = inferProduct(request);
   const showPrice = explicitlyRequestsPrice(text) || (campaignType === "OFFER" && !explicitlyRejectsPrice(text));
+  const requestedProductClaims = productId ? extractProductClaimClause(request) : [];
+  const locks = extractCreativeLocks(request);
+  const packagingDirectionRequested = /\bATTHA[’']S[- ]branded\s+(?:wrapping|wrapper|packaging)\b/i.test(request)
+    || /\bbranded\s+(?:wrapping|wrapper|packaging)\b/i.test(request);
 
   let brandId: AtthasPlanningBrandId | undefined = branch?.brandId;
-  if (!brandId && includesAny(text, ["restaurant", "multi cuisine", "wellawatte"])) brandId = "ATTHAS_RESTAURANT";
-  if (!brandId && includesAny(text, ["burger", "wellampitiya", "bambalapitiya", "kollupitiya"])) brandId = "ATTHAS_BURGER";
+  if (!brandId && includesAny(text, ["attha's restaurant", "attha’s restaurant", "multi cuisine", "wellawatte"])) brandId = "ATTHAS_RESTAURANT";
+  if (!brandId && includesAny(text, ["attha's burger", "attha’s burger", "wellampitiya", "bambalapitiya", "kollupitiya"])) brandId = "ATTHAS_BURGER";
 
   const assumptions: string[] = [];
   if (!branch && !branchRequired(campaignType)) assumptions.push("No branch was specified, so the task can remain brand-wide.");
   if (!salesChannel && showPrice) assumptions.push("A price is requested but the sales channel still needs user confirmation.");
   if (campaignType === "BRAND_BUILDING") assumptions.push("No explicit conversion/product intent was detected, so brand-building was selected.");
+  if (requestedProductClaims.length) assumptions.push("Product details written in the brief will be treated as claims that require task confirmation before generation.");
+  if (packagingDirectionRequested) assumptions.push("Branded packaging was requested and must be explicitly confirmed for this product before generation.");
 
   const missingFields: string[] = [];
   if (!brandId) missingFields.push("brandId");
@@ -186,6 +231,10 @@ export function interpretAtthasTaskRequest(rawRequest: string): AtthasTaskIntent
     mode: "DRAFT",
     assumptions,
     missingFields,
+    ...(requestedProductClaims.length ? { requestedProductClaims } : {}),
+    ...(locks.headline ? { lockedHeadline: locks.headline } : {}),
+    ...(locks.subheadline ? { lockedSubheadline: locks.subheadline } : {}),
+    ...(packagingDirectionRequested ? { packagingDirectionRequested: true } : {}),
   };
 }
 
@@ -221,7 +270,12 @@ export function normalizeAtthasTaskIntent(input: AtthasTaskIntent): NormalizedAt
     throw new Error("Price-bearing campaigns require a sales channel (dine-in, takeaway, Uber Eats or PickMe).");
   }
 
-  const additionalTruthNeeded = input.showPrice ? ["price"] : [];
+  const requestedProductClaims = input.requestedProductClaims?.map((value) => value.trim()).filter(Boolean) ?? [];
+  const additionalTruthNeeded = [
+    ...(input.showPrice ? ["price"] : []),
+    ...(requestedProductClaims.length ? ["requestedProductClaims"] : []),
+    ...(input.packagingDirectionRequested ? ["approvedPackagingDirection"] : []),
+  ];
   const requiredTruth = [
     ...new Set([
       ...truthRequirementsForCampaign(input.campaignType),
@@ -231,7 +285,14 @@ export function normalizeAtthasTaskIntent(input: AtthasTaskIntent): NormalizedAt
 
   const requirementScopes: Record<string, PlannedTruthRequirementScope> = {};
   const productId = input.productId?.trim();
-  for (const key of ["productName", "branchAvailability", "approvedProductVisual", "price"]) {
+  for (const key of [
+    "productName",
+    "branchAvailability",
+    "approvedProductVisual",
+    "price",
+    "requestedProductClaims",
+    "approvedPackagingDirection",
+  ]) {
     if (!requiredTruth.includes(key)) continue;
     requirementScopes[key] = {
       ...(productId ? { productId } : {}),
@@ -248,8 +309,21 @@ export function normalizeAtthasTaskIntent(input: AtthasTaskIntent): NormalizedAt
     branchScope,
     campaignType: input.campaignType,
     ...(productId ? { productId } : {}),
+    ...(requestedProductClaims.length ? { requestedProductClaims } : {}),
     missingFields: [],
   };
+
+  const creativeLocks = [
+    input.lockedHeadline ? `LOCKED HEADLINE — use exactly: ${input.lockedHeadline}` : "",
+    input.lockedSubheadline ? `LOCKED SUBHEADLINE — use exactly: ${input.lockedSubheadline}` : "",
+  ].filter(Boolean);
+  const productClaimDirection = requestedProductClaims.length
+    ? `The brief requested these product depictions: ${requestedProductClaims.join("; ")}. They are not facts until the task-confirmed requestedProductClaims value authorizes them.`
+    : "";
+  const packagingDirection = input.packagingDirectionRequested
+    ? "Branded packaging is requested. Follow only the task-confirmed approvedPackagingDirection; never invent a logo, label or packaging design."
+    : "";
+
   const entry: MarketingCalendarEntry = {
     slotId: "USER-TASK",
     date: new Date().toISOString().slice(0, 10),
@@ -261,11 +335,24 @@ export function normalizeAtthasTaskIntent(input: AtthasTaskIntent): NormalizedAt
     channel: input.channel.trim() || "instagram",
     assetType: input.assetType.trim() || "poster",
     priority: "P1",
-    conceptDirection: `Fulfil the user's task: ${input.rawRequest}. Use only task-confirmed customer-facing facts.`,
+    conceptDirection: [
+      `Fulfil the user's task: ${input.rawRequest}.`,
+      "Use only task-confirmed customer-facing facts; task-confirmed values override unconfirmed wording in the raw brief.",
+      ...creativeLocks,
+      productClaimDirection,
+      packagingDirection,
+    ].filter(Boolean).join("\n"),
     additionalTruthNeeded,
     requiredTruth,
     missingTruth: [],
     truthReadiness: "READY_WITH_CURRENT_TRUTH",
+    truthConfirmationHints: {
+      ...(productId ? { productName: productId } : {}),
+      ...(requestedProductClaims.length ? { requestedProductClaims: requestedProductClaims.join("; ") } : {}),
+      ...(input.packagingDirectionRequested
+        ? { approvedPackagingDirection: "ATTHA'S-branded wrapping requested — confirm an approved packaging reference/direction or replace with neutral unbranded wrapping." }
+        : {}),
+    },
   };
 
   return { intent: normalizedIntent, entry, requirementScopes };

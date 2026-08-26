@@ -4,6 +4,7 @@ import {
 } from "../brandGovernance.js";
 import {
   assertCreativeRespectsClaimGovernance,
+  findUnsupportedClaimTermsInText,
   type ClaimGovernance,
 } from "../claimGovernance.js";
 import { buildCampaignGenerationPrompt } from "../campaignPrompt.js";
@@ -182,6 +183,17 @@ export async function generateCampaign(
       status: "BLOCKED_MISSING_VERIFIED_DATA",
       preflight,
     };
+  }
+
+  const unconfirmedBriefTerms = findUnsupportedClaimTermsInText(
+    request.objective,
+    preflight,
+    request.claimGovernance ?? {},
+  );
+  if (unconfirmedBriefTerms.length) {
+    throw new Error(
+      `Campaign request contains unconfirmed product/service claim or depiction \"${unconfirmedBriefTerms[0]}\". Return to task confirmation and confirm or remove the requested detail before creative generation.`,
+    );
   }
 
   const productionFormat = resolveProductionFormat(request.channel, request.assetType);
