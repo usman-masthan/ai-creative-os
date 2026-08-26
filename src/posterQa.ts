@@ -15,6 +15,15 @@ export interface PosterQaResult {
   checks: string[];
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 export function assertPosterHtmlContract(
   html: string,
   creative: CampaignCreativeOutput,
@@ -30,7 +39,7 @@ export function assertPosterHtmlContract(
   ].filter(Boolean);
 
   for (const value of required) {
-    if (!html.includes(value.replaceAll("&", "&amp;"))) {
+    if (!html.includes(escapeHtml(value))) {
       throw new Error(`Poster QA failed: deterministic HTML is missing required value ${value}.`);
     }
   }
