@@ -8,6 +8,7 @@ import {
   type ClaimGovernance,
 } from "../claimGovernance.js";
 import { buildCampaignGenerationPrompt } from "../campaignPrompt.js";
+import { assertConceptDifferentiation } from "../conceptDifferentiation.js";
 import { parseCampaignCreativeOutput } from "../creativeValidator.js";
 import type {
   CampaignCreativeOutput,
@@ -152,6 +153,7 @@ function validateCreative(
 ): CampaignCreativeOutput {
   const creative = parseCampaignCreativeOutput(rawOutput);
 
+  assertConceptDifferentiation(creative);
   assertDeterministicFactPlacement(creative, preflight);
   assertProductionFormat(creative, format);
   assertCreativeRespectsClaimGovernance(
