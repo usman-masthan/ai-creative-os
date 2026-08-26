@@ -1,6 +1,7 @@
 name: M1 Calibration
 
 on:
+  workflow_dispatch:
   push:
     branches: [m1-live-calibration]
 
