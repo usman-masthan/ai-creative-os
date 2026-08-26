@@ -2,12 +2,27 @@ import type {
   CampaignCreativeOutput,
   CampaignProductionFormat,
 } from "./creativeTypes.js";
+import type { AtthasLayoutDefinition } from "./layouts/atthas.js";
+import {
+  getPhotographyPreset,
+  selectPhotographyPresetId,
+  type PhotographyPresetId,
+} from "./photographyPresets.js";
 
-export type StructuredImageBriefVersion = 1;
+export type StructuredImageBriefVersion = 2;
 
 export interface StructuredImageBriefScope {
   brandId: string;
   branchId?: string;
+}
+
+export interface StructuredImageBriefSubject {
+  productName: string;
+  physicalState: string;
+  compositionDescription: string;
+  textureDescription: string;
+  ingredientInteraction: string;
+  scaleAndProportion: string;
 }
 
 export interface StructuredImageBrief {
@@ -19,24 +34,31 @@ export interface StructuredImageBrief {
     width: number;
     height: number;
   };
-  subject: {
-    direction: string;
-    generationPrompt: string;
+  subject: StructuredImageBriefSubject;
+  photography: {
+    preset: PhotographyPresetId;
+    perspective: string;
+    lensFeel: string;
+    lighting: string;
+    depthOfField: string;
+    realism: string;
   };
   composition: {
-    artDirection: string;
-    requirements: string[];
+    heroPosition: string;
+    heroScale: string;
+    quietZones: string[];
+    cropBehavior: string;
   };
-  photography: {
-    style: string;
-    lighting: string;
+  environment: {
+    background: string;
+    atmosphere?: string;
   };
   constraints: {
-    visual: string[];
-    negative: string[];
-    textPolicy: "NO_TEXT_OR_LOGOS";
-    generatedTextAllowed: false;
-    generatedLogosAllowed: false;
+    noText: true;
+    noLogos: true;
+    noPrices: true;
+    noPrintedPackaging: true;
+    prohibitedElements: string[];
   };
   correction?: {
     previousQaIssues: string[];
@@ -47,7 +69,7 @@ export type StructuredImageBriefValidationCode =
   | "FAIL_IMAGE_BRIEF_EMPTY_FIELD"
   | "FAIL_IMAGE_BRIEF_FORMAT"
   | "FAIL_IMAGE_BRIEF_COMPOSITION"
-  | "FAIL_IMAGE_BRIEF_TEXT_POLICY"
+  | "FAIL_IMAGE_BRIEF_CONSTRAINT_POLICY"
   | "FAIL_IMAGE_BRIEF_PRICE_LEAK"
   | "FAIL_IMAGE_BRIEF_LOGO_LEAK";
 
@@ -61,13 +83,21 @@ export interface StructuredImageBriefValidationResult {
   issues: StructuredImageBriefValidationIssue[];
 }
 
+export interface StructuredImageBriefFact {
+  key: string;
+  value: unknown;
+}
+
 export interface BuildStructuredImageBriefInput {
   campaignId: string;
   brandId: string;
   branchId?: string;
   creative: CampaignCreativeOutput;
   format: CampaignProductionFormat;
-  compositionRequirements: string[];
+  layout: AtthasLayoutDefinition;
+  verifiedFacts?: StructuredImageBriefFact[];
+  subject?: Partial<StructuredImageBriefSubject>;
+  photographyPresetId?: PhotographyPresetId;
   previousQaIssues?: string[];
 }
 
@@ -85,7 +115,7 @@ function compactUnique(values: Array<string | undefined>): string[] {
   return output;
 }
 
-function splitNegativePrompt(value: string): string[] {
+function splitDelimited(value: string): string[] {
   return compactUnique(
     value
       .split(/[,;\n]+/)
@@ -94,15 +124,50 @@ function splitNegativePrompt(value: string): string[] {
   );
 }
 
+function verifiedProductName(facts: StructuredImageBriefFact[] | undefined): string | undefined {
+  const fact = facts?.find((item) => item.key === "productName" || item.key.startsWith("productName|"));
+  if (typeof fact?.value !== "string") return undefined;
+  const value = fact.value.trim();
+  return value || undefined;
+}
+
+function firstMatchingRequirement(
+  requirements: string[],
+  patterns: RegExp[],
+  fallback: string,
+): string {
+  return (
+    requirements.find((requirement) => patterns.some((pattern) => pattern.test(requirement))) ??
+    fallback
+  );
+}
+
+function deriveQuietZones(requirements: string[]): string[] {
+  const quiet = requirements.filter((requirement) =>
+    /reserve|protect|quiet|uncluttered|negative space|message zone|action zone/i.test(requirement),
+  );
+  return compactUnique(quiet.length ? quiet : ["preserve one visually quiet overlay-safe area"]);
+}
+
 function generatedVisualText(brief: StructuredImageBrief): string {
   return [
-    brief.subject.direction,
-    brief.subject.generationPrompt,
-    brief.composition.artDirection,
-    brief.photography.style,
+    brief.subject.productName,
+    brief.subject.physicalState,
+    brief.subject.compositionDescription,
+    brief.subject.textureDescription,
+    brief.subject.ingredientInteraction,
+    brief.subject.scaleAndProportion,
+    brief.photography.perspective,
+    brief.photography.lensFeel,
     brief.photography.lighting,
-    ...brief.composition.requirements,
-    ...brief.constraints.visual,
+    brief.photography.depthOfField,
+    brief.photography.realism,
+    brief.composition.heroPosition,
+    brief.composition.heroScale,
+    ...brief.composition.quietZones,
+    brief.composition.cropBehavior,
+    brief.environment.background,
+    brief.environment.atmosphere ?? "",
   ].join("\n");
 }
 
@@ -139,11 +204,21 @@ export function validateStructuredImageBrief(
     ["campaignId", brief.campaignId],
     ["scope.brandId", brief.scope.brandId],
     ["format.aspectRatio", brief.format.aspectRatio],
-    ["subject.direction", brief.subject.direction],
-    ["subject.generationPrompt", brief.subject.generationPrompt],
-    ["composition.artDirection", brief.composition.artDirection],
-    ["photography.style", brief.photography.style],
+    ["subject.productName", brief.subject.productName],
+    ["subject.physicalState", brief.subject.physicalState],
+    ["subject.compositionDescription", brief.subject.compositionDescription],
+    ["subject.textureDescription", brief.subject.textureDescription],
+    ["subject.ingredientInteraction", brief.subject.ingredientInteraction],
+    ["subject.scaleAndProportion", brief.subject.scaleAndProportion],
+    ["photography.perspective", brief.photography.perspective],
+    ["photography.lensFeel", brief.photography.lensFeel],
     ["photography.lighting", brief.photography.lighting],
+    ["photography.depthOfField", brief.photography.depthOfField],
+    ["photography.realism", brief.photography.realism],
+    ["composition.heroPosition", brief.composition.heroPosition],
+    ["composition.heroScale", brief.composition.heroScale],
+    ["composition.cropBehavior", brief.composition.cropBehavior],
+    ["environment.background", brief.environment.background],
   ];
 
   for (const [path, value] of requiredText) {
@@ -167,21 +242,22 @@ export function validateStructuredImageBrief(
     });
   }
 
-  if (brief.composition.requirements.length === 0) {
+  if (brief.composition.quietZones.length === 0) {
     issues.push({
       code: "FAIL_IMAGE_BRIEF_COMPOSITION",
-      message: "At least one deterministic layout composition requirement is required.",
+      message: "At least one deterministic quiet zone is required.",
     });
   }
 
   if (
-    brief.constraints.textPolicy !== "NO_TEXT_OR_LOGOS" ||
-    brief.constraints.generatedTextAllowed !== false ||
-    brief.constraints.generatedLogosAllowed !== false
+    brief.constraints.noText !== true ||
+    brief.constraints.noLogos !== true ||
+    brief.constraints.noPrices !== true ||
+    brief.constraints.noPrintedPackaging !== true
   ) {
     issues.push({
-      code: "FAIL_IMAGE_BRIEF_TEXT_POLICY",
-      message: "Generated text and logos must remain disabled in the image brief.",
+      code: "FAIL_IMAGE_BRIEF_CONSTRAINT_POLICY",
+      message: "Text, logos, prices and printed packaging must remain prohibited.",
     });
   }
 
@@ -218,8 +294,42 @@ export function assertStructuredImageBrief(
 export function buildStructuredImageBrief(
   input: BuildStructuredImageBriefInput,
 ): StructuredImageBrief {
+  const presetId = selectPhotographyPresetId({
+    brandId: input.brandId,
+    layout: input.layout,
+    ...(input.photographyPresetId ? { explicitPreset: input.photographyPresetId } : {}),
+  });
+  const preset = getPhotographyPreset(presetId);
+  const requirements = compactUnique(input.layout.imageCompositionRequirements);
+  const visualConstraints = compactUnique(input.creative.imageGeneration.visualConstraints);
+  const subject: StructuredImageBriefSubject = {
+    productName:
+      input.subject?.productName?.trim() ||
+      verifiedProductName(input.verifiedFacts) ||
+      "No specific verified SKU supplied",
+    physicalState:
+      input.subject?.physicalState?.trim() ||
+      "physically plausible food subject matching only the verified product identity; do not infer preparation method",
+    compositionDescription:
+      input.subject?.compositionDescription?.trim() ||
+      compactUnique([
+        input.creative.creativeBrief.visualDirection,
+        input.creative.creativeBrief.composition,
+        ...visualConstraints,
+      ]).join("; "),
+    textureDescription:
+      input.subject?.textureDescription?.trim() ||
+      "show only directly visible surface texture; do not imply freshness, juiciness, premium quality or cooking method",
+    ingredientInteraction:
+      input.subject?.ingredientInteraction?.trim() ||
+      "do not add or infer ingredients; ingredient layering or contact must come from verified product facts or a governed physical-food composition",
+    scaleAndProportion:
+      input.subject?.scaleAndProportion?.trim() ||
+      "believable food scale with physically credible relative proportions and gravity",
+  };
+
   const brief: StructuredImageBrief = {
-    version: 1,
+    version: 2,
     campaignId: input.campaignId,
     scope: {
       brandId: input.brandId,
@@ -230,24 +340,53 @@ export function buildStructuredImageBrief(
       width: input.format.width,
       height: input.format.height,
     },
-    subject: {
-      direction: input.creative.creativeBrief.visualDirection.trim(),
-      generationPrompt: input.creative.imageGeneration.basePrompt.trim(),
+    subject,
+    photography: {
+      preset: preset.id,
+      perspective: preset.perspective,
+      lensFeel: preset.lensFeel,
+      lighting: preset.lighting,
+      depthOfField: preset.depthOfField,
+      realism: preset.realism,
     },
     composition: {
-      artDirection: input.creative.creativeBrief.composition.trim(),
-      requirements: compactUnique(input.compositionRequirements),
+      heroPosition: firstMatchingRequirement(
+        requirements,
+        [/hero/i, /subject/i, /food/i],
+        "place the primary subject in the layout-defined focal region",
+      ),
+      heroScale:
+        input.layout.copyDensity === "low"
+          ? "single dominant subject with generous breathing room"
+          : "dominant food subject with enough scale to remain immediately readable",
+      quietZones: deriveQuietZones(requirements),
+      cropBehavior: firstMatchingRequirement(
+        requirements,
+        [/crop/i, /safe area/i, /outer/i, /platform ui/i],
+        `compose safely for ${input.format.aspectRatio} without cutting critical subject detail`,
+      ),
     },
-    photography: {
-      style: input.creative.creativeBrief.photographyStyle.trim(),
-      lighting: input.creative.creativeBrief.lighting.trim(),
+    environment: {
+      background: preset.background,
+      ...(preset.atmosphere ? { atmosphere: preset.atmosphere } : {}),
     },
     constraints: {
-      visual: compactUnique(input.creative.imageGeneration.visualConstraints),
-      negative: splitNegativePrompt(input.creative.imageGeneration.negativePrompt),
-      textPolicy: "NO_TEXT_OR_LOGOS",
-      generatedTextAllowed: false,
-      generatedLogosAllowed: false,
+      noText: true,
+      noLogos: true,
+      noPrices: true,
+      noPrintedPackaging: true,
+      prohibitedElements: compactUnique([
+        ...splitDelimited(input.creative.imageGeneration.negativePrompt),
+        "promotional copy",
+        "letters or numbers",
+        "prices",
+        "logos",
+        "badges",
+        "labels",
+        "printed packaging",
+        "app UI",
+        "watermarks",
+      ]),
     },
     ...(input.previousQaIssues?.length
       ? { correction: { previousQaIssues: compactUnique(input.previousQaIssues) } }
@@ -266,25 +405,57 @@ function bulletBlock(title: string, values: string[]): string {
 export function compileStructuredImagePrompt(brief: StructuredImageBrief): string {
   assertStructuredImageBrief(brief);
   return [
-    "STRUCTURED IMAGE BRIEF v1",
+    "STRUCTURED IMAGE BRIEF v2",
     `Campaign: ${brief.campaignId}`,
     `Scope: ${brief.scope.brandId}${brief.scope.branchId ? ` / ${brief.scope.branchId}` : ""}`,
     `Output format: ${brief.format.aspectRatio} (${brief.format.width}x${brief.format.height})`,
-    `Subject direction:\n${brief.subject.direction}`,
-    `Primary generation direction:\n${brief.subject.generationPrompt}`,
-    `Art direction:\n${brief.composition.artDirection}`,
-    bulletBlock("Deterministic composition requirements:", brief.composition.requirements),
-    `Photography style:\n${brief.photography.style}`,
-    `Lighting:\n${brief.photography.lighting}`,
-    bulletBlock("Hard visual constraints:", brief.constraints.visual),
-    bulletBlock("Avoid:", brief.constraints.negative),
+    [
+      "SUBJECT",
+      `Product identity: ${brief.subject.productName}`,
+      `Physical state: ${brief.subject.physicalState}`,
+      `Physical composition: ${brief.subject.compositionDescription}`,
+      `Surface texture: ${brief.subject.textureDescription}`,
+      `Ingredient interaction: ${brief.subject.ingredientInteraction}`,
+      `Scale and proportion: ${brief.subject.scaleAndProportion}`,
+    ].join("\n"),
+    [
+      "PHOTOGRAPHY",
+      `Preset: ${brief.photography.preset}`,
+      `Perspective: ${brief.photography.perspective}`,
+      `Lens feel: ${brief.photography.lensFeel}`,
+      `Lighting: ${brief.photography.lighting}`,
+      `Depth of field: ${brief.photography.depthOfField}`,
+      `Realism: ${brief.photography.realism}`,
+    ].join("\n"),
+    [
+      "COMPOSITION",
+      `Hero position: ${brief.composition.heroPosition}`,
+      `Hero scale: ${brief.composition.heroScale}`,
+      `Crop behavior: ${brief.composition.cropBehavior}`,
+      bulletBlock("Quiet zones:", brief.composition.quietZones),
+    ].filter(Boolean).join("\n"),
+    [
+      "ENVIRONMENT",
+      `Background: ${brief.environment.background}`,
+      ...(brief.environment.atmosphere
+        ? [`Atmosphere: ${brief.environment.atmosphere}`]
+        : []),
+    ].join("\n"),
+    [
+      "CONSTRAINTS",
+      "- No text",
+      "- No logos",
+      "- No prices",
+      "- No printed packaging",
+      ...brief.constraints.prohibitedElements.map((value) => `- Prohibit: ${value}`),
+    ].join("\n"),
     brief.correction
       ? bulletBlock(
-          "Previous visual QA corrections required:",
+          "PREVIOUS VISUAL QA CORRECTIONS REQUIRED:",
           brief.correction.previousQaIssues,
         )
       : "",
-    "OUTPUT CONTRACT\n- Return an image only.\n- Do not render promotional copy, letters, numbers, prices, logos, badges, labels, app UI or watermarks.\n- Do not invent product facts, ingredients, offers or branded assets.",
+    "OUTPUT CONTRACT\nReturn an image only. Do not invent product facts, ingredients, cooking methods, offers or branded assets.",
   ]
     .filter(Boolean)
     .join("\n\n");
