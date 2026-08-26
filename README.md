@@ -135,6 +135,44 @@ cp .env.example .env
 npm run check
 ```
 
+## ATTHA’S Marketing Manager workspace
+
+The local V1 workspace turns the governed engine into a normal user flow:
+
+```text
+business request
+  → review interpreted task
+  → confirm every task-relevant fact
+  → optional governed truth write-back
+  → upload/choose visual input
+  → generate + Creative Director
+  → visual QA / final-art QA when FINAL
+  → poster preview + campaign record
+```
+
+Start it with:
+
+```bash
+export GEMINI_API_KEY="..."
+npm run marketing:workspace
+```
+
+Then open:
+
+```text
+http://127.0.0.1:4174/workspace
+```
+
+AI image generation remains separately opt-in:
+
+```bash
+export ALLOW_PAID_MEDIA=true
+```
+
+Without that flag, provide a governed local image upload when a campaign requires one. Runtime truth corrections, uploads, outputs and campaign operations remain under the gitignored `.atthas-os/` directory.
+
+See [`docs/ATTHAS_MARKETING_MANAGER.md`](docs/ATTHAS_MARKETING_MANAGER.md).
+
 ## Deterministic campaign preflight
 
 ```bash
@@ -187,6 +225,8 @@ Without a snapshot, the gateway returns `TASK_CONFIRMATION_REQUIRED` before any 
 
 The ATTHA’S V1 engine now covers planning, fact/brand governance, Creative Director selection, deterministic layouts, Gemini media, visual QA, final-art QA, multi-format rendering, approvals/revisions, persistence, cost controls, reliability, publication/performance tracking and just-in-time task truth confirmation.
 
-The remaining work is primarily productisation and real-world proof: polished natural-language/task-confirmation UI, final logo/product assets when needed, and 20–30 real ATTHA’S campaign validation runs.
+A local Marketing Manager workspace now exposes natural-language task entry, editable task interpretation, grouped fact confirmation, governed runtime truth write-back, safe image upload, one-click governed production, concept review and poster preview. It remains an internal/local V1 interface rather than a hardened public multi-user SaaS application.
 
-See [`docs/ATTHAS_V1_FOUNDATION.md`](docs/ATTHAS_V1_FOUNDATION.md), [`docs/ATTHAS_TASK_TRUTH_CONFIRMATION.md`](docs/ATTHAS_TASK_TRUTH_CONFIRMATION.md) and [`docs/ROADMAP.md`](docs/ROADMAP.md).
+The remaining work is primarily real-world proof and production refinement: final logo/product assets when needed, richer asset/approval/calendar UI, and 20–30 real ATTHA’S campaign validation runs.
+
+See [`docs/ATTHAS_V1_FOUNDATION.md`](docs/ATTHAS_V1_FOUNDATION.md), [`docs/ATTHAS_TASK_TRUTH_CONFIRMATION.md`](docs/ATTHAS_TASK_TRUTH_CONFIRMATION.md), [`docs/ATTHAS_MARKETING_MANAGER.md`](docs/ATTHAS_MARKETING_MANAGER.md) and [`docs/ROADMAP.md`](docs/ROADMAP.md).
