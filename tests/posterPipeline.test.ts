@@ -117,6 +117,23 @@ test("poster template escapes customer-facing HTML", () => {
   assert.match(html, /Crispy &lt;Chicken&gt; &amp; Burger/);
 });
 
+test("poster QA accepts customer-facing copy containing an apostrophe", () => {
+  const apostropheCreative: CampaignCreativeOutput = {
+    ...creative,
+    overlaySpec: {
+      ...creative.overlaySpec,
+      cta: "Explore ATTHA'S.",
+    },
+  };
+  const html = buildPosterHtml({
+    creative: apostropheCreative,
+    format,
+    baseImageDataUri: "data:image/jpeg;base64,ZmFrZQ==",
+  });
+  assert.match(html, /Explore ATTHA&#039;S\./);
+  assert.doesNotThrow(() => assertPosterHtmlContract(html, apostropheCreative, format));
+});
+
 test("PNG dimension parser reads IHDR dimensions deterministically", () => {
   const buffer = Buffer.alloc(24);
   Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(buffer, 0);

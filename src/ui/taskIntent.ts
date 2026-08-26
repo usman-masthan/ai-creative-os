@@ -77,8 +77,21 @@ function inferBranch(text: string): AtthasBranchOption | undefined {
   return ATTHAS_BRANCH_OPTIONS.find((branch) => branch.aliases.some((alias) => text.includes(alias)));
 }
 
+function removeNegatedOfferLanguage(text: string): string {
+  return text
+    .replace(/\bno\s+(?:special\s+)?offers?\b/g, " ")
+    .replace(/\bno\s+discounts?\b/g, " ")
+    .replace(/\bno\s+(?:special\s+)?promotions?\b/g, " ")
+    .replace(/\bwithout\s+(?:an?\s+)?offers?\b/g, " ")
+    .replace(/\bwithout\s+(?:a\s+)?discount\b/g, " ")
+    .replace(/\bwithout\s+(?:a\s+)?promotion\b/g, " ")
+    .replace(/\bdo\s+not\s+(?:make|use|include|mention)\s+(?:it\s+)?(?:an?\s+)?offers?\b/g, " ")
+    .replace(/\bdon['’]?t\s+(?:make|use|include|mention)\s+(?:it\s+)?(?:an?\s+)?offers?\b/g, " ");
+}
+
 function inferCampaignType(text: string): MarketingCampaignType {
-  if (includesAny(text, ["offer", "discount", "% off", "deal", "promotion"])) return "OFFER";
+  const positiveText = removeNegatedOfferLanguage(text);
+  if (includesAny(positiveText, ["offer", "discount", "% off", "deal", "promotion"])) return "OFFER";
   if (includesAny(text, ["uber", "pickme", "delivery", "deliver", "order online"])) return "DELIVERY";
   if (includesAny(text, ["poll", "vote", "comment", "engagement", "question", "tag a friend"])) return "ENGAGEMENT";
   if (includesAny(text, ["eid", "ramadan", "christmas", "new year", "seasonal", "festival", "festive"])) return "SEASONAL";
@@ -117,7 +130,15 @@ function branchRequired(type: MarketingCampaignType): boolean {
   return ["PRODUCT_PUSH", "DINE_IN", "DELIVERY", "OFFER"].includes(type);
 }
 
+function explicitlyRejectsPrice(text: string): boolean {
+  return /\bno\s+(?:visible\s+)?price\b/.test(text)
+    || /\bwithout\s+(?:a\s+|the\s+)?price\b/.test(text)
+    || /\bdo\s+not\s+(?:show|include|mention|use)\s+(?:a\s+|the\s+)?price\b/.test(text)
+    || /\bdon['’]?t\s+(?:show|include|mention|use)\s+(?:a\s+|the\s+)?price\b/.test(text);
+}
+
 function explicitlyRequestsPrice(text: string): boolean {
+  if (explicitlyRejectsPrice(text)) return false;
   return /\bprice\b/.test(text)
     || /\blkr\b/.test(text)
     || /\brupees?\b/.test(text)
@@ -133,7 +154,7 @@ export function interpretAtthasTaskRequest(rawRequest: string): AtthasTaskIntent
   const channel = inferChannel(text);
   const salesChannel = inferSalesChannel(text);
   const productId = inferProduct(request);
-  const showPrice = explicitlyRequestsPrice(text) || campaignType === "OFFER";
+  const showPrice = explicitlyRequestsPrice(text) || (campaignType === "OFFER" && !explicitlyRejectsPrice(text));
 
   let brandId: AtthasPlanningBrandId | undefined = branch?.brandId;
   if (!brandId && includesAny(text, ["restaurant", "multi cuisine", "wellawatte"])) brandId = "ATTHAS_RESTAURANT";

@@ -15,22 +15,40 @@ export interface PosterQaResult {
   checks: string[];
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 export function assertPosterHtmlContract(
   html: string,
   creative: CampaignCreativeOutput,
   format: CampaignProductionFormat,
 ): void {
-  const required = [
+  const requiredCopy = [
     creative.overlaySpec.headline,
     creative.overlaySpec.supportingCopy,
     creative.overlaySpec.cta,
     creative.overlaySpec.price?.display ?? "",
-    `data-width=\"${format.width}\"`,
-    `data-height=\"${format.height}\"`,
   ].filter(Boolean);
 
-  for (const value of required) {
-    if (!html.includes(value.replaceAll("&", "&amp;"))) {
+  for (const value of requiredCopy) {
+    if (!html.includes(escapeHtml(value))) {
+      throw new Error(`Poster QA failed: deterministic HTML is missing required value ${value}.`);
+    }
+  }
+
+  const requiredStructure = [
+    `data-width=\"${format.width}\"`,
+    `data-height=\"${format.height}\"`,
+  ];
+
+  for (const value of requiredStructure) {
+    if (!html.includes(value)) {
       throw new Error(`Poster QA failed: deterministic HTML is missing required value ${value}.`);
     }
   }
