@@ -34,6 +34,7 @@ import {
   type StructuredBriefGovernanceIssue,
 } from "../structuredBriefGovernance.js";
 import type { TruthRecord, TruthRequirement, VerifiedFact } from "../types.js";
+import { compositionExpectationFromBrief } from "../visualQa/compositionExpectation.js";
 import type {
   VisualQaProvider,
   VisualQaRequest,
@@ -85,7 +86,12 @@ export interface PlannedCampaignProductionProviders extends CreativeDirectorProv
 
 export type PlannedVisualQaContext = Omit<
   VisualQaRequest,
-  "imageBase64" | "mimeType" | "brandId" | "branchId" | "compositionRequirements"
+  | "imageBase64"
+  | "mimeType"
+  | "brandId"
+  | "branchId"
+  | "compositionRequirements"
+  | "compositionExpectation"
 > & {
   compositionRequirements?: string[];
 };
@@ -506,11 +512,13 @@ function buildVisualQaRequest(input: {
   layout: AtthasLayoutDefinition;
   bytes: Buffer;
   mimeType: string;
+  structuredBrief?: StructuredImageBrief;
 }): VisualQaRequest {
   const compositionRequirements = [
     ...input.layout.imageCompositionRequirements,
     ...(input.context.compositionRequirements ?? []),
   ];
+  const compositionExpectation = compositionExpectationFromBrief(input.structuredBrief);
 
   return {
     ...input.context,
@@ -521,6 +529,7 @@ function buildVisualQaRequest(input: {
     imageBase64: input.bytes.toString("base64"),
     mimeType: input.mimeType,
     compositionRequirements: [...new Set(compositionRequirements)],
+    ...(compositionExpectation ? { compositionExpectation } : {}),
   };
 }
 
@@ -757,6 +766,9 @@ export async function producePlannedCampaign(
         layout,
         bytes: current.bytes,
         mimeType: current.mimeType,
+        ...(current.summary.structuredBrief
+          ? { structuredBrief: current.summary.structuredBrief }
+          : {}),
       }),
     );
     lastQa = qa;
