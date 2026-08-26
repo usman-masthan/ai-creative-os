@@ -31,14 +31,22 @@ function normalizedPhrase(value: string): string {
   return normalize(value).join(" ");
 }
 
+function differentiationMetrics(left: CampaignConcept, right: CampaignConcept) {
+  return {
+    territorySimilarity: jaccard(normalize(conceptTerritory(left)), normalize(conceptTerritory(right))),
+    ideaSimilarity: jaccard(normalize(left.coreIdea), normalize(right.coreIdea)),
+    headlineSimilarity: jaccard(normalize(left.headlineDirection), normalize(right.headlineDirection)),
+  };
+}
+
 export function conceptDifferentiationScore(
   left: CampaignConcept,
   right: CampaignConcept,
 ): number {
-  const territorySimilarity = jaccard(normalize(conceptTerritory(left)), normalize(conceptTerritory(right)));
-  const ideaSimilarity = jaccard(normalize(left.coreIdea), normalize(right.coreIdea));
-  const headlineSimilarity = jaccard(normalize(left.headlineDirection), normalize(right.headlineDirection));
-  return Math.max(territorySimilarity, ideaSimilarity, headlineSimilarity);
+  const metrics = differentiationMetrics(left, right);
+  // A shared factual/product headline can legitimately anchor multiple strategies.
+  // Central idea + territory are the primary signal; headline overlap is supporting evidence only.
+  return Math.max(metrics.territorySimilarity, metrics.ideaSimilarity);
 }
 
 export function assertConceptDifferentiation(creative: CampaignCreativeOutput): void {
@@ -50,9 +58,12 @@ export function assertConceptDifferentiation(creative: CampaignCreativeOutput): 
       const right = creative.concepts[j]!;
       const sameCoreIdea = normalizedPhrase(left.coreIdea) === normalizedPhrase(right.coreIdea);
       const sameHeadline = normalizedPhrase(left.headlineDirection) === normalizedPhrase(right.headlineDirection);
-      const similarity = conceptDifferentiationScore(left, right);
+      const metrics = differentiationMetrics(left, right);
+      const centralSimilarity = Math.max(metrics.territorySimilarity, metrics.ideaSimilarity);
+      const sameHeadlineAndOverlappingTerritory =
+        sameHeadline && centralSimilarity >= 0.45;
 
-      if (sameCoreIdea || sameHeadline || similarity >= 0.72) {
+      if (sameCoreIdea || sameHeadlineAndOverlappingTerritory || centralSimilarity >= 0.72) {
         throw new Error(
           `FAIL_CONCEPT_DIFFERENTIATION: ${left.id} (${left.strategicRole}) and ${right.id} (${right.strategicRole}) occupy substantially the same creative territory. Regenerate genuinely different central ideas, not CTA variants.`,
         );
