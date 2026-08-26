@@ -112,14 +112,15 @@ function priceLeaksIntoGeneratedVisual(
 ): boolean {
   const price = creative?.overlaySpec.price;
   if (!price) return false;
-  const text = generatedVisualText(brief).toLowerCase();
+  const visualText = generatedVisualText(brief);
+  const text = visualText.toLowerCase();
   const amount = String(price.amount);
   const display = price.display.toLowerCase();
   const compactDisplay = price.display.replace(/[^0-9]/g, "");
-  const compactText = generatedVisualText(brief).replace(/[^0-9]/g, "");
+  const compactText = visualText.replace(/[^0-9]/g, "");
   return (
     text.includes(display) ||
-    new RegExp(`\\b${amount.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}\\b`).test(text) ||
+    new RegExp(`\\b${amount}\\b`).test(text) ||
     (compactDisplay.length >= 3 && compactText.includes(compactDisplay))
   );
 }
