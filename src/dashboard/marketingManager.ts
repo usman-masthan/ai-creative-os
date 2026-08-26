@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { extname, join, resolve, sep } from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
 
+import { AiTraceSession, readAiTrace } from "../aiTrace.js";
 import type { BrandGovernance } from "../brandGovernance.js";
 import {
   answerConfirmedCampaignTask,
@@ -15,7 +16,7 @@ import { GeminiImageProvider } from "../imageProviders/gemini.js";
 import { FileCampaignStore } from "../operations/fileStore.js";
 import { CampaignWorkflow } from "../operations/workflow.js";
 import { createGeminiCampaignProvider } from "../providers/gemini.js";
-import type { TaskTruthAnswer, TaskTruthQuestionnaire, TaskTruthSnapshot } from "../taskTruth.js";
+import type { TaskTruthAnswer, TaskTruthSnapshot } from "../taskTruth.js";
 import { GeminiVisualQaProvider } from "../visualQa/gemini.js";
 import {
   ATTHAS_BRANCH_OPTIONS,
@@ -279,6 +280,24 @@ export function createMarketingManagerHandler(options: MarketingManagerHandlerOp
       return true;
     }
 
+    if (req.method === "GET" && url.pathname === "/api/ui/trace") {
+      const campaignId = safeId(url.searchParams.get("campaignId") ?? "", "campaignId");
+      try {
+        const trace = await readAiTrace(join(rootDir, "outputs", campaignId));
+        sendJson(res, 200, trace);
+      } catch (error) {
+        const code = error && typeof error === "object" && "code" in error
+          ? String((error as { code?: unknown }).code ?? "")
+          : "";
+        if (code === "ENOENT") {
+          sendJson(res, 404, { error: "No AI trace exists for this campaign. Produce it again with AI Trace enabled." });
+        } else {
+          throw error;
+        }
+      }
+      return true;
+    }
+
     if (req.method === "POST" && url.pathname === "/api/ui/interpret") {
       const data = await readBody(req);
       const intent = interpretAtthasTaskRequest(stringValue(data.request, "request"));
@@ -391,72 +410,162 @@ export function createMarketingManagerHandler(options: MarketingManagerHandlerOp
       }
 
       const brand = await loadBrandProductionContext(repoRoot, normalized.intent.brandId);
-      const generation = createGeminiCampaignProvider({ role: "default" });
-      const director = createGeminiCampaignProvider({ role: "creative" });
-      const finalizer = createGeminiCampaignProvider({ role: "default" });
-      const image = !baseImagePath ? new GeminiImageProvider({ role: "draft" }) : undefined;
-      const visualQa = mode === "FINAL" ? new GeminiVisualQaProvider() : undefined;
-      const finalArtQa = mode === "FINAL" ? new GeminiFinalArtQaProvider() : undefined;
       const outputDir = join(rootDir, "outputs", campaignId);
-
-      const result = await runConfirmedCampaignTask({
+      const trace = new AiTraceSession(campaignId);
+      trace.setRequest({
+        campaignId,
         sessionId,
-        taskTruthSnapshot: snapshot,
-        productionRequest: {
-          campaignId,
-          entry: normalized.entry,
-          truthRecords: truth.records,
-          requirementScopes: normalized.requirementScopes,
-          brandContext: brand.brandContext,
-          brandGovernance: brand.brandGovernance,
-          outputDir,
-          mode,
-          providers: {
-            generation,
-            director,
-            finalizer,
-            ...(image ? { image } : {}),
-            ...(visualQa ? { visualQa } : {}),
-          },
-          ...(baseImagePath ? { baseImagePath } : {}),
-          ...(mode === "FINAL"
-            ? {
-                visualQaContext: {
-                  visualClass: normalized.intent.campaignType === "PRODUCT_PUSH"
-                    ? "CONSTRAINED_PRODUCT_GENERATION"
-                    : "GENERIC_CONCEPT_VISUAL",
-                  rightsStatus: baseImagePath ? "unknown" : "cleared",
-                  mustNotInclude: [
-                    "generated ATTHA'S signage",
-                    "generated menu text",
-                    "unconfirmed product ingredients or product presentation",
-                  ],
-                },
-                posterProducer: async (request) => producePoster({
+        rawRequest: intent.rawRequest,
+        mode,
+        entry: normalized.entry,
+      });
+      trace.setIntent(normalized.intent);
+      trace.setTruth({
+        requiredTruth: normalized.entry.requiredTruth,
+        requirementScopes: normalized.requirementScopes,
+        snapshot,
+      });
+
+      const generationProvider = createGeminiCampaignProvider({ role: "default" });
+      const directorProvider = createGeminiCampaignProvider({ role: "creative" });
+      const finalizerProvider = createGeminiCampaignProvider({ role: "default" });
+      const generation = trace.wrapCampaignProvider("strategist", generationProvider);
+      const director = trace.wrapCampaignProvider("creativeDirector", directorProvider);
+      const finalizer = trace.wrapCampaignProvider("finalizer", finalizerProvider);
+
+      const imageProvider = !baseImagePath ? new GeminiImageProvider({ role: "draft" }) : undefined;
+      const image = imageProvider ? trace.wrapImageProvider(imageProvider) : undefined;
+      if (baseImagePath) {
+        trace.markSkipped("image", `Approved/local base image supplied: ${baseImagePath}`);
+      }
+
+      const visualQaProvider = mode === "FINAL" ? new GeminiVisualQaProvider() : undefined;
+      const visualQa = visualQaProvider ? trace.wrapVisualQaProvider(visualQaProvider) : undefined;
+      if (mode !== "FINAL") trace.markSkipped("visualQa", "DRAFT mode does not run visual QA.");
+
+      const finalArtQaProvider = mode === "FINAL" ? new GeminiFinalArtQaProvider() : undefined;
+      const finalArtQa = finalArtQaProvider ? trace.wrapFinalArtQaProvider(finalArtQaProvider) : undefined;
+      if (mode !== "FINAL") trace.markSkipped("finalArtQa", "DRAFT mode does not run final-art QA.");
+
+      try {
+        const result = await runConfirmedCampaignTask({
+          sessionId,
+          taskTruthSnapshot: snapshot,
+          productionRequest: {
+            campaignId,
+            entry: normalized.entry,
+            truthRecords: truth.records,
+            requirementScopes: normalized.requirementScopes,
+            brandContext: brand.brandContext,
+            brandGovernance: brand.brandGovernance,
+            outputDir,
+            mode,
+            providers: {
+              generation,
+              director,
+              finalizer,
+              ...(image ? { image } : {}),
+              ...(visualQa ? { visualQa } : {}),
+            },
+            ...(baseImagePath ? { baseImagePath } : {}),
+            ...(mode === "FINAL"
+              ? {
+                  visualQaContext: {
+                    visualClass: normalized.intent.campaignType === "PRODUCT_PUSH"
+                      ? "CONSTRAINED_PRODUCT_GENERATION"
+                      : "GENERIC_CONCEPT_VISUAL",
+                    rightsStatus: baseImagePath ? "unknown" : "cleared",
+                    mustNotInclude: [
+                      "generated ATTHA'S signage",
+                      "generated menu text",
+                      "unconfirmed product ingredients or product presentation",
+                    ],
+                  },
+                }
+              : {}),
+            posterProducer: async (request) => {
+              trace.recordRendererStart({
+                campaignId: request.campaignId,
+                brandId: request.brandId,
+                layoutId: request.layoutId,
+                baseImagePath: request.baseImagePath,
+                outputDir: request.outputDir,
+                overlaySpec: request.campaign.creative.overlaySpec,
+                format: request.campaign.production.format,
+              });
+              try {
+                const poster = await producePoster({
                   ...request,
                   ...(finalArtQa ? { finalArtQa: { provider: finalArtQa } } : {}),
-                }),
+                });
+                trace.recordRendererResult({
+                  status: poster.status,
+                  layout: poster.layout,
+                  htmlPath: poster.htmlPath,
+                  pngPath: poster.pngPath,
+                  qa: poster.qa,
+                  ...(poster.finalArtQa ? { finalArtQa: poster.finalArtQa } : {}),
+                });
+                return poster;
+              } catch (error) {
+                trace.recordRendererFailure(error);
+                throw error;
               }
-            : {}),
-        },
-      });
+            },
+          },
+        });
 
-      await persistProducedCampaign({
-        store: campaignStore,
-        workflow,
-        campaignId,
-        snapshot,
-        production: result,
-      });
-
-      let posterUrl: string | undefined;
-      if (result.status === "TASK_CONFIRMED_AND_PRODUCED") {
-        const production = result.production;
-        if (production.status === "DRAFT_RENDERED" || production.status === "FINAL_RENDERED") {
-          posterUrl = mediaUrl(campaignId, production.poster.pngPath);
+        if (result.status === "TASK_CONFIRMED_AND_PRODUCED") {
+          const production = result.production;
+          if ("campaign" in production && production.campaign.status === "GENERATED") {
+            trace.setStageSummary("strategist", production.campaign.generation);
+            if ("creativeDirector" in production.campaign) {
+              trace.setStageSummary("creativeDirector", {
+                provider: production.campaign.creativeDirector.director,
+                review: production.campaign.creativeDirector.review,
+              });
+              trace.setStageSummary("finalizer", {
+                provider: production.campaign.creativeDirector.finalizer,
+                finalization: production.campaign.creativeDirector.finalization,
+                output: production.campaign.creative,
+              });
+            }
+          }
+          trace.setStageSummary("image", { attempts: production.imageAttempts });
+          if ("visualQa" in production && production.visualQa) {
+            trace.setStageSummary("visualQa", production.visualQa);
+          }
         }
+
+        await persistProducedCampaign({
+          store: campaignStore,
+          workflow,
+          campaignId,
+          snapshot,
+          production: result,
+        });
+
+        trace.recordOutcome({
+          taskStatus: result.status,
+          productionStatus: result.status === "TASK_CONFIRMED_AND_PRODUCED"
+            ? result.production.status
+            : undefined,
+        });
+        await trace.persist(outputDir);
+
+        let posterUrl: string | undefined;
+        if (result.status === "TASK_CONFIRMED_AND_PRODUCED") {
+          const production = result.production;
+          if (production.status === "DRAFT_RENDERED" || production.status === "FINAL_RENDERED") {
+            posterUrl = mediaUrl(campaignId, production.poster.pngPath);
+          }
+        }
+        sendJson(res, 200, { ...result, ...(posterUrl ? { posterUrl } : {}), traceAvailable: true });
+      } catch (error) {
+        trace.recordFailure(error);
+        await trace.persist(outputDir);
+        throw error;
       }
-      sendJson(res, 200, { ...result, ...(posterUrl ? { posterUrl } : {}) });
       return true;
     }
 
