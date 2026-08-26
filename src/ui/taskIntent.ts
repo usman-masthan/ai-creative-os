@@ -51,8 +51,8 @@ export interface AtthasTaskIntent {
   audience: string;
   channel: string;
   assetType: string;
-  productId?: string;
-  salesChannel?: string;
+  productId?: string | undefined;
+  salesChannel?: string | undefined;
   showPrice: boolean;
   mode: TaskProductionMode;
   assumptions: string[];
@@ -82,8 +82,9 @@ function inferCampaignType(text: string): MarketingCampaignType {
   if (includesAny(text, ["uber", "pickme", "delivery", "deliver", "order online"])) return "DELIVERY";
   if (includesAny(text, ["poll", "vote", "comment", "engagement", "question", "tag a friend"])) return "ENGAGEMENT";
   if (includesAny(text, ["eid", "ramadan", "christmas", "new year", "seasonal", "festival", "festive"])) return "SEASONAL";
+  // Explicit product verbs win over incidental phrases such as "dine-in price".
+  if (includesAny(text, ["promote", "feature", "product", "menu item", "dish", "meal"])) return "PRODUCT_PUSH";
   if (includesAny(text, ["dine", "visit", "footfall", "come in", "tonight", "family dinner", "table", "walk in"])) return "DINE_IN";
-  if (includesAny(text, ["promote", "feature", "product", "menu item", "dish", "meal", "burger"])) return "PRODUCT_PUSH";
   return "BRAND_BUILDING";
 }
 
