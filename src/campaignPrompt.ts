@@ -63,23 +63,24 @@ NON-NEGOTIABLE BRAND GOVERNANCE:
 
 CREATIVE STRATEGY RULES:
 9. Generate exactly 3 meaningfully different concepts with fixed strategic roles:
-   - C1 = conversion: immediate action, product clarity, delivery/order intent.
-   - C2 = crave-emotion: appetite and emotional desire WITHOUT inventing product attributes.
-   - C3 = brand-building: memorable territory without inventing claims.
-10. Recommend exactly 1 concept based on objective, channel, factual safety, visual clarity, production simplicity, and brand fit.
-11. Prefer one hero, one message, one CTA for direct-response food posters. People, phones, app screens, third-party logos, multiple products, or complex environments increase production complexity and should be used only when strategically necessary.
-12. Avoid generic AI-ad language, excessive hype, unsupported superlatives, fake scarcity, cliché startup-style copy, emoji-heavy captions, and hashtag stuffing.
-13. Do not say "link in bio" unless that instruction is a verified/requested fact.
+   - C1 = CONVERSION. It must contain an explicit behavioural mechanism and direct action. Its central idea must be about moving the customer to act now; it cannot be C2 with a CTA added.
+   - C2 = CRAVE / EMOTION. It must be product-centric and desire-led without inventing product attributes. Its central idea must work even without a direct-response mechanic; it cannot be C1 with the CTA removed.
+   - C3 = BRAND BUILDING. It must create an ATTHA'S-owned memory, association, ritual, attitude, or territory. It cannot be generic hospitality language that could belong unchanged to a competitor.
+10. C1, C2, and C3 must differ in CENTRAL IDEA, not merely wording, CTA, crop, camera angle, or headline phrasing. If two concepts could reasonably share the same headline or coreIdea, regenerate them before answering.
+11. Recommend exactly 1 concept based on objective, channel, factual safety, visual clarity, production simplicity, and brand fit.
+12. Prefer one hero, one message, one CTA for direct-response food posters. People, phones, app screens, third-party logos, multiple products, or complex environments increase production complexity and should be used only when strategically necessary.
+13. Avoid generic AI-ad language, excessive hype, unsupported superlatives, fake scarcity, cliché startup-style copy, emoji-heavy captions, and hashtag stuffing.
+14. Do not say "link in bio" unless that instruction is a verified/requested fact.
 
 IMAGE + TEXT PRODUCTION RULES:
-14. Separate image generation from deterministic text rendering.
-15. imageGeneration.basePrompt is for the visual image ONLY. It MUST NOT ask an image model to render headlines, prices, letters, numbers, logos, badges, app screens, or promotional text.
-16. imageGeneration.textPolicy MUST equal "NO_TEXT_OR_LOGOS".
-17. Put all critical customer-facing text in overlaySpec so HTML/CSS or another deterministic renderer can place it later.
-18. If a verified price is used, overlaySpec.price must be an object with the exact numeric amount and currency "LKR". Do NOT format the display string yourself; the application will do that deterministically.
-19. Generated food imagery must not be described as the exact served product unless approved reference photography supports that claim.
-20. The production format is deterministic. creativeBrief.aspectRatio MUST be exactly "${productionFormat.aspectRatio}" for ${productionFormat.width}x${productionFormat.height} output.
-21. Return JSON only. Do not use Markdown fences or commentary outside the JSON object.
+15. Separate image generation from deterministic text rendering.
+16. imageGeneration.basePrompt is for the visual image ONLY. It MUST NOT ask an image model to render headlines, prices, letters, numbers, logos, badges, app screens, or promotional text.
+17. imageGeneration.textPolicy MUST equal "NO_TEXT_OR_LOGOS".
+18. Put all critical customer-facing text in overlaySpec so HTML/CSS or another deterministic renderer can place it later.
+19. If a verified price is used, overlaySpec.price must be an object with the exact numeric amount and currency "LKR". Do NOT format the display string yourself; the application will do that deterministically.
+20. Generated food imagery must not be described as the exact served product unless approved reference photography supports that claim.
+21. The production format is deterministic. creativeBrief.aspectRatio MUST be exactly "${productionFormat.aspectRatio}" for ${productionFormat.width}x${productionFormat.height} output.
+22. Return JSON only. Do not use Markdown fences or commentary outside the JSON object.
 
 CAMPAIGN REQUEST:
 - Campaign ID: ${request.campaignId}
