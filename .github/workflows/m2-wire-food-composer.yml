@@ -1,0 +1,106 @@
+name: One-time M2 Food Composer Wiring
+
+on:
+  push:
+    branches:
+      - m2-deterministic-food-composer
+    paths:
+      - .github/workflows/m2-wire-food-composer.yml
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: m2-deterministic-food-composer
+          fetch-depth: 0
+
+      - name: Patch planned production orchestrator
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/commands/producePlannedCampaign.ts')
+          text = path.read_text()
+          if 'composeDeterministicFoodSubjectFromFacts' in text:
+              print('Food composer wiring already present; nothing to patch.')
+              raise SystemExit(0)
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              if text.count(old) != 1:
+                  raise RuntimeError(f'Expected exactly one match, found {text.count(old)} for:\n{old}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              'import type { MarketingCalendarEntry } from "../marketingPlannerTypes.js";\nimport type { CampaignGenerationProvider } from "../providers/types.js";',
+              'import type { MarketingCalendarEntry } from "../marketingPlannerTypes.js";\nimport {\n  composeDeterministicFoodSubjectFromFacts,\n  type DeterministicFoodComposition,\n} from "../physicalFoodComposer.js";\nimport type { CampaignGenerationProvider } from "../providers/types.js";',
+          )
+          replace_once(
+              'import type { TruthRecord, TruthRequirement } from "../types.js";',
+              'import type { TruthRecord, TruthRequirement, VerifiedFact } from "../types.js";',
+          )
+          replace_once(
+              'export interface PlannedImagePromptPlan {\n  mode: PlannedImagePromptMode;\n  prompt: string;\n  structuredBrief?: StructuredImageBrief;\n}',
+              'export interface PlannedImagePromptPlan {\n  mode: PlannedImagePromptMode;\n  prompt: string;\n  structuredBrief?: StructuredImageBrief;\n  foodComposition?: DeterministicFoodComposition;\n}',
+          )
+          replace_once(
+              '  promptMode?: PlannedImagePromptMode;\n  structuredBrief?: StructuredImageBrief;\n  visualQa?: VisualQaResult;',
+              '  promptMode?: PlannedImagePromptMode;\n  structuredBrief?: StructuredImageBrief;\n  foodComposition?: DeterministicFoodComposition;\n  visualQa?: VisualQaResult;',
+          )
+          replace_once(
+              '  | (ProductionTraceBase & {\n      status: "BLOCKED_MEDIA_INPUT" | "BLOCKED_VISUAL_QA_REQUIRED";\n      campaign: DirectedCampaign;\n    })',
+              '  | (ProductionTraceBase & {\n      status: "BLOCKED_FOOD_COMPOSER_TRUTH";\n      campaign: Extract<GenerateCampaignResult, { status: "GENERATED" }>;\n      productName: string;\n      missingTruth: string[];\n    })\n  | (ProductionTraceBase & {\n      status: "BLOCKED_MEDIA_INPUT" | "BLOCKED_VISUAL_QA_REQUIRED";\n      campaign: DirectedCampaign;\n    })',
+          )
+          replace_once(
+              '  layout: AtthasLayoutDefinition;\n  useStructuredBrief: boolean;\n  previousQa?: VisualQaResult;',
+              '  layout: AtthasLayoutDefinition;\n  useStructuredBrief: boolean;\n  verifiedFacts?: VerifiedFact[];\n  foodComposition?: DeterministicFoodComposition;\n  previousQa?: VisualQaResult;',
+          )
+          replace_once(
+              '    creative: input.creative,\n    format: input.format,\n    compositionRequirements: input.layout.imageCompositionRequirements,\n    ...(input.previousQa?.issues.length',
+              '    creative: input.creative,\n    format: input.format,\n    layout: input.layout,\n    ...(input.verifiedFacts ? { verifiedFacts: input.verifiedFacts } : {}),\n    ...(input.foodComposition ? { subject: input.foodComposition.subject } : {}),\n    ...(input.previousQa?.issues.length',
+          )
+          replace_once(
+              '    prompt: compileStructuredImagePrompt(structuredBrief),\n    structuredBrief,\n  };',
+              '    prompt: compileStructuredImagePrompt(structuredBrief),\n    structuredBrief,\n    ...(input.foodComposition ? { foodComposition: input.foodComposition } : {}),\n  };',
+          )
+          replace_once(
+              '      ...(input.promptPlan.structuredBrief\n        ? { structuredBrief: input.promptPlan.structuredBrief }\n        : {}),\n    },',
+              '      ...(input.promptPlan.structuredBrief\n        ? { structuredBrief: input.promptPlan.structuredBrief }\n        : {}),\n      ...(input.promptPlan.foodComposition\n        ? { foodComposition: input.promptPlan.foodComposition }\n        : {}),\n    },',
+          )
+          replace_once(
+              '  const featureFlags = resolveCreativeFeatureFlags(process.env, request.featureFlags);\n  const base: ProductionTraceBase = {',
+              '  const featureFlags = resolveCreativeFeatureFlags(process.env, request.featureFlags);\n  if (featureFlags.useFoodComposer && !featureFlags.useStructuredBrief) {\n    throw new Error(\n      "Feature flag configuration violation: useFoodComposer requires useStructuredBrief.",\n    );\n  }\n  const base: ProductionTraceBase = {',
+          )
+          replace_once(
+              '  if (generated.status !== "GENERATED") {\n    const result: ProducePlannedCampaignResult = {\n      ...base,\n      status: "BLOCKED_FACT_GATE",\n      campaign: generated,\n    };\n    await persistOrchestration(outputDir, result);\n    return result;\n  }\n\n  const directed = await directGeneratedCampaign(',
+              '  if (generated.status !== "GENERATED") {\n    const result: ProducePlannedCampaignResult = {\n      ...base,\n      status: "BLOCKED_FACT_GATE",\n      campaign: generated,\n    };\n    await persistOrchestration(outputDir, result);\n    return result;\n  }\n\n  let foodComposition: DeterministicFoodComposition | undefined;\n  if (featureFlags.useFoodComposer && !request.baseImagePath) {\n    const foodComposer = composeDeterministicFoodSubjectFromFacts(generated.preflight.facts);\n    if (foodComposer.status === "BLOCKED_MISSING_VERIFIED_INGREDIENTS") {\n      const result: ProducePlannedCampaignResult = {\n        ...base,\n        status: "BLOCKED_FOOD_COMPOSER_TRUTH",\n        campaign: generated,\n        productName: foodComposer.productName,\n        missingTruth: [...foodComposer.missingFactKeys],\n      };\n      await persistOrchestration(outputDir, result);\n      return result;\n    }\n    if (foodComposer.status === "COMPOSED") {\n      foodComposition = foodComposer.composition;\n    }\n  }\n\n  const directed = await directGeneratedCampaign(',
+          )
+          replace_once(
+              '        layout,\n        useStructuredBrief: featureFlags.useStructuredBrief,\n      })',
+              '        layout,\n        useStructuredBrief: featureFlags.useStructuredBrief,\n        verifiedFacts: directed.preflight.facts,\n        ...(foodComposition ? { foodComposition } : {}),\n      })',
+          )
+          replace_once(
+              '      layout,\n      useStructuredBrief: featureFlags.useStructuredBrief,\n      previousQa: qa,',
+              '      layout,\n      useStructuredBrief: featureFlags.useStructuredBrief,\n      verifiedFacts: directed.preflight.facts,\n      ...(foodComposition ? { foodComposition } : {}),\n      previousQa: qa,',
+          )
+
+          path.write_text(text)
+          print('Patched deterministic food composer wiring.')
+          PY
+
+      - name: Commit wiring
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/commands/producePlannedCampaign.ts
+          git commit -m "Wire deterministic food composer into production"
+          git push origin HEAD:m2-deterministic-food-composer
