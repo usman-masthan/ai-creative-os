@@ -57,7 +57,7 @@ function creative(): CampaignCreativeOutput {
       headline: "Crispy Chicken Burger",
       supportingCopy: "Available on Uber Eats",
       cta: "Order on Uber Eats",
-      visualDirection: "A believable crispy chicken burger hero with premium appetite appeal.",
+      visualDirection: "A believable crispy chicken burger hero with strong appetite appeal.",
       composition: "Large food hero with protected upper-left copy space.",
       lighting: "Warm directional studio light that reveals texture.",
       photographyStyle: "Premium commercial food photography.",
@@ -104,17 +104,22 @@ const format: CampaignProductionFormat = {
   height: 1350,
 };
 
-test("structured image brief compiles deterministic strategy, layout and QA inputs", () => {
+const compositionRequirements = [
+  "Keep the upper-left message zone uncluttered",
+  "Keep the food hero inside the lower-right focal region",
+  "Keep the upper-left message zone uncluttered",
+];
+
+test("structured image brief matches the M2 physical, photography, composition and environment contract", () => {
   const input = {
     campaignId: "M2-BRIEF-001",
     brandId: "ATTHAS_BURGER",
     branchId: "BURGER_WELLAMPITIYA",
     creative: creative(),
     format,
-    compositionRequirements: [
-      "Keep the upper-left message zone uncluttered",
-      "Keep the food hero inside the lower-right focal region",
-      "Keep the upper-left message zone uncluttered",
+    compositionRequirements,
+    verifiedFacts: [
+      { key: "productName|CRISPY_CHICKEN_BURGER|UBER_EATS", value: "Crispy Chicken Burger (Large)" },
     ],
     previousQaIssues: [
       "message zone is visually cluttered",
@@ -125,58 +130,64 @@ test("structured image brief compiles deterministic strategy, layout and QA inpu
   const first = buildStructuredImageBrief(input);
   const second = buildStructuredImageBrief(input);
   assert.deepEqual(first, second);
-  assert.equal(first.version, 1);
-  assert.equal(first.constraints.generatedTextAllowed, false);
-  assert.equal(first.constraints.generatedLogosAllowed, false);
-  assert.deepEqual(first.constraints.negative, ["text", "logos", "watermarks", "app screens"]);
-  assert.equal(first.composition.requirements.length, 2);
+  assert.equal(first.version, 2);
+  assert.equal(first.subject.productName, "Crispy Chicken Burger (Large)");
+  assert.equal(first.photography.preset, "QSR_MACRO_HERO");
+  assert.equal(first.constraints.noText, true);
+  assert.equal(first.constraints.noLogos, true);
+  assert.equal(first.constraints.noPrices, true);
+  assert.equal(first.constraints.noPrintedPackaging, true);
+  assert.ok(first.constraints.prohibitedElements.includes("watermarks"));
+  assert.equal(first.composition.quietZones.length, 1);
   assert.deepEqual(first.correction?.previousQaIssues, ["message zone is visually cluttered"]);
 
   const prompt = compileStructuredImagePrompt(first);
-  assert.match(prompt, /STRUCTURED IMAGE BRIEF v1/);
-  assert.match(prompt, /Deterministic composition requirements:/);
-  assert.match(prompt, /Previous visual QA corrections required:/);
-  assert.match(prompt, /Do not render promotional copy, letters, numbers, prices, logos/);
+  assert.match(prompt, /STRUCTURED IMAGE BRIEF v2/);
+  assert.match(prompt, /SUBJECT/);
+  assert.match(prompt, /PHOTOGRAPHY/);
+  assert.match(prompt, /COMPOSITION/);
+  assert.match(prompt, /ENVIRONMENT/);
+  assert.match(prompt, /CONSTRAINTS/);
+  assert.match(prompt, /Preset: QSR_MACRO_HERO/);
+  assert.match(prompt, /PREVIOUS VISUAL QA CORRECTIONS REQUIRED:/);
   assert.doesNotMatch(prompt, /LKR 1,090/);
 });
 
 test("structured image brief blocks customer-facing price leakage before image spend", () => {
-  const value = creative();
-  value.imageGeneration.basePrompt =
-    "Professional burger photograph with LKR 1,090 visibly printed beside the food.";
-
   assert.throws(
     () =>
       buildStructuredImageBrief({
         campaignId: "M2-BRIEF-PRICE-LEAK",
         brandId: "ATTHAS_BURGER",
-        creative: value,
+        creative: creative(),
         format,
         compositionRequirements: ["Keep a clean message zone"],
+        subject: {
+          compositionDescription: "Place LKR 1,090 visibly beside the food hero.",
+        },
       }),
     /FAIL_IMAGE_BRIEF_PRICE_LEAK/,
   );
 });
 
 test("structured image brief blocks instructions to generate a logo", () => {
-  const value = creative();
-  value.imageGeneration.basePrompt =
-    "Professional burger photograph and include the ATTHA'S logo in the upper corner.";
-
   assert.throws(
     () =>
       buildStructuredImageBrief({
         campaignId: "M2-BRIEF-LOGO-LEAK",
         brandId: "ATTHAS_BURGER",
-        creative: value,
+        creative: creative(),
         format,
         compositionRequirements: ["Keep a clean message zone"],
+        subject: {
+          physicalState: "Show the burger and include the ATTHA'S logo in the upper corner.",
+        },
       }),
     /FAIL_IMAGE_BRIEF_LOGO_LEAK/,
   );
 });
 
-test("structured image brief validator rejects missing deterministic composition", () => {
+test("structured image brief validator rejects missing deterministic quiet zones", () => {
   const brief = buildStructuredImageBrief({
     campaignId: "M2-BRIEF-COMPOSITION",
     brandId: "ATTHAS_BURGER",
@@ -185,7 +196,7 @@ test("structured image brief validator rejects missing deterministic composition
     compositionRequirements: ["Keep a clean message zone"],
   });
   const invalid = structuredClone(brief);
-  invalid.composition.requirements = [];
+  invalid.composition.quietZones = [];
 
   const result = validateStructuredImageBrief(invalid);
   assert.equal(result.valid, false);
