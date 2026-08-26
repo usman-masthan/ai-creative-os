@@ -19,13 +19,17 @@ import {
 } from "../layouts/atthas.js";
 import { truthRequirementsForCampaign } from "../marketingPlannerPolicy.js";
 import type { MarketingCalendarEntry } from "../marketingPlannerTypes.js";
+import {
+  composeDeterministicFoodSubjectFromFacts,
+  type DeterministicFoodComposition,
+} from "../physicalFoodComposer.js";
 import type { CampaignGenerationProvider } from "../providers/types.js";
 import {
   buildStructuredImageBrief,
   compileStructuredImagePrompt,
   type StructuredImageBrief,
 } from "../structuredImageBrief.js";
-import type { TruthRecord, TruthRequirement } from "../types.js";
+import type { TruthRecord, TruthRequirement, VerifiedFact } from "../types.js";
 import type {
   VisualQaProvider,
   VisualQaRequest,
@@ -54,6 +58,7 @@ export interface PlannedImagePromptPlan {
   mode: PlannedImagePromptMode;
   prompt: string;
   structuredBrief?: StructuredImageBrief;
+  foodComposition?: DeterministicFoodComposition;
 }
 
 export interface PlannedTruthRequirementScope {
@@ -108,6 +113,7 @@ export interface ProductionImageAttempt {
   costUsd?: number;
   promptMode?: PlannedImagePromptMode;
   structuredBrief?: StructuredImageBrief;
+  foodComposition?: DeterministicFoodComposition;
   visualQa?: VisualQaResult;
 }
 
@@ -127,6 +133,12 @@ export type ProducePlannedCampaignResult =
   | (ProductionTraceBase & {
       status: "BLOCKED_FACT_GATE";
       campaign: Extract<GenerateCampaignResult, { status: "BLOCKED_MISSING_VERIFIED_DATA" }>;
+    })
+  | (ProductionTraceBase & {
+      status: "BLOCKED_FOOD_COMPOSER_TRUTH";
+      campaign: Extract<GenerateCampaignResult, { status: "GENERATED" }>;
+      productName: string;
+      missingTruth: string[];
     })
   | (ProductionTraceBase & {
       status: "BLOCKED_MEDIA_INPUT" | "BLOCKED_VISUAL_QA_REQUIRED";
@@ -284,6 +296,8 @@ export function buildPlannedImagePrompt(input: {
   format: CampaignProductionFormat;
   layout: AtthasLayoutDefinition;
   useStructuredBrief: boolean;
+  verifiedFacts?: VerifiedFact[];
+  foodComposition?: DeterministicFoodComposition;
   previousQa?: VisualQaResult;
 }): PlannedImagePromptPlan {
   if (!input.useStructuredBrief) {
@@ -299,7 +313,9 @@ export function buildPlannedImagePrompt(input: {
     ...(input.branchId ? { branchId: input.branchId } : {}),
     creative: input.creative,
     format: input.format,
-    compositionRequirements: input.layout.imageCompositionRequirements,
+    layout: input.layout,
+    ...(input.verifiedFacts ? { verifiedFacts: input.verifiedFacts } : {}),
+    ...(input.foodComposition ? { subject: input.foodComposition.subject } : {}),
     ...(input.previousQa?.issues.length
       ? { previousQaIssues: input.previousQa.issues }
       : {}),
@@ -309,6 +325,7 @@ export function buildPlannedImagePrompt(input: {
     mode: "structured-brief",
     prompt: compileStructuredImagePrompt(structuredBrief),
     structuredBrief,
+    ...(input.foodComposition ? { foodComposition: input.foodComposition } : {}),
   };
 }
 
@@ -371,6 +388,9 @@ async function persistGeneratedImage(input: {
       promptMode: input.promptPlan.mode,
       ...(input.promptPlan.structuredBrief
         ? { structuredBrief: input.promptPlan.structuredBrief }
+        : {}),
+      ...(input.promptPlan.foodComposition
+        ? { foodComposition: input.promptPlan.foodComposition }
         : {}),
     },
   };
@@ -462,6 +482,11 @@ export async function producePlannedCampaign(
   await mkdir(outputDir, { recursive: true });
   const mode = request.mode ?? "FINAL";
   const featureFlags = resolveCreativeFeatureFlags(process.env, request.featureFlags);
+  if (featureFlags.useFoodComposer && !featureFlags.useStructuredBrief) {
+    throw new Error(
+      "Feature flag configuration violation: useFoodComposer requires useStructuredBrief.",
+    );
+  }
   const base: ProductionTraceBase = {
     campaignId: request.campaignId,
     slotId: request.entry.slotId,
@@ -493,6 +518,25 @@ export async function producePlannedCampaign(
     };
     await persistOrchestration(outputDir, result);
     return result;
+  }
+
+  let foodComposition: DeterministicFoodComposition | undefined;
+  if (featureFlags.useFoodComposer && !request.baseImagePath) {
+    const foodComposer = composeDeterministicFoodSubjectFromFacts(generated.preflight.facts);
+    if (foodComposer.status === "BLOCKED_MISSING_VERIFIED_INGREDIENTS") {
+      const result: ProducePlannedCampaignResult = {
+        ...base,
+        status: "BLOCKED_FOOD_COMPOSER_TRUTH",
+        campaign: generated,
+        productName: foodComposer.productName,
+        missingTruth: [...foodComposer.missingFactKeys],
+      };
+      await persistOrchestration(outputDir, result);
+      return result;
+    }
+    if (foodComposer.status === "COMPOSED") {
+      foodComposition = foodComposer.composition;
+    }
   }
 
   const directed = await directGeneratedCampaign(
@@ -553,6 +597,8 @@ export async function producePlannedCampaign(
         format: directed.production.format,
         layout,
         useStructuredBrief: featureFlags.useStructuredBrief,
+        verifiedFacts: directed.preflight.facts,
+        ...(foodComposition ? { foodComposition } : {}),
       })
     : undefined;
   let current = request.baseImagePath
@@ -672,6 +718,8 @@ export async function producePlannedCampaign(
       format: directed.production.format,
       layout,
       useStructuredBrief: featureFlags.useStructuredBrief,
+      verifiedFacts: directed.preflight.facts,
+      ...(foodComposition ? { foodComposition } : {}),
       previousQa: qa,
     });
     current = await persistGeneratedImage({
