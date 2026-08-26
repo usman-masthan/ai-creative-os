@@ -3,6 +3,14 @@ import { extname, join, resolve } from "node:path";
 
 import type { BrandGovernance } from "../brandGovernance.js";
 import type { ClaimGovernance } from "../claimGovernance.js";
+import type {
+  CampaignCreativeOutput,
+  CampaignProductionFormat,
+} from "../creativeTypes.js";
+import {
+  resolveCreativeFeatureFlags,
+  type CreativeFeatureFlags,
+} from "../featureFlags.js";
 import type { ImageDraftProvider, ImageDraftResult } from "../imageProviders/types.js";
 import {
   selectAtthasLayout,
@@ -12,6 +20,11 @@ import {
 import { truthRequirementsForCampaign } from "../marketingPlannerPolicy.js";
 import type { MarketingCalendarEntry } from "../marketingPlannerTypes.js";
 import type { CampaignGenerationProvider } from "../providers/types.js";
+import {
+  buildStructuredImageBrief,
+  compileStructuredImagePrompt,
+  type StructuredImageBrief,
+} from "../structuredImageBrief.js";
 import type { TruthRecord, TruthRequirement } from "../types.js";
 import type {
   VisualQaProvider,
@@ -35,6 +48,13 @@ import {
 } from "./producePoster.js";
 
 export type PlannedProductionMode = "DRAFT" | "FINAL";
+export type PlannedImagePromptMode = "legacy" | "structured-brief";
+
+export interface PlannedImagePromptPlan {
+  mode: PlannedImagePromptMode;
+  prompt: string;
+  structuredBrief?: StructuredImageBrief;
+}
 
 export interface PlannedTruthRequirementScope {
   productId?: string;
@@ -73,6 +93,7 @@ export interface ProducePlannedCampaignRequest {
   maxDirectorRepairAttempts?: number;
   maxFinalizerRepairAttempts?: number;
   maxImageRegenerations?: number;
+  featureFlags?: Partial<CreativeFeatureFlags>;
   chromePath?: string;
   fetchFn?: typeof fetch;
   posterProducer?: (request: ProducePosterRequest) => Promise<ProducePosterResult>;
@@ -85,6 +106,8 @@ export interface ProductionImageAttempt {
   provider: string;
   model: string;
   costUsd?: number;
+  promptMode?: PlannedImagePromptMode;
+  structuredBrief?: StructuredImageBrief;
   visualQa?: VisualQaResult;
 }
 
@@ -232,12 +255,12 @@ function extensionForMime(mimeType: string | undefined): string {
   }
 }
 
-function buildImagePrompt(
-  campaign: DirectedCampaign,
+function buildLegacyImagePrompt(
+  creative: CampaignCreativeOutput,
   layout: AtthasLayoutDefinition,
   previousQa?: VisualQaResult,
 ): string {
-  const image = campaign.creative.imageGeneration;
+  const image = creative.imageGeneration;
   const blocks = [
     image.basePrompt,
     image.visualConstraints.length
@@ -251,6 +274,42 @@ function buildImagePrompt(
     "Return an image only. Do not render promotional copy, numbers, prices, logos, badges, labels or watermarks.",
   ];
   return blocks.filter(Boolean).join("\n\n");
+}
+
+export function buildPlannedImagePrompt(input: {
+  campaignId: string;
+  brandId: string;
+  branchId?: string;
+  creative: CampaignCreativeOutput;
+  format: CampaignProductionFormat;
+  layout: AtthasLayoutDefinition;
+  useStructuredBrief: boolean;
+  previousQa?: VisualQaResult;
+}): PlannedImagePromptPlan {
+  if (!input.useStructuredBrief) {
+    return {
+      mode: "legacy",
+      prompt: buildLegacyImagePrompt(input.creative, input.layout, input.previousQa),
+    };
+  }
+
+  const structuredBrief = buildStructuredImageBrief({
+    campaignId: input.campaignId,
+    brandId: input.brandId,
+    ...(input.branchId ? { branchId: input.branchId } : {}),
+    creative: input.creative,
+    format: input.format,
+    compositionRequirements: input.layout.imageCompositionRequirements,
+    ...(input.previousQa?.issues.length
+      ? { previousQaIssues: input.previousQa.issues }
+      : {}),
+  });
+
+  return {
+    mode: "structured-brief",
+    prompt: compileStructuredImagePrompt(structuredBrief),
+    structuredBrief,
+  };
 }
 
 async function downloadImage(
@@ -277,6 +336,7 @@ async function persistGeneratedImage(input: {
   outputDir: string;
   attempt: number;
   fetchFn: typeof fetch;
+  promptPlan: PlannedImagePromptPlan;
 }): Promise<{ path: string; bytes: Buffer; mimeType: string; summary: ProductionImageAttempt }> {
   const mimeType = input.result.mimeType ?? "image/jpeg";
   const path = join(
@@ -308,6 +368,10 @@ async function persistGeneratedImage(input: {
       provider: input.result.provider,
       model: input.result.model,
       ...(input.result.costUsd !== undefined ? { costUsd: input.result.costUsd } : {}),
+      promptMode: input.promptPlan.mode,
+      ...(input.promptPlan.structuredBrief
+        ? { structuredBrief: input.promptPlan.structuredBrief }
+        : {}),
     },
   };
 }
@@ -397,6 +461,7 @@ export async function producePlannedCampaign(
   const outputDir = resolve(request.outputDir);
   await mkdir(outputDir, { recursive: true });
   const mode = request.mode ?? "FINAL";
+  const featureFlags = resolveCreativeFeatureFlags(process.env, request.featureFlags);
   const base: ProductionTraceBase = {
     campaignId: request.campaignId,
     slotId: request.entry.slotId,
@@ -477,11 +542,24 @@ export async function producePlannedCampaign(
 
   const fetchFn = request.fetchFn ?? fetch;
   const maxRegenerations = normalizeImageRegenerations(request.maxImageRegenerations);
+  const branchId =
+    request.entry.branchScope !== "BRAND_WIDE" ? request.entry.branchScope : undefined;
+  const initialPromptPlan = !request.baseImagePath
+    ? buildPlannedImagePrompt({
+        campaignId: request.campaignId,
+        brandId: request.entry.brandId,
+        ...(branchId ? { branchId } : {}),
+        creative: directed.creative,
+        format: directed.production.format,
+        layout,
+        useStructuredBrief: featureFlags.useStructuredBrief,
+      })
+    : undefined;
   let current = request.baseImagePath
     ? await localImage(request.baseImagePath)
     : await persistGeneratedImage({
         result: await request.providers.image!.generate({
-          prompt: buildImagePrompt(directed, layout),
+          prompt: initialPromptPlan!.prompt,
           aspectRatio: directed.production.format.aspectRatio,
           resolution: process.env.GEMINI_IMAGE_RESOLUTION?.trim() || "1K",
           outputFormat: "jpeg",
@@ -489,6 +567,7 @@ export async function producePlannedCampaign(
         outputDir,
         attempt: 1,
         fetchFn,
+        promptPlan: initialPromptPlan!,
       });
   base.imageAttempts.push(current.summary);
 
@@ -585,9 +664,19 @@ export async function producePlannedCampaign(
     }
 
     regenerations += 1;
+    const regenerationPromptPlan = buildPlannedImagePrompt({
+      campaignId: request.campaignId,
+      brandId: request.entry.brandId,
+      ...(branchId ? { branchId } : {}),
+      creative: directed.creative,
+      format: directed.production.format,
+      layout,
+      useStructuredBrief: featureFlags.useStructuredBrief,
+      previousQa: qa,
+    });
     current = await persistGeneratedImage({
       result: await request.providers.image.generate({
-        prompt: buildImagePrompt(directed, layout, qa),
+        prompt: regenerationPromptPlan.prompt,
         aspectRatio: directed.production.format.aspectRatio,
         resolution: process.env.GEMINI_IMAGE_RESOLUTION?.trim() || "1K",
         outputFormat: "jpeg",
@@ -595,6 +684,7 @@ export async function producePlannedCampaign(
       outputDir,
       attempt: base.imageAttempts.length + 1,
       fetchFn,
+      promptPlan: regenerationPromptPlan,
     });
     base.imageAttempts.push(current.summary);
   }
