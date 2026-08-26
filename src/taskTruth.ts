@@ -1,3 +1,4 @@
+import { assertTaskTruthValueIsFact } from "./taskTruthValidation.js";
 import { resolveTruth, truthRequirementLabel } from "./truthResolver.js";
 import type {
   TenantId,
@@ -123,11 +124,6 @@ function promptFor(input: {
   return `No usable stored value exists for ${input.requirement.key} (${scopeText}). Please provide the current value for this task.`;
 }
 
-/**
- * Builds the complete, task-specific confirmation questionnaire.
- * Every required fact becomes a question, even when the stored value is already VERIFIED.
- * Stored truth is reference material only until the user confirms it for this task.
- */
 export function prepareTaskTruthConfirmation(
   input: PrepareTaskTruthInput,
 ): TaskTruthQuestionnaire {
@@ -186,7 +182,12 @@ export function prepareTaskTruthConfirmation(
       requirement,
       scope,
       kind,
-      prompt: promptFor({ kind, requirement, scope, ...(suggestedValue !== undefined ? { suggestedValue } : {}) }),
+      prompt: promptFor({
+        kind,
+        requirement,
+        scope,
+        ...(suggestedValue !== undefined ? { suggestedValue } : {}),
+      }),
       ...(suggestedValue !== undefined ? { suggestedValue } : {}),
     };
   });
@@ -212,6 +213,7 @@ function answerValue(question: TaskTruthQuestion, answer: TaskTruthAnswer): unkn
     if (answer.value === undefined) {
       throw new Error(`${question.label} replacement value is required.`);
     }
+    assertTaskTruthValueIsFact(answer.value);
     return answer.value;
   }
 
@@ -221,13 +223,10 @@ function answerValue(question: TaskTruthQuestion, answer: TaskTruthAnswer): unkn
   if (answer.value === undefined) {
     throw new Error(`${question.label} current value is required.`);
   }
+  assertTaskTruthValueIsFact(answer.value);
   return answer.value;
 }
 
-/**
- * Converts one complete user confirmation into an immutable task-scoped snapshot.
- * A snapshot is what production consumes; stored truth is never used silently.
- */
 export function confirmTaskTruth(input: ConfirmTaskTruthInput): TaskTruthSnapshot {
   if (!input.confirmedBy.trim()) throw new Error("confirmedBy is required.");
   const answers = new Map(input.answers.map((answer) => [answer.label, answer]));
