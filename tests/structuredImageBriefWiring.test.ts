@@ -61,7 +61,7 @@ function creative(): CampaignCreativeOutput {
       headline: "Crispy Chicken Burger",
       supportingCopy: "Available on Uber Eats",
       cta: "Order on Uber Eats",
-      visualDirection: "A believable crispy chicken burger hero with premium appetite appeal.",
+      visualDirection: "A believable crispy chicken burger hero with strong appetite appeal.",
       composition: "Large food hero with protected upper-left and upper-right overlay zones.",
       lighting: "Warm directional studio light that reveals texture.",
       photographyStyle: "Premium commercial food photography.",
@@ -123,22 +123,27 @@ test("structured image brief rollout preserves the exact legacy rollback path", 
   assert.equal(result.structuredBrief, undefined);
   assert.match(result.prompt, /^Professional food photograph/);
   assert.match(result.prompt, /Layout composition requirements:/);
-  assert.doesNotMatch(result.prompt, /STRUCTURED IMAGE BRIEF v1/);
+  assert.doesNotMatch(result.prompt, /STRUCTURED IMAGE BRIEF v2/);
 });
 
-test("structured image brief feature path compiles and exposes the validated production contract", () => {
+test("structured image brief feature path exposes the roadmap v2 production contract", () => {
   const result = plan(true);
   assert.equal(result.mode, "structured-brief");
   assert.ok(result.structuredBrief);
+  assert.equal(result.structuredBrief.version, 2);
   assert.equal(result.structuredBrief.scope.brandId, "ATTHAS_BURGER");
   assert.equal(result.structuredBrief.scope.branchId, "BURGER_WELLAMPITIYA");
   assert.equal(result.structuredBrief.format.width, 1080);
-  assert.deepEqual(
-    result.structuredBrief.composition.requirements,
-    layout.imageCompositionRequirements,
-  );
-  assert.match(result.prompt, /^STRUCTURED IMAGE BRIEF v1/);
-  assert.match(result.prompt, /Deterministic composition requirements:/);
+  assert.equal(result.structuredBrief.photography.preset, "QSR_MACRO_HERO");
+  assert.ok(result.structuredBrief.composition.quietZones.length > 0);
+  assert.equal(result.structuredBrief.constraints.noPrices, true);
+  assert.equal(result.structuredBrief.constraints.noPrintedPackaging, true);
+  assert.match(result.prompt, /^STRUCTURED IMAGE BRIEF v2/);
+  assert.match(result.prompt, /SUBJECT/);
+  assert.match(result.prompt, /PHOTOGRAPHY/);
+  assert.match(result.prompt, /COMPOSITION/);
+  assert.match(result.prompt, /ENVIRONMENT/);
+  assert.match(result.prompt, /CONSTRAINTS/);
   assert.doesNotMatch(result.prompt, /LKR 1,090/);
 });
 
@@ -164,6 +169,6 @@ test("structured regeneration carries QA issues into a new validated brief", () 
   const result = plan(true, qa);
   assert.equal(result.mode, "structured-brief");
   assert.deepEqual(result.structuredBrief?.correction?.previousQaIssues, qa.issues);
-  assert.match(result.prompt, /Previous visual QA corrections required:/);
+  assert.match(result.prompt, /PREVIOUS VISUAL QA CORRECTIONS REQUIRED:/);
   assert.match(result.prompt, /upper-left message zone is visually cluttered/);
 });
