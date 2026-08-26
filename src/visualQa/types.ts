@@ -13,6 +13,30 @@ export type VisualQaDecision =
 
 export type VisualRightsStatus = "cleared" | "unknown" | "blocked";
 
+export type VisualCopyZoneId =
+  | "upperLeft"
+  | "upperRight"
+  | "lowerLeft"
+  | "lowerRight";
+
+export type VisualCopyZoneRating = "GOOD" | "ACCEPTABLE" | "POOR";
+export type VisualCompositionMatch = "MATCH" | "ACCEPTABLE" | "MISMATCH";
+
+export interface VisualQaCompositionExpectation {
+  heroPosition?: string;
+  heroScale?: string;
+  cropBehavior?: string;
+  requestedQuietZones?: VisualCopyZoneId[];
+}
+
+export interface VisualQaCompositionEvidence {
+  heroPlacement: VisualCompositionMatch;
+  heroScale: VisualCompositionMatch;
+  cropQuality: VisualCopyZoneRating;
+  copyZones: Record<VisualCopyZoneId, VisualCopyZoneRating>;
+  notes: string[];
+}
+
 export interface VisualQaRequest {
   imageBase64: string;
   mimeType: string;
@@ -26,6 +50,7 @@ export interface VisualQaRequest {
   mustInclude?: string[];
   mustNotInclude?: string[];
   compositionRequirements?: string[];
+  compositionExpectation?: VisualQaCompositionExpectation;
   approvedReferenceImageIds?: string[];
 }
 
@@ -33,7 +58,9 @@ export interface VisualQaScores {
   productTruth: number;
   brandFit: number;
   realism: number;
+  foodTexture: number;
   composition: number;
+  copyZoneSuitability: number;
   governance: number;
   rights: number;
 }
@@ -47,6 +74,7 @@ export interface VisualQaResult {
   observedIngredients: string[];
   unexpectedVisibleElements: string[];
   notes: string[];
+  compositionEvidence?: VisualQaCompositionEvidence;
   usage?: GeminiUsageTelemetry;
 }
 
