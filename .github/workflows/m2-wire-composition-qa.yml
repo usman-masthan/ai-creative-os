@@ -1,0 +1,84 @@
+name: One-time M2 Composition QA Wiring
+
+on:
+  push:
+    branches:
+      - m2-composition-aware-visual-qa
+    paths:
+      - .github/workflows/m2-wire-composition-qa.yml
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: m2-composition-aware-visual-qa
+          fetch-depth: 0
+
+      - name: Patch planned production composition QA
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/commands/producePlannedCampaign.ts')
+          text = path.read_text()
+          if 'compositionExpectationFromBrief' in text:
+              print('Composition QA wiring already present.')
+              raise SystemExit(0)
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f'Expected exactly one match, found {count}:\n{old}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              'import type {\n  VisualQaProvider,\n  VisualQaRequest,\n  VisualQaResult,\n} from "../visualQa/types.js";',
+              'import { compositionExpectationFromBrief } from "../visualQa/compositionExpectation.js";\nimport type {\n  VisualQaProvider,\n  VisualQaRequest,\n  VisualQaResult,\n} from "../visualQa/types.js";',
+          )
+
+          replace_once(
+              '  "imageBase64" | "mimeType" | "brandId" | "branchId" | "compositionRequirements"\n>',
+              '  | "imageBase64"\n  | "mimeType"\n  | "brandId"\n  | "branchId"\n  | "compositionRequirements"\n  | "compositionExpectation"\n>',
+          )
+
+          replace_once(
+              '  layout: AtthasLayoutDefinition;\n  bytes: Buffer;\n  mimeType: string;\n}): VisualQaRequest {',
+              '  layout: AtthasLayoutDefinition;\n  bytes: Buffer;\n  mimeType: string;\n  structuredBrief?: StructuredImageBrief;\n}): VisualQaRequest {',
+          )
+
+          replace_once(
+              '  const compositionRequirements = [\n    ...input.layout.imageCompositionRequirements,\n    ...(input.context.compositionRequirements ?? []),\n  ];\n\n  return {',
+              '  const compositionRequirements = [\n    ...input.layout.imageCompositionRequirements,\n    ...(input.context.compositionRequirements ?? []),\n  ];\n  const compositionExpectation = compositionExpectationFromBrief(input.structuredBrief);\n\n  return {',
+          )
+
+          replace_once(
+              '    compositionRequirements: [...new Set(compositionRequirements)],\n  };',
+              '    compositionRequirements: [...new Set(compositionRequirements)],\n    ...(compositionExpectation ? { compositionExpectation } : {}),\n  };',
+          )
+
+          replace_once(
+              '        bytes: current.bytes,\n        mimeType: current.mimeType,\n      }),',
+              '        bytes: current.bytes,\n        mimeType: current.mimeType,\n        ...(current.summary.structuredBrief\n          ? { structuredBrief: current.summary.structuredBrief }\n          : {}),\n      }),',
+          )
+
+          path.write_text(text)
+          print('Patched composition-aware QA expectation wiring.')
+          PY
+
+      - name: Commit wiring
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/commands/producePlannedCampaign.ts
+          git commit -m "Wire structured composition expectations into visual QA"
+          git push origin HEAD:m2-composition-aware-visual-qa
