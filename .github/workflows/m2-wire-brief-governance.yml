@@ -1,0 +1,96 @@
+name: One-time M2 Structured Brief Governance Wiring
+
+on:
+  push:
+    branches:
+      - m2-structured-brief-governance
+    paths:
+      - .github/workflows/m2-wire-brief-governance.yml
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: m2-structured-brief-governance
+          fetch-depth: 0
+
+      - name: Patch planned production orchestrator
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/commands/producePlannedCampaign.ts')
+          text = path.read_text()
+          if 'governStructuredImageBrief' in text:
+              print('Structured brief governance wiring already present; nothing to patch.')
+              raise SystemExit(0)
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f'Expected exactly one match, found {count} for:\n{old}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              '} from "../structuredImageBrief.js";\nimport type { TruthRecord, TruthRequirement, VerifiedFact } from "../types.js";',
+              '} from "../structuredImageBrief.js";\nimport {\n  governStructuredImageBrief,\n  type StructuredBriefGovernanceIssue,\n} from "../structuredBriefGovernance.js";\nimport type { TruthRecord, TruthRequirement, VerifiedFact } from "../types.js";',
+          )
+
+          replace_once(
+              'export type PlannedProductionMode = "DRAFT" | "FINAL";\nexport type PlannedImagePromptMode = "legacy" | "structured-brief";\n\nexport interface PlannedImagePromptPlan {\n  mode: PlannedImagePromptMode;\n  prompt: string;\n  structuredBrief?: StructuredImageBrief;\n  foodComposition?: DeterministicFoodComposition;\n}',
+              'export type PlannedProductionMode = "DRAFT" | "FINAL";\nexport type PlannedImagePromptMode = "legacy" | "structured-brief";\n\nexport interface PlannedStructuredBriefGovernanceTrace {\n  status: "VALID" | "REPAIRED";\n  repairs: number;\n  issuesBeforeRepair: StructuredBriefGovernanceIssue[];\n}\n\nexport interface PlannedImagePromptPlan {\n  mode: PlannedImagePromptMode;\n  prompt: string;\n  structuredBrief?: StructuredImageBrief;\n  foodComposition?: DeterministicFoodComposition;\n  briefGovernance?: PlannedStructuredBriefGovernanceTrace;\n}',
+          )
+
+          replace_once(
+              '  maxFinalizerRepairAttempts?: number;\n  maxImageRegenerations?: number;\n  featureFlags?: Partial<CreativeFeatureFlags>;',
+              '  maxFinalizerRepairAttempts?: number;\n  maxImageRegenerations?: number;\n  maxStructuredBriefRepairAttempts?: number;\n  featureFlags?: Partial<CreativeFeatureFlags>;',
+          )
+
+          replace_once(
+              '  structuredBrief?: StructuredImageBrief;\n  foodComposition?: DeterministicFoodComposition;\n  visualQa?: VisualQaResult;',
+              '  structuredBrief?: StructuredImageBrief;\n  foodComposition?: DeterministicFoodComposition;\n  briefGovernance?: PlannedStructuredBriefGovernanceTrace;\n  visualQa?: VisualQaResult;',
+          )
+
+          replace_once(
+              '  | (ProductionTraceBase & {\n      status: "BLOCKED_MEDIA_INPUT" | "BLOCKED_VISUAL_QA_REQUIRED";\n      campaign: DirectedCampaign;\n    })',
+              '  | (ProductionTraceBase & {\n      status: "HUMAN_REVIEW_STRUCTURED_BRIEF_REQUIRED";\n      campaign: DirectedCampaign;\n      structuredBrief: StructuredImageBrief;\n      issues: StructuredBriefGovernanceIssue[];\n      repairs: number;\n      draftImagePath?: string;\n    })\n  | (ProductionTraceBase & {\n      status: "BLOCKED_MEDIA_INPUT" | "BLOCKED_VISUAL_QA_REQUIRED";\n      campaign: DirectedCampaign;\n    })',
+          )
+
+          marker = '''  return {\n    mode: "structured-brief",\n    prompt: compileStructuredImagePrompt(structuredBrief),\n    structuredBrief,\n    ...(input.foodComposition ? { foodComposition: input.foodComposition } : {}),\n  };\n}\n\nasync function downloadImage('''
+          replacement = '''  return {\n    mode: "structured-brief",\n    prompt: compileStructuredImagePrompt(structuredBrief),\n    structuredBrief,\n    ...(input.foodComposition ? { foodComposition: input.foodComposition } : {}),\n  };\n}\n\ntype GovernPlannedImagePromptResult =\n  | { status: "READY"; plan: PlannedImagePromptPlan }\n  | {\n      status: "HUMAN_REVIEW";\n      brief: StructuredImageBrief;\n      issues: StructuredBriefGovernanceIssue[];\n      repairs: number;\n    };\n\nasync function governPlannedImagePrompt(input: {\n  plan: PlannedImagePromptPlan;\n  campaign: DirectedCampaign;\n  repairProvider: CampaignGenerationProvider;\n  claimGovernance?: ClaimGovernance;\n  maxRepairAttempts?: number;\n}): Promise<GovernPlannedImagePromptResult> {\n  if (!input.plan.structuredBrief) {\n    return { status: "READY", plan: input.plan };\n  }\n\n  const governed = await governStructuredImageBrief({\n    brief: input.plan.structuredBrief,\n    preflight: input.campaign.preflight,\n    creative: input.campaign.creative,\n    repairProvider: input.repairProvider,\n    ...(input.claimGovernance ? { claimGovernance: input.claimGovernance } : {}),\n    ...(input.maxRepairAttempts !== undefined\n      ? { maxRepairAttempts: input.maxRepairAttempts }\n      : {}),\n  });\n\n  if (governed.status === "HUMAN_REVIEW") {\n    return {\n      status: "HUMAN_REVIEW",\n      brief: governed.brief,\n      issues: governed.issues,\n      repairs: governed.repairs,\n    };\n  }\n\n  return {\n    status: "READY",\n    plan: {\n      ...input.plan,\n      prompt: compileStructuredImagePrompt(governed.brief),\n      structuredBrief: governed.brief,\n      briefGovernance: {\n        status: governed.status,\n        repairs: governed.repairs,\n        issuesBeforeRepair: governed.issuesBeforeRepair,\n      },\n    },\n  };\n}\n\nasync function downloadImage('''
+          replace_once(marker, replacement)
+
+          replace_once(
+              '      ...(input.promptPlan.foodComposition\n        ? { foodComposition: input.promptPlan.foodComposition }\n        : {}),\n    },',
+              '      ...(input.promptPlan.foodComposition\n        ? { foodComposition: input.promptPlan.foodComposition }\n        : {}),\n      ...(input.promptPlan.briefGovernance\n        ? { briefGovernance: input.promptPlan.briefGovernance }\n        : {}),\n    },',
+          )
+
+          old_initial = '''  const initialPromptPlan = !request.baseImagePath\n    ? buildPlannedImagePrompt({\n        campaignId: request.campaignId,\n        brandId: request.entry.brandId,\n        ...(branchId ? { branchId } : {}),\n        creative: directed.creative,\n        format: directed.production.format,\n        layout,\n        useStructuredBrief: featureFlags.useStructuredBrief,\n        verifiedFacts: directed.preflight.facts,\n        ...(foodComposition ? { foodComposition } : {}),\n      })\n    : undefined;\n  let current = request.baseImagePath'''
+          new_initial = '''  const initialPromptCandidate = !request.baseImagePath\n    ? buildPlannedImagePrompt({\n        campaignId: request.campaignId,\n        brandId: request.entry.brandId,\n        ...(branchId ? { branchId } : {}),\n        creative: directed.creative,\n        format: directed.production.format,\n        layout,\n        useStructuredBrief: featureFlags.useStructuredBrief,\n        verifiedFacts: directed.preflight.facts,\n        ...(foodComposition ? { foodComposition } : {}),\n      })\n    : undefined;\n  const initialPromptGovernance = initialPromptCandidate\n    ? await governPlannedImagePrompt({\n        plan: initialPromptCandidate,\n        campaign: directed,\n        repairProvider: request.providers.finalizer,\n        ...(request.claimGovernance ? { claimGovernance: request.claimGovernance } : {}),\n        ...(request.maxStructuredBriefRepairAttempts !== undefined\n          ? { maxRepairAttempts: request.maxStructuredBriefRepairAttempts }\n          : {}),\n      })\n    : undefined;\n  if (initialPromptGovernance?.status === "HUMAN_REVIEW") {\n    const result: ProducePlannedCampaignResult = {\n      ...base,\n      status: "HUMAN_REVIEW_STRUCTURED_BRIEF_REQUIRED",\n      campaign: directed,\n      structuredBrief: initialPromptGovernance.brief,\n      issues: initialPromptGovernance.issues,\n      repairs: initialPromptGovernance.repairs,\n    };\n    await persistOrchestration(outputDir, result);\n    return result;\n  }\n  const initialPromptPlan =\n    initialPromptGovernance?.status === "READY" ? initialPromptGovernance.plan : undefined;\n  let current = request.baseImagePath'''
+          replace_once(old_initial, new_initial)
+
+          old_regen = '''    const regenerationPromptPlan = buildPlannedImagePrompt({\n      campaignId: request.campaignId,\n      brandId: request.entry.brandId,\n      ...(branchId ? { branchId } : {}),\n      creative: directed.creative,\n      format: directed.production.format,\n      layout,\n      useStructuredBrief: featureFlags.useStructuredBrief,\n      verifiedFacts: directed.preflight.facts,\n      ...(foodComposition ? { foodComposition } : {}),\n      previousQa: qa,\n    });\n    current = await persistGeneratedImage({'''
+          new_regen = '''    const regenerationPromptCandidate = buildPlannedImagePrompt({\n      campaignId: request.campaignId,\n      brandId: request.entry.brandId,\n      ...(branchId ? { branchId } : {}),\n      creative: directed.creative,\n      format: directed.production.format,\n      layout,\n      useStructuredBrief: featureFlags.useStructuredBrief,\n      verifiedFacts: directed.preflight.facts,\n      ...(foodComposition ? { foodComposition } : {}),\n      previousQa: qa,\n    });\n    const regenerationPromptGovernance = await governPlannedImagePrompt({\n      plan: regenerationPromptCandidate,\n      campaign: directed,\n      repairProvider: request.providers.finalizer,\n      ...(request.claimGovernance ? { claimGovernance: request.claimGovernance } : {}),\n      ...(request.maxStructuredBriefRepairAttempts !== undefined\n        ? { maxRepairAttempts: request.maxStructuredBriefRepairAttempts }\n        : {}),\n    });\n    if (regenerationPromptGovernance.status === "HUMAN_REVIEW") {\n      const result: ProducePlannedCampaignResult = {\n        ...base,\n        status: "HUMAN_REVIEW_STRUCTURED_BRIEF_REQUIRED",\n        campaign: directed,\n        structuredBrief: regenerationPromptGovernance.brief,\n        issues: regenerationPromptGovernance.issues,\n        repairs: regenerationPromptGovernance.repairs,\n        draftImagePath: current.path,\n      };\n      await persistOrchestration(outputDir, result);\n      return result;\n    }\n    const regenerationPromptPlan = regenerationPromptGovernance.plan;\n    current = await persistGeneratedImage({'''
+          replace_once(old_regen, new_regen)
+
+          path.write_text(text)
+          print('Patched structured brief governance into planned production.')
+          PY
+
+      - name: Commit wiring
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/commands/producePlannedCampaign.ts
+          git commit -m "Wire structured brief governance before image spend"
+          git push origin HEAD:m2-structured-brief-governance
