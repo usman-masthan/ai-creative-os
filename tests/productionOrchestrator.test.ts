@@ -443,3 +443,127 @@ test("draft mode can render a clearly non-final proof without visual QA", async 
     }
   });
 });
+
+
+function tierImageProvider(label: string, calls: string[]): ImageDraftProvider {
+  return {
+    providerName: "mock-image",
+    model: `mock-${label}`,
+    async generate() {
+      calls.push(label);
+      return {
+        provider: "mock-image",
+        model: `mock-${label}`,
+        dataBase64: Buffer.alloc(2_000, calls.length).toString("base64"),
+        mimeType: "image/jpeg",
+        costUsd: label === "flash-lite" ? 0.01 : label === "flash" ? 0.02 : 0.05,
+      };
+    },
+  };
+}
+
+function passQaWithScore(
+  dimension: keyof VisualQaResult["scores"],
+  score: number,
+): VisualQaResult {
+  const result = qaResult("PASS");
+  result.scores[dimension] = score;
+  return result;
+}
+
+test("tiered QA escalation uses Flash Lite then Flash then Pro and stops on a qualifying Pro image", async () => {
+  await withTempDir(async (dir) => {
+    const legacyPrompts: string[] = [];
+    const calls: string[] = [];
+    const request = baseRequest(dir, legacyPrompts);
+    request.providers.image = undefined;
+    request.providers.imageTiers = {
+      FLASH_LITE: tierImageProvider("flash-lite", calls),
+      FLASH: tierImageProvider("flash", calls),
+      PRO: tierImageProvider("pro", calls),
+    };
+    request.providers.visualQa = qaProvider([
+      passQaWithScore("productTruth", 84),
+      passQaWithScore("productTruth", 89),
+      qaResult("PASS"),
+    ]);
+
+    const result = await producePlannedCampaign(request);
+    assert.equal(result.status, "FINAL_RENDERED");
+    if (result.status !== "FINAL_RENDERED") return;
+
+    assert.deepEqual(calls, ["flash-lite", "flash", "pro"]);
+    assert.equal(legacyPrompts.length, 0);
+    assert.deepEqual(
+      result.imageAttempts.map((attempt) => attempt.qualityTier),
+      ["FLASH_LITE", "FLASH", "PRO"],
+    );
+    assert.deepEqual(
+      result.imageAttempts.map((attempt) => attempt.qualityGate?.action),
+      ["ESCALATE", "ESCALATE", "PASS"],
+    );
+    assert.deepEqual(
+      result.imageAttempts.map((attempt) => attempt.model),
+      ["mock-flash-lite", "mock-flash", "mock-pro"],
+    );
+  });
+});
+
+test("a failing Pro image routes to human review after exactly three paid image attempts", async () => {
+  await withTempDir(async (dir) => {
+    const legacyPrompts: string[] = [];
+    const calls: string[] = [];
+    const request = baseRequest(dir, legacyPrompts);
+    let rendered = false;
+    request.providers.image = undefined;
+    request.providers.imageTiers = {
+      FLASH_LITE: tierImageProvider("flash-lite", calls),
+      FLASH: tierImageProvider("flash", calls),
+      PRO: tierImageProvider("pro", calls),
+    };
+    request.providers.visualQa = qaProvider([
+      passQaWithScore("productTruth", 84),
+      passQaWithScore("productTruth", 89),
+      passQaWithScore("composition", 82),
+    ]);
+    request.posterProducer = async (posterRequest) => {
+      rendered = true;
+      return posterProducer(posterRequest);
+    };
+
+    const result = await producePlannedCampaign(request);
+    assert.equal(result.status, "HUMAN_REVIEW_REQUIRED");
+    assert.equal(rendered, false);
+    assert.deepEqual(calls, ["flash-lite", "flash", "pro"]);
+    assert.equal(result.imageAttempts.length, 3);
+    assert.equal(result.imageAttempts.at(-1)?.qualityTier, "PRO");
+    assert.equal(result.imageAttempts.at(-1)?.qualityGate?.action, "HUMAN_REVIEW");
+    assert.ok(
+      result.imageAttempts.at(-1)?.qualityGate?.reasons.some((reason) => reason.includes("terminal")),
+    );
+  });
+});
+
+test("a qualifying Flash image prevents unnecessary Pro generation", async () => {
+  await withTempDir(async (dir) => {
+    const legacyPrompts: string[] = [];
+    const calls: string[] = [];
+    const request = baseRequest(dir, legacyPrompts);
+    request.providers.image = undefined;
+    request.providers.imageTiers = {
+      FLASH_LITE: tierImageProvider("flash-lite", calls),
+      FLASH: tierImageProvider("flash", calls),
+      PRO: tierImageProvider("pro", calls),
+    };
+    request.providers.visualQa = qaProvider([
+      passQaWithScore("productTruth", 84),
+      qaResult("PASS"),
+    ]);
+
+    const result = await producePlannedCampaign(request);
+    assert.equal(result.status, "FINAL_RENDERED");
+    assert.deepEqual(calls, ["flash-lite", "flash"]);
+    assert.equal(result.imageAttempts.length, 2);
+    assert.equal(result.imageAttempts[1]?.qualityGate?.action, "PASS");
+  });
+});
