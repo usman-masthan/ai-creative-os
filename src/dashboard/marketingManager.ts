@@ -433,8 +433,17 @@ export function createMarketingManagerHandler(options: MarketingManagerHandlerOp
       const director = trace.wrapCampaignProvider("creativeDirector", directorProvider);
       const finalizer = trace.wrapCampaignProvider("finalizer", finalizerProvider);
 
-      const imageProvider = !baseImagePath ? new GeminiImageProvider({ role: "draft" }) : undefined;
+      const imageProvider = !baseImagePath && mode !== "FINAL"
+        ? new GeminiImageProvider({ role: "draft" })
+        : undefined;
       const image = imageProvider ? trace.wrapImageProvider(imageProvider) : undefined;
+      const imageTiers = !baseImagePath && mode === "FINAL"
+        ? {
+            FLASH_LITE: trace.wrapImageProvider(new GeminiImageProvider({ role: "draft" })),
+            FLASH: trace.wrapImageProvider(new GeminiImageProvider({ role: "production" })),
+            PRO: trace.wrapImageProvider(new GeminiImageProvider({ role: "premium" })),
+          }
+        : undefined;
       if (baseImagePath) {
         trace.markSkipped("image", `Approved/local base image supplied: ${baseImagePath}`);
       }
@@ -465,6 +474,7 @@ export function createMarketingManagerHandler(options: MarketingManagerHandlerOp
               director,
               finalizer,
               ...(image ? { image } : {}),
+              ...(imageTiers ? { imageTiers } : {}),
               ...(visualQa ? { visualQa } : {}),
             },
             ...(baseImagePath ? { baseImagePath } : {}),

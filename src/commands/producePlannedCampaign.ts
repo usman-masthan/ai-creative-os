@@ -13,6 +13,12 @@ import {
 } from "../featureFlags.js";
 import type { ImageDraftProvider, ImageDraftResult } from "../imageProviders/types.js";
 import {
+  evaluateImageQualityGate,
+  type ImageQualityGateResult,
+  type ImageQualityTier,
+  type ImageQualityTierProviders,
+} from "../imageQualityEscalation.js";
+import {
   selectAtthasLayout,
   type AtthasLayoutDefinition,
   type AtthasLayoutId,
@@ -81,6 +87,7 @@ export interface PlannedTruthRequirementScope {
 export interface PlannedCampaignProductionProviders extends CreativeDirectorProviders {
   generation: CampaignGenerationProvider;
   image?: ImageDraftProvider | undefined;
+  imageTiers?: ImageQualityTierProviders | undefined;
   visualQa?: VisualQaProvider | undefined;
 }
 
@@ -133,6 +140,8 @@ export interface ProductionImageAttempt {
   structuredBrief?: StructuredImageBrief;
   foodComposition?: DeterministicFoodComposition;
   briefGovernance?: PlannedStructuredBriefGovernanceTrace;
+  qualityTier?: ImageQualityTier;
+  qualityGate?: ImageQualityGateResult;
   visualQa?: VisualQaResult;
 }
 
@@ -436,6 +445,7 @@ async function persistGeneratedImage(input: {
   attempt: number;
   fetchFn: typeof fetch;
   promptPlan: PlannedImagePromptPlan;
+  qualityTier?: ImageQualityTier;
 }): Promise<{ path: string; bytes: Buffer; mimeType: string; summary: ProductionImageAttempt }> {
   const mimeType = input.result.mimeType ?? "image/jpeg";
   const path = join(
@@ -477,6 +487,7 @@ async function persistGeneratedImage(input: {
       ...(input.promptPlan.briefGovernance
         ? { briefGovernance: input.promptPlan.briefGovernance }
         : {}),
+      ...(input.qualityTier ? { qualityTier: input.qualityTier } : {}),
     },
   };
 }
@@ -652,7 +663,7 @@ export async function producePlannedCampaign(
   });
   base.layout = layout;
 
-  if (!request.baseImagePath && !request.providers.image) {
+  if (!request.baseImagePath && !request.providers.image && !request.providers.imageTiers) {
     const result: ProducePlannedCampaignResult = {
       ...base,
       status: "BLOCKED_MEDIA_INPUT",
@@ -714,10 +725,17 @@ export async function producePlannedCampaign(
   }
   const initialPromptPlan =
     initialPromptGovernance?.status === "READY" ? initialPromptGovernance.plan : undefined;
+  const tieredImageProviders = !request.baseImagePath ? request.providers.imageTiers : undefined;
+  const initialQualityTier: ImageQualityTier | undefined = tieredImageProviders
+    ? "FLASH_LITE"
+    : undefined;
+  const initialImageProvider = initialQualityTier
+    ? tieredImageProviders![initialQualityTier]
+    : request.providers.image;
   let current = request.baseImagePath
     ? await localImage(request.baseImagePath)
     : await persistGeneratedImage({
-        result: await request.providers.image!.generate({
+        result: await initialImageProvider!.generate({
           prompt: initialPromptPlan!.prompt,
           aspectRatio: directed.production.format.aspectRatio,
           resolution: process.env.GEMINI_IMAGE_RESOLUTION?.trim() || "1K",
@@ -727,6 +745,7 @@ export async function producePlannedCampaign(
         attempt: 1,
         fetchFn,
         promptPlan: initialPromptPlan!,
+        ...(initialQualityTier ? { qualityTier: initialQualityTier } : {}),
       });
   base.imageAttempts.push(current.summary);
 
@@ -774,6 +793,93 @@ export async function producePlannedCampaign(
     lastQa = qa;
     const lastAttempt = base.imageAttempts.at(-1);
     if (lastAttempt) lastAttempt.visualQa = qa;
+
+    const qualityTier = lastAttempt?.qualityTier;
+    if (qualityTier && tieredImageProviders) {
+      const qualityGate = evaluateImageQualityGate({ tier: qualityTier, qa });
+      if (lastAttempt) lastAttempt.qualityGate = qualityGate;
+
+      if (qualityGate.action === "PASS") break;
+
+      if (qualityGate.action === "BLOCK") {
+        const result: ProducePlannedCampaignResult = {
+          ...base,
+          status: "BLOCKED_VISUAL_QA",
+          campaign: directed,
+          visualQa: qa,
+          draftImagePath: current.path,
+        };
+        await persistOrchestration(outputDir, result);
+        return result;
+      }
+
+      if (qualityGate.action === "HUMAN_REVIEW") {
+        const result: ProducePlannedCampaignResult = {
+          ...base,
+          status: "HUMAN_REVIEW_REQUIRED",
+          campaign: directed,
+          visualQa: qa,
+          draftImagePath: current.path,
+        };
+        await persistOrchestration(outputDir, result);
+        return result;
+      }
+
+      const nextTier = qualityGate.nextTier;
+      if (!nextTier) {
+        throw new Error("Image quality escalation returned ESCALATE without a next tier.");
+      }
+      const escalationPromptCandidate = buildPlannedImagePrompt({
+        campaignId: request.campaignId,
+        brandId: request.entry.brandId,
+        ...(branchId ? { branchId } : {}),
+        creative: directed.creative,
+        format: directed.production.format,
+        layout,
+        useStructuredBrief: featureFlags.useStructuredBrief,
+        verifiedFacts: directed.preflight.facts,
+        ...(foodComposition ? { foodComposition } : {}),
+        previousQa: qa,
+      });
+      const escalationPromptGovernance = await governPlannedImagePrompt({
+        plan: escalationPromptCandidate,
+        campaign: directed,
+        repairProvider: request.providers.finalizer,
+        ...(request.claimGovernance ? { claimGovernance: request.claimGovernance } : {}),
+        ...(request.maxStructuredBriefRepairAttempts !== undefined
+          ? { maxRepairAttempts: request.maxStructuredBriefRepairAttempts }
+          : {}),
+      });
+      if (escalationPromptGovernance.status === "HUMAN_REVIEW") {
+        const result: ProducePlannedCampaignResult = {
+          ...base,
+          status: "HUMAN_REVIEW_STRUCTURED_BRIEF_REQUIRED",
+          campaign: directed,
+          structuredBrief: escalationPromptGovernance.brief,
+          issues: escalationPromptGovernance.issues,
+          repairs: escalationPromptGovernance.repairs,
+          draftImagePath: current.path,
+        };
+        await persistOrchestration(outputDir, result);
+        return result;
+      }
+      const escalationPromptPlan = escalationPromptGovernance.plan;
+      current = await persistGeneratedImage({
+        result: await tieredImageProviders[nextTier].generate({
+          prompt: escalationPromptPlan.prompt,
+          aspectRatio: directed.production.format.aspectRatio,
+          resolution: process.env.GEMINI_IMAGE_RESOLUTION?.trim() || "1K",
+          outputFormat: "jpeg",
+        }),
+        outputDir,
+        attempt: base.imageAttempts.length + 1,
+        fetchFn,
+        promptPlan: escalationPromptPlan,
+        qualityTier: nextTier,
+      });
+      base.imageAttempts.push(current.summary);
+      continue;
+    }
 
     if (qa.decision === "PASS") break;
 
