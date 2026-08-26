@@ -36,7 +36,20 @@ function scopeMatches(
 ): boolean {
   if (record.scope.tenantId !== input.tenantId) return false;
   if (record.scope.brandId && record.scope.brandId !== input.brandId) return false;
-  if (input.branchId && record.scope.branchId && record.scope.branchId !== input.branchId) return false;
+
+  const targetBranchId = requirement.branchId ?? input.branchId;
+  if (requirement.branchId) {
+    // An explicitly branch-scoped requirement must be satisfied by that exact
+    // branch. This prevents a price/availability record from another branch
+    // silently satisfying the task.
+    if (record.scope.branchId !== requirement.branchId) return false;
+  } else if (targetBranchId) {
+    if (record.scope.branchId && record.scope.branchId !== targetBranchId) return false;
+  } else if (record.scope.branchId) {
+    // A brand-wide task cannot silently consume an arbitrary branch record.
+    return false;
+  }
+
   if (requirement.productId && record.scope.productId !== requirement.productId) return false;
   if (requirement.salesChannel && record.scope.salesChannel !== requirement.salesChannel) return false;
   return record.key === requirement.key;
@@ -49,8 +62,9 @@ function publishable(record: TruthRecord, allowSourceVerified: boolean): boolean
   return allowSourceVerified && record.status === "SOURCE_VERIFIED";
 }
 
-function requirementLabel(requirement: TruthRequirement): string {
+export function truthRequirementLabel(requirement: TruthRequirement): string {
   const parts = [requirement.key];
+  if (requirement.branchId) parts.push(`branch=${requirement.branchId}`);
   if (requirement.productId) parts.push(`product=${requirement.productId}`);
   if (requirement.salesChannel) parts.push(`salesChannel=${requirement.salesChannel}`);
   return parts.join("|");
@@ -63,7 +77,7 @@ export function resolveTruth(input: ResolveTruthInput): TruthResolution {
   const allowSourceVerified = input.allowSourceVerified === true;
 
   for (const requirement of input.requirements) {
-    const label = requirementLabel(requirement);
+    const label = truthRequirementLabel(requirement);
     const candidates = input.records.filter((record) =>
       scopeMatches(record, input, requirement),
     );

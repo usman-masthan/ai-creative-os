@@ -18,7 +18,7 @@ The system combines deterministic truth, brand, claim, format and spend controls
 
 ## Golden principle
 
-> **Facts are retrieved. Rules are enforced. Creativity is generated. Quality is reviewed. Humans decide only when judgment or risk requires them.**
+> **Facts are retrieved, users confirm every task-relevant fact, rules are enforced, creativity is generated, quality is reviewed, and nothing customer-facing is assumed silently.**
 
 ## ATTHA’S truth policy
 
@@ -27,6 +27,34 @@ Customer-facing facts must stay scoped to their evidence:
 `brand → branch → product → sales channel → observed/effective date → source → verification status`
 
 Public delivery-platform prices are not universal ATTHA’S prices. Offers are time-sensitive. Conflicted or missing facts are blocked. AI-generated food imagery is never evidence of actual ATTHA’S product appearance.
+
+### Just-in-time task truth confirmation
+
+ATTHA’S no longer needs to fully populate every price, product, offer, ingredient, availability record and image before Creative OS can be used.
+
+For each user task, the OS determines the exact facts required, retrieves stored values, and asks the user to confirm **all stored facts that will be used** while also asking for missing/conflicting values. It then creates an immutable task-scoped truth snapshot. The canonical user-facing production gateway runs only from that snapshot.
+
+```text
+user task
+  → determine required facts
+  → retrieve stored truth
+  → confirm stored facts + collect missing facts
+  → task truth snapshot
+  → fact gate
+  → creative production
+```
+
+A stored value is therefore memory, not automatic permission to publish it.
+
+Branch-scoped facts are isolated. The same product may have the same or different price at Wellampitiya, Bambalapitiya and Kollupitiya; Creative OS never silently copies a branch/channel price into another scope. Even equal branch prices remain separately confirmed facts.
+
+Run the no-AI demonstration:
+
+```bash
+npm run truth:task-demo
+```
+
+See [`docs/ATTHAS_TASK_TRUTH_CONFIRMATION.md`](docs/ATTHAS_TASK_TRUTH_CONFIRMATION.md).
 
 ## ATTHA’S brand system
 
@@ -145,8 +173,20 @@ npm run poster:demo
 
 Generated base imagery contains no promotional copy or logo. Verified headline/price/CTA content is added through deterministic rendering. Raw image base64 is not written into the manifest.
 
+## User-facing production contract
+
+`producePlannedCampaign(...)` is a lower-level production primitive. New product/UI entry points should use the confirmation gateway in `src/commands/runConfirmedCampaignTask.ts`:
+
+1. `prepareConfirmedCampaignTask(...)` — build the exact grouped fact questions.
+2. `answerConfirmedCampaignTask(...)` — turn user answers into an immutable snapshot.
+3. `runConfirmedCampaignTask(...)` — produce only from that confirmed snapshot.
+
+Without a snapshot, the gateway returns `TASK_CONFIRMATION_REQUIRED` before any AI/media work runs.
+
 ## Current milestone
 
-The technical Gemini stack is mature. Current work is deliberately focused on the higher-value ATTHA’S gaps: authoritative owner/POS/merchant truth, approved product-photo/rights mapping, final logo lockups, visual QA integration and professional ATTHA’S static-layout families.
+The ATTHA’S V1 engine now covers planning, fact/brand governance, Creative Director selection, deterministic layouts, Gemini media, visual QA, final-art QA, multi-format rendering, approvals/revisions, persistence, cost controls, reliability, publication/performance tracking and just-in-time task truth confirmation.
 
-See [`docs/ATTHAS_V1_FOUNDATION.md`](docs/ATTHAS_V1_FOUNDATION.md) and [`docs/ROADMAP.md`](docs/ROADMAP.md).
+The remaining work is primarily productisation and real-world proof: polished natural-language/task-confirmation UI, final logo/product assets when needed, and 20–30 real ATTHA’S campaign validation runs.
+
+See [`docs/ATTHAS_V1_FOUNDATION.md`](docs/ATTHAS_V1_FOUNDATION.md), [`docs/ATTHAS_TASK_TRUTH_CONFIRMATION.md`](docs/ATTHAS_TASK_TRUTH_CONFIRMATION.md) and [`docs/ROADMAP.md`](docs/ROADMAP.md).
