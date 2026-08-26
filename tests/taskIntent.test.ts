@@ -56,3 +56,15 @@ test("Wellawatte maps to the canonical Restaurant branch master id", () => {
   assert.equal(intent.branchScope, "RESTAURANT_COLOMBO_06");
   assert.equal(intent.campaignType, "DINE_IN");
 });
+
+test("explicit no-offer and no-price language is respected", () => {
+  const intent = interpretAtthasTaskRequest(
+    "Create an emotional ATTHA'S Burger brand awareness post for Instagram. No offer and no price.",
+  );
+  assert.equal(intent.brandId, "ATTHAS_BURGER");
+  assert.equal(intent.branchScope, "BRAND_WIDE");
+  assert.equal(intent.campaignType, "BRAND_BUILDING");
+  assert.equal(intent.showPrice, false);
+  assert.equal(intent.salesChannel, undefined);
+  assert.deepEqual(intent.missingFields, []);
+});
