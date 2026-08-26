@@ -78,7 +78,7 @@ function inferBranch(text: string): AtthasBranchOption | undefined {
 }
 
 function inferCampaignType(text: string): MarketingCampaignType {
-  if (includesAny(text, ["offer", "discount", "% off", "deal", "promotion", "promo"])) return "OFFER";
+  if (includesAny(text, ["offer", "discount", "% off", "deal", "promotion"])) return "OFFER";
   if (includesAny(text, ["uber", "pickme", "delivery", "deliver", "order online"])) return "DELIVERY";
   if (includesAny(text, ["poll", "vote", "comment", "engagement", "question", "tag a friend"])) return "ENGAGEMENT";
   if (includesAny(text, ["eid", "ramadan", "christmas", "new year", "seasonal", "festival", "festive"])) return "SEASONAL";
@@ -117,6 +117,13 @@ function branchRequired(type: MarketingCampaignType): boolean {
   return ["PRODUCT_PUSH", "DINE_IN", "DELIVERY", "OFFER"].includes(type);
 }
 
+function explicitlyRequestsPrice(text: string): boolean {
+  return /\bprice\b/.test(text)
+    || /\blkr\b/.test(text)
+    || /\brupees?\b/.test(text)
+    || /\brs\.?\s*\d/i.test(text);
+}
+
 export function interpretAtthasTaskRequest(rawRequest: string): AtthasTaskIntent {
   const request = rawRequest.trim();
   if (!request) throw new Error("Campaign request cannot be empty.");
@@ -126,7 +133,7 @@ export function interpretAtthasTaskRequest(rawRequest: string): AtthasTaskIntent
   const channel = inferChannel(text);
   const salesChannel = inferSalesChannel(text);
   const productId = inferProduct(request);
-  const showPrice = includesAny(text, ["price", "rs.", "rs ", "lkr", "rupee", "cost"]) || campaignType === "OFFER";
+  const showPrice = explicitlyRequestsPrice(text) || campaignType === "OFFER";
 
   let brandId: AtthasPlanningBrandId | undefined = branch?.brandId;
   if (!brandId && includesAny(text, ["restaurant", "multi cuisine", "wellawatte"])) brandId = "ATTHAS_RESTAURANT";
