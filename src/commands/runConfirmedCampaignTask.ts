@@ -50,8 +50,6 @@ function requirementsForTask(input: {
     const scope = input.scopes?.[key];
     return {
       key,
-      // A branch-specific campaign always confirms facts against that branch.
-      // Brand-wide campaigns intentionally do not inherit arbitrary branch facts.
       ...(input.entry.branchScope !== "BRAND_WIDE"
         ? { branchId: input.entry.branchScope }
         : {}),
@@ -83,6 +81,9 @@ export function prepareConfirmedCampaignTask(
       ? { allowSourceVerified: request.allowSourceVerified }
       : {}),
     ...(request.createdAt ? { createdAt: request.createdAt } : {}),
+    ...(request.entry.truthConfirmationHints
+      ? { suggestedValues: request.entry.truthConfirmationHints }
+      : {}),
   });
 }
 
@@ -157,8 +158,6 @@ export async function runConfirmedCampaignTask(input: {
 
   const production = await producePlannedCampaign({
     ...input.productionRequest,
-    // This is the central governance boundary: once confirmed, production sees
-    // only the task-scoped snapshot records. Stored records are not reused.
     truthRecords: taskTruthSnapshotToRecords(input.taskTruthSnapshot),
   });
 

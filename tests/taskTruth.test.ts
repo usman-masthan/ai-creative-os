@@ -79,6 +79,28 @@ test("missing facts become input questions instead of blocking the user before t
   assert.match(questionnaire.questions[0]?.prompt ?? "", /Please provide the current value/);
 });
 
+test("brief-derived missing facts are surfaced as suggested values for explicit confirmation", () => {
+  const questionnaire = prepareTaskTruthConfirmation({
+    ...baseInput([
+      {
+        key: "requestedProductClaims",
+        branchId: "BURGER_WELLAMPITIYA",
+        productId: "CHICKEN_TIKKA_WRAP",
+      },
+    ]),
+    suggestedValues: {
+      requestedProductClaims: "chicken tikka; creamy sauce; lettuce; onion; tomato; coriander",
+    },
+  });
+
+  assert.equal(questionnaire.questions[0]?.kind, "PROVIDE_MISSING");
+  assert.equal(
+    questionnaire.questions[0]?.suggestedValue,
+    "chicken tikka; creamy sauce; lettuce; onion; tomato; coriander",
+  );
+  assert.match(questionnaire.questions[0]?.prompt ?? "", /Your brief suggested/);
+});
+
 test("a complete confirmation creates an immutable task-scoped truth snapshot", () => {
   const questionnaire = prepareTaskTruthConfirmation(
     baseInput([

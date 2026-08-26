@@ -96,6 +96,27 @@ function collectVerifiedText(preflight: CampaignPreflight): string {
   );
 }
 
+export function findUnsupportedClaimTermsInText(
+  text: string,
+  preflight: CampaignPreflight,
+  governance: ClaimGovernance = {},
+): string[] {
+  const normalizedText = normalize(text);
+  const verifiedText = collectVerifiedText(preflight);
+  const allowedTerms = new Set(
+    (governance.allowedCreativeTerms ?? []).map((term) => normalize(term.trim())).filter(Boolean),
+  );
+
+  return (governance.blockedUnverifiedTerms ?? defaultBlockedTerms).filter((term) => {
+    const normalizedTerm = normalize(term.trim());
+    if (!normalizedTerm) return false;
+    if (allowedTerms.has(normalizedTerm)) return false;
+    if (!normalizedText.includes(normalizedTerm)) return false;
+    if (verifiedText.includes(normalizedTerm)) return false;
+    return true;
+  });
+}
+
 export function assertCreativeRespectsClaimGovernance(
   creative: CampaignCreativeOutput,
   preflight: CampaignPreflight,

@@ -19,6 +19,7 @@ export interface TaskTruthQuestion {
   prompt: string;
   storedValue?: unknown;
   storedSource?: string;
+  suggestedValue?: unknown;
 }
 
 export interface TaskTruthQuestionnaire {
@@ -74,6 +75,7 @@ export interface PrepareTaskTruthInput {
   records: TruthRecord[];
   allowSourceVerified?: boolean;
   createdAt?: string;
+  suggestedValues?: Record<string, unknown>;
 }
 
 export interface ConfirmTaskTruthInput {
@@ -100,6 +102,7 @@ function promptFor(input: {
   requirement: TruthRequirement;
   scope: TruthScope;
   storedValue?: unknown;
+  suggestedValue?: unknown;
 }): string {
   const scopeParts = [
     input.scope.branchId ? `branch ${input.scope.branchId}` : "brand-wide scope",
@@ -113,6 +116,9 @@ function promptFor(input: {
   }
   if (input.kind === "RESOLVE_CONFLICT") {
     return `Stored records conflict for ${input.requirement.key} (${scopeText}). Please provide the current value for this task.`;
+  }
+  if (input.suggestedValue !== undefined) {
+    return `No usable stored value exists for ${input.requirement.key} (${scopeText}). Your brief suggested: ${String(input.suggestedValue)}. Confirm or replace this value for the task.`;
   }
   return `No usable stored value exists for ${input.requirement.key} (${scopeText}). Please provide the current value for this task.`;
 }
@@ -147,6 +153,7 @@ export function prepareTaskTruthConfirmation(
     });
     const label = truthRequirementLabel(requirement);
     const scope = questionScope(input, requirement);
+    const suggestedValue = input.suggestedValues?.[requirement.key];
 
     if (resolution.conflicts.includes(label)) {
       const kind: TaskTruthQuestionKind = "RESOLVE_CONFLICT";
@@ -179,7 +186,8 @@ export function prepareTaskTruthConfirmation(
       requirement,
       scope,
       kind,
-      prompt: promptFor({ kind, requirement, scope }),
+      prompt: promptFor({ kind, requirement, scope, ...(suggestedValue !== undefined ? { suggestedValue } : {}) }),
+      ...(suggestedValue !== undefined ? { suggestedValue } : {}),
     };
   });
 
