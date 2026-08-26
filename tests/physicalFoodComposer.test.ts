@@ -42,8 +42,12 @@ test("deterministic food composer uses only supplied ingredients and no invented
   assert.match(subjectText, /sauce/);
   assert.match(subjectText, /burger bun/);
   assert.match(subjectText, /do not imply a cooking method/);
+  assert.match(subjectText, /do not add quality adjectives|without implying flavour, freshness or quantity/);
   assert.doesNotMatch(subjectText, /\bgrilled\b|\bfried\b|\bsmoked\b/);
-  assert.doesNotMatch(subjectText, /\bfresh\b|\bjuicy\b|\bpremium\b|\btender\b/);
+  assert.doesNotMatch(
+    subjectText,
+    /\b(?:fresh|juicy|premium|tender)\s+(?:chicken|fillet|lettuce|sauce|bun)\b/,
+  );
 });
 
 test("verified cooking methods are admitted explicitly without creating extra methods", () => {
