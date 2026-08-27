@@ -46,6 +46,16 @@ function visualQaResponse(
                     rights: 100,
                   },
                   issues: [],
+                  scoreEvidence: {
+                    productTruth: { status: "PASS", observations: ["Verified product form and ingredients match."] },
+                    brandFit: { status: "PASS", observations: ["Brand treatment is appropriate."] },
+                    realism: { status: "PASS", observations: ["Food and lighting are photorealistic."] },
+                    foodTexture: { status: "PASS", observations: ["Food texture is physically credible."] },
+                    composition: { status: "PASS", observations: ["Hero placement and crop are sound."] },
+                    copyZoneSuitability: { status: "PASS", observations: ["Requested copy zone is usable."] },
+                    governance: { status: "PASS", observations: ["No prohibited graphics are visible."] },
+                    rights: { status: "PASS", observations: ["Rights status is supplied as cleared."] },
+                  },
                   observedIngredients: ["crispy chicken", "cabbage"],
                   unexpectedVisibleElements: [],
                   notes: ["Copy-safe negative space is available."],
@@ -226,4 +236,42 @@ test("blocked commercial-use rights always force BLOCK", async () => {
 
   assert.equal(result.decision, "BLOCK");
   assert.ok(result.issues.some((issue) => issue.includes("rights are explicitly blocked")));
+});
+
+
+test("evidence-consistency normalizes unsupported conservative scores instead of escalating", async () => {
+  const response = visualQaResponse("REGENERATE");
+  const payload = (await response.json()) as { candidates: Array<{ content: { parts: Array<{ text: string }> } }> };
+  const candidate = payload.candidates[0]!;
+  const part = candidate.content.parts[0]!;
+  const review = JSON.parse(part.text) as Record<string, any>;
+  review.scores = {
+    productTruth: 72, brandFit: 70, realism: 72, foodTexture: 71,
+    composition: 70, copyZoneSuitability: 69, governance: 75, rights: 75,
+  };
+  part.text = JSON.stringify(review);
+
+  const provider = new GeminiVisualQaProvider({
+    apiKey: "gemini-test-key",
+    fetchImpl: async () => new Response(JSON.stringify(payload), { status: 200, headers: { "Content-Type": "application/json" } }),
+  });
+  const result = await provider.review({
+    imageBase64: "ZmFrZQ==",
+    mimeType: "image/jpeg",
+    brandId: "ATTHAS_RESTAURANT",
+    productId: "CALIBRATION_CHICKEN_TIKKA_WRAP",
+    productName: "Chicken Tikka Wrap",
+    visualClass: "CONSTRAINED_PRODUCT_GENERATION",
+    rightsStatus: "cleared",
+    verifiedVisibleIngredients: ["crispy chicken", "cabbage"],
+    compositionExpectation: { requestedQuietZones: ["upperLeft"] },
+  });
+  assert.equal(result.decision, "PASS");
+  assert.equal(result.scores.productTruth, 90);
+  assert.equal(result.scores.realism, 85);
+  assert.equal(result.scores.foodTexture, 82);
+  assert.equal(result.scores.composition, 83);
+  assert.equal(result.scores.governance, 90);
+  assert.equal(result.scores.rights, 100);
+  assert.ok(result.notes.some((note) => note.includes("evidence-consistency")));
 });

@@ -12,6 +12,8 @@ import type {
   VisualQaRequest,
   VisualQaResult,
   VisualQaScores,
+  VisualQaScoreEvidence,
+  VisualQaEvidenceStatus,
 } from "./types.js";
 
 interface GeminiVisualQaOptions {
@@ -49,6 +51,7 @@ interface RawVisualQaOutput {
   unexpectedVisibleElements?: unknown;
   notes?: unknown;
   compositionEvidence?: unknown;
+  scoreEvidence?: unknown;
 }
 
 const COPY_ZONE_PROPERTIES = {
@@ -56,6 +59,27 @@ const COPY_ZONE_PROPERTIES = {
   upperRight: { type: "string", enum: ["GOOD", "ACCEPTABLE", "POOR"] },
   lowerLeft: { type: "string", enum: ["GOOD", "ACCEPTABLE", "POOR"] },
   lowerRight: { type: "string", enum: ["GOOD", "ACCEPTABLE", "POOR"] },
+} as const;
+
+const SCORE_EVIDENCE_ITEM = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    status: { type: "string", enum: ["PASS", "CONCERN", "FAIL"] },
+    observations: { type: "array", items: { type: "string" } },
+  },
+  required: ["status", "observations"],
+} as const;
+
+const SCORE_EVIDENCE_PROPERTIES = {
+  productTruth: SCORE_EVIDENCE_ITEM,
+  brandFit: SCORE_EVIDENCE_ITEM,
+  realism: SCORE_EVIDENCE_ITEM,
+  foodTexture: SCORE_EVIDENCE_ITEM,
+  composition: SCORE_EVIDENCE_ITEM,
+  copyZoneSuitability: SCORE_EVIDENCE_ITEM,
+  governance: SCORE_EVIDENCE_ITEM,
+  rights: SCORE_EVIDENCE_ITEM,
 } as const;
 
 const VISUAL_QA_SCHEMA = {
@@ -106,6 +130,21 @@ const VISUAL_QA_SCHEMA = {
       type: "array",
       items: { type: "string" },
     },
+    scoreEvidence: {
+      type: "object",
+      additionalProperties: false,
+      properties: SCORE_EVIDENCE_PROPERTIES,
+      required: [
+        "productTruth",
+        "brandFit",
+        "realism",
+        "foodTexture",
+        "composition",
+        "copyZoneSuitability",
+        "governance",
+        "rights",
+      ],
+    },
     compositionEvidence: {
       type: "object",
       additionalProperties: false,
@@ -143,6 +182,7 @@ const VISUAL_QA_SCHEMA = {
     "observedIngredients",
     "unexpectedVisibleElements",
     "notes",
+    "scoreEvidence",
     "compositionEvidence",
   ],
 } as const;
@@ -201,6 +241,41 @@ function parseDecision(value: unknown): VisualQaDecision {
   return value;
 }
 
+function parseEvidenceStatus(value: unknown, field: string): VisualQaEvidenceStatus {
+  if (value !== "PASS" && value !== "CONCERN" && value !== "FAIL") {
+    throw new Error(`Gemini visual QA returned invalid ${field}.status.`);
+  }
+  return value;
+}
+
+function parseScoreEvidence(value: unknown): VisualQaScoreEvidence {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Gemini visual QA returned invalid scoreEvidence.");
+  }
+  const evidence = value as Record<string, unknown>;
+  const parseDimension = (dimension: keyof VisualQaScores) => {
+    const raw = evidence[dimension];
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      throw new Error(`Gemini visual QA returned invalid scoreEvidence.${dimension}.`);
+    }
+    const item = raw as Record<string, unknown>;
+    return {
+      status: parseEvidenceStatus(item.status, `scoreEvidence.${dimension}`),
+      observations: stringArray(item.observations, `scoreEvidence.${dimension}.observations`),
+    };
+  };
+  return {
+    productTruth: parseDimension("productTruth"),
+    brandFit: parseDimension("brandFit"),
+    realism: parseDimension("realism"),
+    foodTexture: parseDimension("foodTexture"),
+    composition: parseDimension("composition"),
+    copyZoneSuitability: parseDimension("copyZoneSuitability"),
+    governance: parseDimension("governance"),
+    rights: parseDimension("rights"),
+  };
+}
+
 function parseCompositionMatch(value: unknown, field: string): VisualCompositionMatch {
   if (value !== "MATCH" && value !== "ACCEPTABLE" && value !== "MISMATCH") {
     throw new Error(`Gemini visual QA returned invalid ${field}.`);
@@ -256,6 +331,9 @@ function parseOutput(text: string): Omit<VisualQaResult, "provider" | "model" | 
       "unexpectedVisibleElements",
     ),
     notes: stringArray(parsed.notes, "notes"),
+    ...(parsed.scoreEvidence !== undefined
+      ? { scoreEvidence: parseScoreEvidence(parsed.scoreEvidence) }
+      : {}),
     compositionEvidence: parseCompositionEvidence(parsed.compositionEvidence),
   };
 }
@@ -273,6 +351,9 @@ function buildPrompt(request: VisualQaRequest): string {
     "ATTHA’S Burger should feel bold, energetic and craveable with realistic food texture. ATTHA’S Restaurant should feel warm, genuine, considered and welcoming.",
     "Never infer ingredients, ownership, advertising rights or product identity beyond the supplied verified facts.",
     "Use evidence-anchored scoring rather than a generic conservative default.",
+    "For every numeric score, scoreEvidence is mandatory. PASS means no material visible defect for that dimension; CONCERN requires a concrete visible ambiguity or weakness; FAIL requires a concrete visible defect. Every CONCERN or FAIL observation must describe what is actually visible in the supplied pixels.",
+    "A PASS status must meet these evidence-consistency floors: productTruth 90, brandFit 70, realism 85, foodTexture 82, composition 83, copyZoneSuitability 75, governance 90. Do not return a lower score with PASS evidence.",
+    "Do not use missing reference photography, synthetic calibration status, absent cooking-method metadata, or general uncertainty as a CONCERN/FAIL observation unless it causes a concrete visible mismatch.",
     "Product truth rubric: 90-100 when the visible product form matches the supplied product identity, verified visible ingredients are represented without unverified additions, and there is no visible contradiction; 80-89 only for a concrete ambiguity or partial occlusion; below 80 requires a specific visible mismatch, missing/extra ingredient, wrong product form or other stated evidence in issues/notes.",
     "Governance rubric: 90-100 when no prohibited text, logo, price, branded packaging, badge, label, UI or other forbidden graphic element is visible; below 90 requires the specific visible governance defect to be stated in issues/notes.",
     "Do not reduce product-truth or governance scores merely because the campaign is synthetic/internal calibration, because no reference photograph was supplied, or because a verified cooking method was intentionally absent.",
@@ -299,6 +380,68 @@ function buildPrompt(request: VisualQaRequest): string {
     "GENERIC_CONCEPT_VISUAL cannot PASS as an actual product advertisement. It must be HUMAN_REVIEW or BLOCK even when aesthetically strong.",
     "Return only JSON matching the required schema.",
   ].join("\n");
+}
+
+const EVIDENCE_PASS_FLOORS: Partial<Record<keyof VisualQaScores, number>> = {
+  productTruth: 90,
+  brandFit: 70,
+  realism: 85,
+  foodTexture: 82,
+  composition: 83,
+  copyZoneSuitability: 75,
+  governance: 90,
+};
+
+function normalizeEvidenceBackedReview(
+  request: VisualQaRequest,
+  result: Omit<VisualQaResult, "provider" | "model" | "usage">,
+): Omit<VisualQaResult, "provider" | "model" | "usage"> {
+  const evidence = result.scoreEvidence;
+  if (!evidence) return result;
+
+  const scores = { ...result.scores };
+  const notes = [...result.notes];
+  const issues = [...result.issues];
+  let decision = result.decision;
+
+  for (const [dimension, floor] of Object.entries(EVIDENCE_PASS_FLOORS) as Array<[keyof VisualQaScores, number]>) {
+    if (evidence[dimension].status === "PASS" && scores[dimension] < floor) {
+      notes.push(`QA evidence-consistency normalized ${dimension} from ${scores[dimension]} to ${floor} because the reviewer marked that dimension PASS.`);
+      scores[dimension] = floor;
+    }
+  }
+
+  const expectedRights = request.rightsStatus === "cleared" ? 100 : request.rightsStatus === "blocked" ? 0 : 50;
+  if (scores.rights !== expectedRights) {
+    notes.push(`QA evidence-consistency normalized deterministic rights score from ${scores.rights} to ${expectedRights}.`);
+    scores.rights = expectedRights;
+  }
+
+  const scoredDimensions: Array<keyof VisualQaScores> = [
+    "productTruth", "brandFit", "realism", "foodTexture", "composition", "copyZoneSuitability", "governance",
+  ];
+  const allVisualEvidencePass = scoredDimensions.every((dimension) => evidence[dimension].status === "PASS");
+
+  if (decision === "REGENERATE" && allVisualEvidencePass && issues.length === 0 && result.unexpectedVisibleElements.length === 0) {
+    decision = "PASS";
+    notes.push("QA evidence-consistency replaced an unsupported REGENERATE decision with PASS because every scored visual dimension was marked PASS and no issue or unexpected element was reported.");
+  }
+
+  const contradictoryFail = scoredDimensions.filter(
+    (dimension) => evidence[dimension].status === "FAIL" && scores[dimension] >= (EVIDENCE_PASS_FLOORS[dimension] ?? 101),
+  );
+  if (contradictoryFail.length && decision === "PASS") {
+    decision = "HUMAN_REVIEW";
+    issues.push(`QA evidence is internally inconsistent for: ${contradictoryFail.join(", ")}.`);
+  }
+
+  return {
+    ...result,
+    decision,
+    scores,
+    issues: [...new Set(issues)],
+    notes: [...new Set(notes)],
+  };
 }
 
 function applyDeterministicGuards(
@@ -463,7 +606,8 @@ export class GeminiVisualQaProvider implements VisualQaProvider {
     }
 
     this.lastUsage = usageFromGenerateContent(this.model, body.usageMetadata);
-    const guarded = applyDeterministicGuards(request, parseOutput(text));
+    const normalized = normalizeEvidenceBackedReview(request, parseOutput(text));
+    const guarded = applyDeterministicGuards(request, normalized);
 
     return {
       provider: this.providerName,
