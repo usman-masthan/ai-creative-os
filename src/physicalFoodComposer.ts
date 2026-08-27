@@ -74,7 +74,7 @@ export function selectPhysicalFoodTemplate(productName: string): PhysicalFoodTem
 function arrangementFor(templateId: PhysicalFoodTemplateId): string {
   switch (templateId) {
     case "BURGER_STACK":
-      return "Arrange only the confirmed ingredients as a compact vertical food stack. Use any confirmed bread or bun component only where physically appropriate; do not invent garnish, fillings, sauces, wrappers or extra layers.";
+      return "Arrange only the confirmed ingredients as a compact vertical food stack. Use any confirmed bread or bun component only where physically appropriate; do not invent additional food components, wrappers or extra layers.";
     case "WRAP_ROLL":
       return "Arrange only the confirmed ingredients as a compact wrap-style subject. A rolled or enclosing wrapper may be shown only when that wrapper is itself present in the confirmed ingredient list; otherwise do not invent one.";
     case "SANDWICH_STACK":
@@ -82,7 +82,7 @@ function arrangementFor(templateId: PhysicalFoodTemplateId): string {
     case "KEBAB_CLUSTER":
       return "Arrange only the confirmed ingredients as a simple food cluster with clear physical separation and contact. Do not invent skewers, garnish, side dishes or cooking marks unless separately confirmed.";
     case "RICE_OR_CURRY_PLATE":
-      return "Arrange only the confirmed ingredients as a restrained plated-food grouping with clear boundaries between components. Do not invent sides, garnish, sauces, serving quantities or preparation details.";
+      return "Arrange only the confirmed ingredients as a restrained plated-food grouping with clear boundaries between components. Do not invent additional sides, garnish, condiments, serving quantities or preparation details.";
     case "GENERIC_FOOD_HERO":
       return "Arrange only the confirmed ingredients as one coherent food hero using simple contact, overlap and grouping. Do not invent internal construction, garnish, sides or preparation details.";
   }
@@ -99,8 +99,8 @@ function ingredientInteraction(ingredients: string[]): string {
   const hasSauce = ingredients.some((item) => /\b(?:sauce|gravy|dressing)\b/i.test(item));
   const base = "Allow only physically plausible contact, overlap or gentle compression among the confirmed ingredients.";
   const sauce = hasSauce
-    ? " A confirmed sauce/gravy/dressing component may contact or coat adjacent confirmed ingredients without implying flavour, freshness or quantity."
-    : " Do not invent dripping, coating, melting, steam, crumbs, char, browning or moisture effects.";
+    ? " A confirmed sauce/gravy/dressing component may contact or coat adjacent confirmed ingredients without implying flavour, condition, quantity or another unverified attribute."
+    : " Do not invent dripping, coating, melting, crumbs, char, browning or moisture effects.";
   return `${base}${sauce} Do not add an ingredient or state that is not explicitly confirmed.`;
 }
 
@@ -130,7 +130,7 @@ export function composeDeterministicFoodSubject(input: {
       productName,
       physicalState: `Create a physically credible depiction of the verified product identity using only these confirmed ingredients: ${confirmedIngredients.join(", ")}. ${cookingState(confirmedCookingMethods)}`,
       compositionDescription: arrangementFor(templateId),
-      textureDescription: "Show only neutral, directly visible material texture of confirmed ingredients. Do not add quality adjectives or infer crispness, juiciness, freshness, tenderness, premium quality, heat, smoke or preparation state.",
+      textureDescription: "Show only neutral, directly visible material texture of confirmed ingredients. Do not add quality adjectives or infer unverified condition, temperature, moisture, preparation or sensory attributes.",
       ingredientInteraction: ingredientInteraction(confirmedIngredients),
       scaleAndProportion: "Use believable relative scale and gravity while avoiding portion-size, serving-size, quantity, count, oversized, undersized, double, triple or named-size claims.",
     },
