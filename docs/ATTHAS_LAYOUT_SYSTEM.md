@@ -45,9 +45,10 @@ ATTHA’S Creative OS does not allow the model to invent arbitrary poster CSS. G
 ### Restaurant
 
 1. shared-table / spread / variety direction → Multi Dish
-2. recommended concept is brand-building → Editorial
-3. deterministic verified price overlay → Food Hero
-4. otherwise → Hospitality
+2. `PRODUCT_PUSH` campaign → Food Hero
+3. recommended concept is brand-building → Editorial
+4. deterministic verified price overlay → Food Hero
+5. otherwise → Hospitality
 
 ## Safety
 
