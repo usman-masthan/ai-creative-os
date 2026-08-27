@@ -65,11 +65,23 @@ export interface VisualQaScores {
   rights: number;
 }
 
+export type VisualQaEvidenceStatus = "PASS" | "CONCERN" | "FAIL";
+
+export interface VisualQaDimensionEvidence {
+  status: VisualQaEvidenceStatus;
+  observations: string[];
+}
+
+export type VisualQaScoreEvidence = {
+  [K in keyof VisualQaScores]: VisualQaDimensionEvidence;
+};
+
 export interface VisualQaResult {
   provider: string;
   model: string;
   decision: VisualQaDecision;
   scores: VisualQaScores;
+  scoreEvidence?: VisualQaScoreEvidence;
   issues: string[];
   observedIngredients: string[];
   unexpectedVisibleElements: string[];

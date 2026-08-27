@@ -19,7 +19,8 @@
     "dashboard:serve": "tsx scripts/serve-atthas-dashboard.ts",
     "marketing:workspace": "tsx scripts/serve-atthas-marketing-manager.ts",
     "validation:report": "tsx scripts/atthas-validation-report.ts",
-    "calibration:m2-exit": "tsx scripts/m2-exit-calibration.ts"
+    "calibration:m2-exit": "tsx scripts/m2-exit-calibration.ts",
+    "calibration:m2-exit:recheck": "tsx scripts/m2-exit-qa-recheck.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
