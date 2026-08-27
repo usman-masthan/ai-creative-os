@@ -659,6 +659,7 @@ export async function producePlannedCampaign(
     brandId: request.entry.brandId,
     creative: directed.creative,
     format: directed.production.format,
+    campaignType: request.entry.campaignType,
     ...(request.preferredLayoutId ? { preferredLayoutId: request.preferredLayoutId } : {}),
   });
   base.layout = layout;

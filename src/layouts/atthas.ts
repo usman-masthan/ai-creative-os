@@ -2,6 +2,7 @@ import type {
   CampaignCreativeOutput,
   CampaignProductionFormat,
 } from "../creativeTypes.js";
+import type { MarketingCampaignType } from "../marketingPlannerTypes.js";
 
 export type AtthasBrandId = "ATTHAS_BURGER" | "ATTHAS_RESTAURANT";
 
@@ -174,6 +175,7 @@ export interface SelectAtthasLayoutInput {
   brandId: AtthasBrandId;
   creative: CampaignCreativeOutput;
   format: CampaignProductionFormat;
+  campaignType?: MarketingCampaignType;
   preferredLayoutId?: AtthasLayoutId;
 }
 
@@ -250,6 +252,7 @@ export function selectAtthasLayout(input: SelectAtthasLayoutInput): AtthasLayout
   }
 
   if (multiDishLanguage) return getLayout("ATTHAS_RESTAURANT_MULTI_DISH_V1");
+  if (input.campaignType === "PRODUCT_PUSH") return getLayout("ATTHAS_RESTAURANT_FOOD_HERO_V1");
   if (role === "brand-building") return getLayout("ATTHAS_RESTAURANT_EDITORIAL_V1");
   if (hasVerifiedPriceOverlay) return getLayout("ATTHAS_RESTAURANT_FOOD_HERO_V1");
   return getLayout("ATTHAS_RESTAURANT_HOSPITALITY_V1");
