@@ -431,7 +431,7 @@ export class GeminiVisualQaProvider implements VisualQaProvider {
             maxOutputTokens: this.maxOutputTokens,
             responseFormat: {
               text: {
-                mimeType: "application/json",
+                mimeType: "APPLICATION_JSON",
                 schema: VISUAL_QA_SCHEMA,
               },
             },

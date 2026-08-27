@@ -125,7 +125,7 @@ test("Gemini visual QA sends image pixels and returns composition-aware structur
     Buffer.from("fake-image-bytes").toString("base64"),
   );
   assert.match(body.contents[0]?.parts[1]?.text ?? "", /Requested quiet copy zones: upperLeft/);
-  assert.equal(body.generationConfig.responseFormat.text.mimeType, "application/json");
+  assert.equal(body.generationConfig.responseFormat.text.mimeType, "APPLICATION_JSON");
   assert.equal(body.generationConfig.responseFormat.text.schema.type, "object");
   assert.equal(result.decision, "PASS");
   assert.equal(result.scores.productTruth, 92);

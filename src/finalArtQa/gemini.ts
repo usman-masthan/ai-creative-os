@@ -171,7 +171,7 @@ export class GeminiFinalArtQaProvider implements FinalArtQaProvider {
           }],
           generationConfig: {
             maxOutputTokens: this.maxOutputTokens,
-            responseFormat: { text: { mimeType: "application/json", schema: FINAL_ART_SCHEMA } },
+            responseFormat: { text: { mimeType: "APPLICATION_JSON", schema: FINAL_ART_SCHEMA } },
           },
         }),
       },
