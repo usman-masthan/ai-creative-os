@@ -130,6 +130,14 @@ const renderedPoster =
     ? result.poster.pngPath
     : null;
 const finalRawImagePath = finalAttempt?.path ?? null;
+const structuredBriefReview =
+  result.status === "HUMAN_REVIEW_STRUCTURED_BRIEF_REQUIRED"
+    ? {
+        repairs: result.repairs,
+        issues: result.issues,
+        structuredBrief: result.structuredBrief,
+      }
+    : null;
 
 const report = {
   generatedAt: new Date().toISOString(),
@@ -149,6 +157,8 @@ const report = {
     useFoodComposer: true,
     useNewRenderer: false,
   },
+  selectedLayout: result.layout ?? null,
+  structuredBriefReview,
   imageAttempts: result.imageAttempts.map((attempt) => ({
     attempt: attempt.attempt,
     model: attempt.model,
