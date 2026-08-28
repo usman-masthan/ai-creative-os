@@ -30,6 +30,24 @@ function reviewContext(expectedBrandIdentifier: string, displayName: string) {
   } as const;
 }
 
+const APPROVED_GRAPHIC_ELEMENTS = [
+  "ATTHA'S A/fork master symbol — approved source-controlled asset only",
+] as const;
+
+const BURGER_PHOTOGRAPHY_DIRECTION = [
+  "QSR Macro Hero — single burger, wrap or chicken close-up with realistic commercial-food texture.",
+  "QSR Lifestyle — food remains primary in approved human or environmental context.",
+  "Brand Atmosphere — restrained premium mood with deliberate negative space.",
+  "Delivery Context — only explicitly approved delivery or packaging context; never invent printed packaging.",
+] as const;
+
+const RESTAURANT_PHOTOGRAPHY_DIRECTION = [
+  "Restaurant Plated — editorial plated-food hero with believable scale and ingredient placement.",
+  "Restaurant Ambience — warm hospitality environment without fabricated signage, awards or menu text.",
+  "Brand Atmosphere — restrained premium mood with deliberate negative space.",
+  "Delivery Context — only explicitly approved delivery or packaging context; never invent printed packaging.",
+] as const;
+
 const burgerDisplayFont = atthasDisplayFont("ATTHAS_BURGER");
 const restaurantDisplayFont = atthasDisplayFont("ATTHAS_RESTAURANT");
 
@@ -59,6 +77,10 @@ export const ATTHAS_CREATIVE_CLIENT_PROFILE: CreativeClientProfile = {
       approvedLogoAsset: APPROVED_MASTER_SYMBOL,
       qa: qaGovernance(burgerDisplayFont),
       review: reviewContext(ATTHAS_TOKENS.brandIdentifier.burger, "ATTHA'S Burger"),
+      brandKitPreview: {
+        approvedGraphicElements: APPROVED_GRAPHIC_ELEMENTS,
+        photographyDirection: BURGER_PHOTOGRAPHY_DIRECTION,
+      },
     },
     ATTHAS_RESTAURANT: {
       brandId: "ATTHAS_RESTAURANT",
@@ -80,6 +102,10 @@ export const ATTHAS_CREATIVE_CLIENT_PROFILE: CreativeClientProfile = {
       approvedLogoAsset: APPROVED_MASTER_SYMBOL,
       qa: qaGovernance(restaurantDisplayFont),
       review: reviewContext(ATTHAS_TOKENS.brandIdentifier.restaurant, "ATTHA'S Restaurant"),
+      brandKitPreview: {
+        approvedGraphicElements: APPROVED_GRAPHIC_ELEMENTS,
+        photographyDirection: RESTAURANT_PHOTOGRAPHY_DIRECTION,
+      },
     },
   },
 };
