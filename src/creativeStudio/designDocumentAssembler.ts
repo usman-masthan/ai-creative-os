@@ -1,5 +1,5 @@
 import type { CampaignCreativeOutput, CampaignProductionFormat } from "../creativeTypes.js";
-import type { AtthasBrandId, AtthasLayoutDefinition } from "../layouts/atthas.js";
+import type { CreativeLayoutDefinition } from "./layoutProfiles/types.js";
 import { assertDesignDocument } from "../designDocument/validator.js";
 import type { DesignAssetRef, DesignDocument, DesignLayer, DesignTextLayer } from "../designDocument/types.js";
 import { resolveLayerGeometry, type DesignCopyZone } from "../layoutEngine/resolver.js";
@@ -23,11 +23,11 @@ export interface AssembleDesignDocumentRequest {
   creativeBriefId?: string;
   truthSnapshotId: string;
   clientId: string;
-  brandId: AtthasBrandId;
+  brandId: string;
   brandKitId: string;
   creative: CampaignCreativeOutput;
   format: CampaignProductionFormat;
-  layout: AtthasLayoutDefinition;
+  layout: CreativeLayoutDefinition;
   backgroundAsset: DesignAssetRef;
   subjectAsset?: DesignAssetRef;
   logoAsset?: DesignAssetRef;
