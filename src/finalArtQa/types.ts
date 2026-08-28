@@ -2,6 +2,12 @@ import type { GeminiUsageTelemetry } from "../providers/geminiUsage.js";
 
 export type FinalArtQaDecision = "PASS" | "REGENERATE" | "HUMAN_REVIEW" | "BLOCK";
 export type FinalArtQaCheckState = "PASS" | "FAIL" | "NOT_APPLICABLE";
+export type FinalArtQaEvidenceState = "PASS" | "CONCERN" | "FAIL" | "NOT_APPLICABLE";
+
+export interface FinalArtQaDimensionEvidence {
+  status: FinalArtQaEvidenceState;
+  observations: string[];
+}
 
 export interface FinalArtQaRequest {
   imageBase64: string;
@@ -45,12 +51,17 @@ export interface FinalArtQaChecks {
   decorativeCoherence: FinalArtQaCheckState;
 }
 
+export type FinalArtQaEvidence = {
+  [K in keyof FinalArtQaScores]: FinalArtQaDimensionEvidence;
+};
+
 export interface FinalArtQaResult {
   provider: string;
   model: string;
   decision: FinalArtQaDecision;
   scores: FinalArtQaScores;
   checks: FinalArtQaChecks;
+  evidence: FinalArtQaEvidence;
   issues: string[];
   notes: string[];
   usage?: GeminiUsageTelemetry;

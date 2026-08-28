@@ -57,6 +57,17 @@ function strongReview() {
       platformReadability: "PASS",
       decorativeCoherence: "PASS",
     },
+    evidence: {
+      brandVisibility: { status: "PASS", observations: ["Brand identifier is clearly visible."] },
+      headlineHierarchy: { status: "PASS", observations: ["Headline is visually primary."] },
+      ctaHierarchyPlacement: { status: "PASS", observations: ["CTA is tied to the copy block."] },
+      priceVisibility: { status: "PASS", observations: ["Price is readable."] },
+      safeAreas: { status: "PASS", observations: ["Important elements remain within safe margins."] },
+      contrastLegibility: { status: "PASS", observations: ["Customer-facing text is legible."] },
+      productDominance: { status: "PASS", observations: ["Product remains visually dominant."] },
+      platformReadability: { status: "PASS", observations: ["Platform name is readable."] },
+      decorativeCoherence: { status: "PASS", observations: ["No rendering artifacts are visible."] },
+    },
     issues: [] as string[],
     notes: [] as string[],
   };
@@ -78,17 +89,32 @@ test("M3.3 final artwork QA keeps strong nine-dimension output as PASS", async (
   assert.equal(result.checks.decorativeCoherence, "PASS");
 });
 
-test("deterministic threshold downgrades weak contrast/legibility PASS to REGENERATE", async () => {
+test("PASS evidence normalizes an inconsistent sub-threshold score without lowering the threshold", async () => {
   const review = strongReview();
   review.scores.contrastLegibility = 60;
   const result = await providerFor(review).review(request());
-  assert.equal(result.decision, "REGENERATE");
-  assert.match(result.issues.join(" "), /contrastLegibility score/);
+  assert.equal(result.decision, "PASS");
+  assert.equal(result.scores.contrastLegibility, 82);
+  assert.match(result.notes.join(" "), /evidence consistency normalized contrastLegibility score from 60 to 82/);
+});
+
+test("concrete concern evidence is not normalized away", async () => {
+  const review = strongReview();
+  review.scores.contrastLegibility = 70;
+  review.evidence.contrastLegibility = {
+    status: "CONCERN",
+    observations: ["Supporting copy has weak contrast over a bright background."],
+  };
+  const result = await providerFor(review).review(request());
+  assert.notEqual(result.decision, "PASS");
+  assert.equal(result.scores.contrastLegibility, 70);
+  assert.match(result.issues.join(" "), /weak contrast over a bright background/);
 });
 
 test("brand visibility check cannot be hidden behind a high model score", async () => {
   const review = strongReview();
   review.checks.brandVisibility = "FAIL";
+  review.evidence.brandVisibility = { status: "FAIL", observations: ["Brand identifier is obscured."] };
   const result = await providerFor(review).review(request());
   assert.equal(result.decision, "REGENERATE");
   assert.match(result.issues.join(" "), /brandVisibility check must be PASS/);
@@ -97,6 +123,7 @@ test("brand visibility check cannot be hidden behind a high model score", async 
 test("expected price requires both a visible-price check and threshold", async () => {
   const review = strongReview();
   review.checks.priceVisibility = "FAIL";
+  review.evidence.priceVisibility = { status: "FAIL", observations: ["Expected price is unreadable."] };
   const result = await providerFor(review).review(request());
   assert.equal(result.decision, "REGENERATE");
   assert.match(result.issues.join(" "), /priceVisibility check must be PASS/);
@@ -110,6 +137,9 @@ test("non-applicable price product and platform dimensions must be explicit", as
   review.checks.priceVisibility = "NOT_APPLICABLE";
   review.checks.productDominance = "NOT_APPLICABLE";
   review.checks.platformReadability = "NOT_APPLICABLE";
+  review.evidence.priceVisibility = { status: "NOT_APPLICABLE", observations: [] };
+  review.evidence.productDominance = { status: "NOT_APPLICABLE", observations: [] };
+  review.evidence.platformReadability = { status: "NOT_APPLICABLE", observations: [] };
 
   const result = await providerFor(review).review(
     request({
@@ -124,6 +154,10 @@ test("non-applicable price product and platform dimensions must be explicit", as
 test("accidental decorative artifacts force regeneration even when Gemini reports PASS", async () => {
   const review = strongReview();
   review.checks.decorativeCoherence = "FAIL";
+  review.evidence.decorativeCoherence = {
+    status: "FAIL",
+    observations: ["A stray rectangular graphic fragment appears near the CTA."],
+  };
   review.issues = ["A stray rectangular graphic fragment appears near the CTA."];
   const result = await providerFor(review).review(request());
   assert.equal(result.decision, "REGENERATE");

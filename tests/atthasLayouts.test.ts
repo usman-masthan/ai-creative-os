@@ -140,6 +140,46 @@ test("Burger BRAND_BUILDING campaign type selects minimal-premium even when AI r
   );
 });
 
+test("Burger DINE_IN routes to non-product minimal-premium layout", () => {
+  const value = creative();
+  assert.equal(
+    selectAtthasLayout({
+      brandId: "ATTHAS_BURGER",
+      creative: value,
+      format: squareish,
+      campaignType: "DINE_IN",
+    }).id,
+    "ATTHAS_BURGER_MINIMAL_PREMIUM_V1",
+  );
+});
+
+test("Restaurant DINE_IN resists AI brand-building role drift and stays hospitality-led", () => {
+  const value = creative({
+    concepts: [{
+      id: "C1",
+      strategicRole: "brand-building",
+      campaignName: "Evening together",
+      coreIdea: "Warm hospitality moment",
+      customerEmotion: "belonging",
+      headlineDirection: "Visit tonight",
+      visualConcept: "restaurant ambience",
+      cta: "Visit",
+      targetAudience: "local diners",
+      expectedStrength: 8,
+      risks: [],
+    }],
+  });
+  assert.equal(
+    selectAtthasLayout({
+      brandId: "ATTHAS_RESTAURANT",
+      creative: value,
+      format: squareish,
+      campaignType: "DINE_IN",
+    }).id,
+    "ATTHAS_RESTAURANT_HOSPITALITY_V1",
+  );
+});
+
 test("Restaurant shared-table language selects multi-dish layout", () => {
   const value = creative();
   value.creativeBrief.visualDirection = "A generous shared table spread with variety";

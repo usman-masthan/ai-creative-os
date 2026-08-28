@@ -115,6 +115,7 @@ test("M3 Restaurant renderer uses mandatory Restaurant identifier and Libre Bask
   assert.match(html, /ATTHA&#039;S RESTAURANT/);
   assert.match(html, /font-family: "Libre Baskerville"/);
   assert.match(html, /data-price-style="BRAND_RED"/);
+  assert.match(html, /\.supporting \{[\s\S]*color: var\(--atthas-ink\)/);
 });
 
 test("M3 renderer resolves semantic price style only through approved brand tokens", () => {

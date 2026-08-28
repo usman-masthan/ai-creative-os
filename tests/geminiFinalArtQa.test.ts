@@ -35,6 +35,17 @@ function finalArtResponse(): Response {
                     platformReadability: "NOT_APPLICABLE",
                     decorativeCoherence: "PASS",
                   },
+                  evidence: {
+                    brandVisibility: { status: "PASS", observations: ["Brand identifier is visible."] },
+                    headlineHierarchy: { status: "PASS", observations: ["Headline is primary."] },
+                    ctaHierarchyPlacement: { status: "PASS", observations: ["CTA is attached to the copy block."] },
+                    priceVisibility: { status: "NOT_APPLICABLE", observations: [] },
+                    safeAreas: { status: "PASS", observations: ["Safe margins are preserved."] },
+                    contrastLegibility: { status: "PASS", observations: ["Text is legible."] },
+                    productDominance: { status: "NOT_APPLICABLE", observations: [] },
+                    platformReadability: { status: "NOT_APPLICABLE", observations: [] },
+                    decorativeCoherence: { status: "PASS", observations: ["No artifacts are visible."] },
+                  },
                   issues: [],
                   notes: ["Finished artwork satisfies the M3.3 final-art checks."],
                 }),
@@ -90,6 +101,7 @@ test("Gemini final-art QA uses the REST response-format MIME enum and nine-dimen
             properties: {
               scores: { required: string[] };
               checks: { required: string[] };
+              evidence: { required: string[] };
             };
           };
         };
@@ -101,6 +113,7 @@ test("Gemini final-art QA uses the REST response-format MIME enum and nine-dimen
   assert.equal(body.generationConfig.responseFormat.text.schema.type, "object");
   assert.equal(body.generationConfig.responseFormat.text.schema.properties.scores.required.length, 9);
   assert.equal(body.generationConfig.responseFormat.text.schema.properties.checks.required.length, 9);
+  assert.equal(body.generationConfig.responseFormat.text.schema.properties.evidence.required.length, 9);
   assert.match(body.contents[0]!.parts[1]!.text ?? "", /Expected brand identifier: ATTHA'S RESTAURANT/);
   assert.equal(result.decision, "PASS");
   assert.equal(result.usage?.inputTokens, 50);

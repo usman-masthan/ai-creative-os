@@ -398,7 +398,8 @@ test("REGENERATE feeds QA issues and layout composition back into a bounded imag
     assert.equal(result.imageAttempts.length, 2);
     assert.equal(prompts.length, 2);
     assert.match(prompts[0]!, /Layout composition requirements:/);
-    assert.match(prompts[0]!, /upper-left/);
+    assert.match(prompts[0]!, /large uninterrupted area for minimal headline treatment/);
+    assert.doesNotMatch(prompts[0]!, /main food subject/);
     assert.match(prompts[1]!, /message zone is visually cluttered/);
     assert.equal(result.visualQa?.decision, "PASS");
     assert.equal(result.poster.layout.brandId, "ATTHAS_BURGER");
