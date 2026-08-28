@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { createCreativeStudioAdaptationHandler } from "./creativeStudioAdaptation.js";
 import { createCreativeStudioAdvancedBootstrapHandler } from "./creativeStudioAdvancedBootstrap.js";
 import { createCreativeStudioAutoPolishHandler } from "./creativeStudioAutoPolish.js";
+import { createCreativeStudioDirectionsHandler } from "./creativeStudioDirections.js";
 import { createCreativeStudioDirectorHandler } from "./creativeStudioDirector.js";
 import { createCreativeStudioEnhancedHandler } from "./creativeStudioEnhanced.js";
 import { createCreativeStudioHandler } from "./creativeStudio.js";
@@ -18,6 +19,7 @@ export function createAtthasMarketingManagerServer(options: MarketingManagerHand
   const handleStudioEnhanced = createCreativeStudioEnhancedHandler();
   const handleStudioBootstrap = createCreativeStudioAdvancedBootstrapHandler(options);
   const handleStudioAutoPolish = createCreativeStudioAutoPolishHandler(options);
+  const handleStudioDirections = createCreativeStudioDirectionsHandler(options);
   const handleStudioParity = createCreativeStudioParityHandler(options);
   const handleStudioDirector = createCreativeStudioDirectorHandler(options);
   const handleStudioAdaptation = createCreativeStudioAdaptationHandler(options);
@@ -39,6 +41,7 @@ export function createAtthasMarketingManagerServer(options: MarketingManagerHand
       }
       if (await handleStudioBootstrap(req, res, url)) return;
       if (await handleStudioAutoPolish(req, res, url)) return;
+      if (await handleStudioDirections(req, res, url)) return;
       if (await handleStudioParity(req, res, url)) return;
       if (await handleStudioDirector(req, res, url)) return;
       if (await handleStudioAdaptation(req, res, url)) return;
