@@ -80,10 +80,10 @@ function stableLayerShape(layer: DesignLayer): Record<string, unknown> {
       cornerRadius: layer.cornerRadius,
     });
   } else if (layer.type === "group") {
-    base.childIds = layer.childIds;
+    base.childLayerIds = [...layer.childLayerIds];
   } else if (layer.type === "mask") {
-    base.targetLayerId = layer.targetLayerId;
-    base.maskAssetId = layer.asset?.assetId;
+    base.targetLayerIds = [...layer.targetLayerIds];
+    base.shape = layer.shape;
   }
   return base;
 }
