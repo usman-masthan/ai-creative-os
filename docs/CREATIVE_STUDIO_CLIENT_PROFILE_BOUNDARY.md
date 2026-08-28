@@ -36,6 +36,8 @@ The layout-provider registry owns layout-family selection and cross-format layou
 
 `src/commands/adaptCreativeDesign.ts` asks the active client layout provider for the target layout and the client brand profile for the target artboard styling. It no longer contains ATTHA'S Burger/Restaurant layout-family branching or ATTHA'S color-token branching.
 
+Approved-brand asset serving also resolves through the client profile. `src/dashboard/creativeStudioAssetServing.ts` serves `/studio-asset/...` before the legacy Studio handler and asks `assetPathGovernance.ts` to validate `approved-brand` paths against the loaded DesignDocument's `clientId` profile. Runtime assets remain confined to `.atthas-os` storage.
+
 ## Why this boundary exists
 
 The Creative Studio core should eventually support another client without duplicating:
@@ -48,10 +50,11 @@ The Creative Studio core should eventually support another client without duplic
 - safe deterministic auto-polish
 - QA history
 - approval/export governance
+- governed asset serving
 - campaign handoff mechanics
 - multi-format adaptation orchestration
 
-Client-specific facts, layouts, brand rules and assets remain separate concerns. This profile boundary does **not** claim that the complete ATTHA'S truth, approved-asset resolution or canvas geometry systems are already generic.
+Client-specific facts, layouts, brand rules and assets remain separate concerns. This profile boundary does **not** claim that the complete ATTHA'S truth or canvas geometry systems are already generic.
 
 ## Active profile and layout provider
 
@@ -100,12 +103,17 @@ The QA/auto-polish profile preserves the existing ATTHA'S deterministic rules:
 - current display/body/price font set;
 - mandatory approved logo layer.
 
+The asset-serving boundary preserves the security model while removing the path literal from the active route:
+
+- `approved-brand` assets must resolve inside the active client's declared `approvedAssetRoot`;
+- generated/uploaded/runtime assets must resolve inside Creative OS runtime storage;
+- path traversal and cross-client/root paths are rejected.
+
 ## Remaining portability seams
 
 The next client-neutral boundaries should address:
 
-1. approved-brand asset path resolution, which still assumes the ATTHA'S source asset directory in the Studio serving route;
-2. campaign-to-Studio opening/logo resolution, which still knows ATTHA'S source assets;
-3. the base Studio intake UI, which intentionally remains ATTHA'S-only while T001 is the only active profile;
-4. deterministic geometry semantics in `layoutEngine/resolver.ts`, which currently recognizes ATTHA'S-style layout id concepts such as Story Vertical, Minimal Premium and Editorial;
-5. task-truth retrieval and branch/product facts, which intentionally remain ATTHA'S-specific until another client's source-of-truth system exists.
+1. campaign-to-Studio opening/logo resolution, which still knows ATTHA'S source assets;
+2. the base Studio intake UI, which intentionally remains ATTHA'S-only while T001 is the only active profile;
+3. deterministic geometry semantics in `layoutEngine/resolver.ts`, which currently recognizes ATTHA'S-style layout id concepts such as Story Vertical, Minimal Premium and Editorial;
+4. task-truth retrieval and branch/product facts, which intentionally remain ATTHA'S-specific until another client's source-of-truth system exists.
