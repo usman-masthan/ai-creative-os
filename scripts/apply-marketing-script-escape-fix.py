@@ -37,7 +37,7 @@ if 'node:vm' not in text:
 
 marker = 'test("generated Marketing Manager browser script is valid JavaScript"'
 if marker not in text:
-    text += '''\n\ntest("generated Marketing Manager browser script is valid JavaScript", () => {\n  const html = marketingManagerHtml();\n  const match = html.match(/<script>([\\s\\S]*?)<\\/script>/);\n  assert.ok(match?.[1], "expected inline Marketing Manager script");\n  assert.doesNotThrow(() => new Script(match[1]));\n});\n'''
+    text += '''\n\ntest("generated Marketing Manager browser script is valid JavaScript", () => {\n  const html = marketingManagerHtml();\n  const match = html.match(/<script>([\\s\\S]*?)<\\/script>/);\n  const browserScript = match?.[1];\n  if (!browserScript) assert.fail("expected inline Marketing Manager script");\n  assert.doesNotThrow(() => new Script(browserScript));\n});\n'''
 p.write_text(text)
 
 print('Marketing Manager browser-script escaping fixed and parse regression added.')
