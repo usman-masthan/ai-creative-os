@@ -4,43 +4,66 @@ The layered Creative Studio is being prepared for future multi-client use withou
 
 ## Current status
 
-ATTHA'S (`T001`) remains the only active Creative Client Profile and layout provider. No second client is enabled by this work.
+ATTHA'S (`T001`) remains the only active Creative Client Profile, layout provider and truth-provider implementation. No second client is enabled by this work.
 
-The profile registry now owns presentation-level brand decisions that previously lived directly in shared Studio modules:
+The profile registry owns presentation-level brand decisions that previously lived directly in shared Studio modules:
 
-- client display name
-- brand display names
+- client and brand display names
 - default brand-kit identifier
-- approved asset root
-- per-brand approved logo asset metadata
+- approved asset root and approved logo metadata
 - display/body/price typography
-- artboard background token
-- primary and secondary text tokens
-- CTA fill/text tokens
-- default price style
-- semantic price color themes
-- logo layer display name
-- deterministic QA approved color set
-- deterministic QA approved font set
-- safe-area ratio
-- minimum logo size
-- whether a logo is mandatory and its requirement label
+- artboard, copy, CTA and price-theme tokens
+- deterministic QA approved colors/fonts
+- safe-area ratio and minimum logo size
+- whether a logo is mandatory
 
-`src/creativeStudio/designDocumentAssembler.ts`, `src/creativeStudio/designQa.ts` and `src/creativeStudio/autoPolish.ts` resolve these values through the registry rather than importing ATTHA'S tokens directly.
+`designDocumentAssembler.ts`, `designQa.ts` and `autoPolish.ts` resolve these values through the registry rather than importing ATTHA'S tokens directly.
 
-The layout-provider registry owns layout-family selection, geometry semantics and cross-format layout adaptation:
+## Layout-provider boundary
 
-- list layouts for a client/brand
-- resolve a layout by id
+The layout-provider registry owns client-specific layout decisions:
+
+- list/resolve layouts
 - select a governed layout from creative + production format
-- declare one of the shared geometry profiles (`STANDARD_HERO`, `EDITORIAL_OFFCENTER`, `VERTICAL_STORY`)
-- choose the corresponding layout family for 1:1, 4:5 and 9:16 adaptation
+- declare shared geometry semantics (`STANDARD_HERO`, `EDITORIAL_OFFCENTER`, `VERTICAL_STORY`)
+- choose the corresponding 1:1, 4:5 and 9:16 adaptation family
+- provide deterministic A/B/C design-direction recipes
 
-`src/layoutEngine/resolver.ts` is now client/layout-id agnostic. It consumes an explicit geometry profile instead of recognizing ATTHA'S words such as `STORY_VERTICAL`, `MINIMAL_PREMIUM` or `EDITORIAL` inside layout ids. ATTHA'S maps all ten governed layouts to explicit geometry/adaptation semantics inside its own provider.
+`src/layoutEngine/resolver.ts` is client/layout-id agnostic. It no longer recognizes ATTHA'S words such as `STORY_VERTICAL`, `MINIMAL_PREMIUM` or `EDITORIAL` inside layout ids.
 
-`src/commands/adaptCreativeDesign.ts` asks the active client layout provider for both the target layout and its geometry profile, and asks the client brand profile for target artboard styling. It contains no ATTHA'S Burger/Restaurant layout-family or color-token branching.
+`adaptCreativeDesign.ts` and `generateDesignDirections.ts` consume provider-owned layout definitions and geometry semantics. The shared commands no longer contain ATTHA'S Burger/Restaurant layout-family branching.
 
-Campaign-to-Studio import also resolves through the registries. `openCreativeStudioDesign.ts` now:
+ATTHA'S maps all ten governed layouts and its A/B/C composition recipes inside `src/creativeStudio/layoutProfiles/atthas.ts`.
+
+## Truth-provider boundary
+
+The Creative Studio truth flow now dispatches through a registered provider descriptor:
+
+```text
+client/brand selection
+→ registered client truth provider
+→ truth bootstrap
+→ task questionnaire
+→ explicit user confirmation
+→ immutable task snapshot
+→ governed production
+```
+
+The ATTHA'S provider is `ATTHAS_UI_TRUTH_V1` and deliberately points to the existing hard-gated endpoints:
+
+- `/api/ui/bootstrap`
+- `/api/ui/prepare`
+- `/api/ui/confirm`
+- `/api/ui/upload`
+- `/api/ui/produce`
+
+No parallel fact system was introduced. `confirmationRequired`, `immutableSnapshotRequired` and `QUESTIONNAIRE_CONFIRMATION` are explicit provider invariants.
+
+`GET /api/studio/bootstrap` publishes the selected client's truth-provider metadata. The active Studio reads bootstrap/prepare/confirm/upload/produce endpoints from the selected profile rather than embedding those endpoint paths in the workflow code. Changing the selected brand reloads that provider's truth bootstrap.
+
+## Campaign import and asset boundary
+
+Campaign-to-Studio import resolves through registries. `openCreativeStudioDesign.ts`:
 
 1. reads the governed brand id from renderer/task truth;
 2. discovers the owning client profile;
@@ -49,87 +72,76 @@ Campaign-to-Studio import also resolves through the registries. `openCreativeStu
 5. uses the profile's default brand-kit id;
 6. resolves the approved logo from the brand profile's asset metadata.
 
-The DesignDocument assembly bridge uses generic string brand ids and generic `CreativeLayoutDefinition` instead of ATTHA'S-specific TypeScript unions.
+Approved-brand asset serving validates each asset against the loaded DesignDocument's client profile. `approved-brand` assets must stay inside that profile's approved asset root; runtime assets remain confined to Creative OS runtime storage.
 
-Approved-brand asset serving also resolves through the client profile. `src/dashboard/creativeStudioAssetServing.ts` serves `/studio-asset/...` before the legacy Studio handler and asks `assetPathGovernance.ts` to validate `approved-brand` paths against the loaded DesignDocument's `clientId` profile. Runtime assets remain confined to `.atthas-os` storage.
+## Profile-driven intake
 
-The active `/studio` intake is profile-driven as well. The source-controlled ATTHA'S options remain as a safe initial fallback, then `creativeStudioProfiledHtml.ts` enriches the brand selector from `GET /api/studio/bootstrap`. `CreativeBrief.clientId` and `brandKitId` are read from the selected profile/brand metadata rather than fixed T001 request constants.
+The active `/studio` Creative Brief is profile-driven. Source-controlled ATTHA'S options remain as a safe initial fallback, then `creativeStudioProfiledHtml.ts` enriches the selector from `/api/studio/bootstrap`.
+
+`CreativeBrief.clientId`, `brandKitId` and truth-provider routing are read from selected profile metadata rather than fixed T001 request constants.
 
 ## Why this boundary exists
 
-The Creative Studio core should eventually support another client without duplicating:
+A future client should reuse the shared Studio core rather than duplicate:
 
 - DesignDocument
 - persistence/versioning
 - deterministic editing
-- layer-scoped AI operations
-- deterministic brand/layout QA
-- safe deterministic auto-polish
-- governed campaign-to-design import
+- scoped AI layer operations
+- deterministic QA/auto-polish
 - shared geometry resolution
-- QA history
+- design-direction orchestration
+- governed campaign-to-design import
+- asset serving
 - approval/export governance
-- governed asset serving
-- campaign handoff mechanics
-- multi-format adaptation orchestration
-- structured Creative Brief intake shell
+- campaign handoff
+- multi-format adaptation
+- structured intake shell
+- hard fact-gate UX
 
-Client-specific facts, layouts, brand rules and assets remain separate concerns.
+Client-specific facts, brand rules, assets, layouts and truth retrieval remain provider concerns.
 
-## Active profile and layout provider
+## Active providers
 
 ```text
 T001 — ATTHA'S
 ├── ATTHAS_BURGER
 │   └── 5 governed layout families
-└── ATTHAS_RESTAURANT
-    └── 5 governed layout families
+├── ATTHAS_RESTAURANT
+│   └── 5 governed layout families
+└── ATTHAS_UI_TRUTH_V1
+    └── existing questionnaire → confirmation → immutable snapshot flow
 ```
-
-`GET /api/studio/bootstrap` publishes active client/brand metadata and per-brand layout availability so the Studio UI can populate selectors from registries rather than hard-coded request values.
 
 ## Registration rule for future clients
 
-A future client must not be added by cloning the ATTHA'S folder and changing names. Before activation it needs:
+A future client must not be activated by cloning ATTHA'S and changing names. It needs:
 
-1. an authoritative truth source and task-truth mapping;
+1. an authoritative truth source and client truth-provider implementation;
 2. explicit brand tokens, approved asset roots and approved logo metadata;
 3. typography, logo and deterministic QA governance;
-4. a registered layout provider with explicit geometry/adaptation semantics;
+4. a registered layout provider with geometry/adaptation/direction semantics;
 5. product-visual truth/provenance rules;
-6. client-appropriate QA rules and auto-polish thresholds;
-7. tests proving no cross-client asset, truth or brand-token leakage.
+6. tests proving no cross-client asset, truth, brand-token or provider leakage.
 
-Until those requirements exist, both registries should expose only ATTHA'S.
+Unknown clients fail closed: there is no fallback to ATTHA'S profile, layout or truth providers.
 
 ## Parity guarantees
 
-The abstraction work preserves existing ATTHA'S behavior:
+The abstraction work preserves current ATTHA'S behavior:
 
-- blank supporting copy is omitted rather than emitted as invalid whitespace text;
-- Burger defaults to `BRAND_YELLOW` pricing and Restaurant defaults to `BRAND_RED`, matching M3;
-- Burger promotional/offer/minimal families remain in-family for square/portrait and use Burger Story Vertical for 9:16;
-- Restaurant editorial/multi-dish/food-hero families remain in-family for square/portrait and use Restaurant Story Vertical for 9:16;
-- Story layouts adapted back to square/portrait preserve the previous fallback behavior (Burger Hero / Restaurant Hospitality);
-- 5% QA safe area remains unchanged;
-- 32px minimum digital logo size remains unchanged;
-- the current ATTHA'S token color and font sets remain authoritative;
-- the approved logo remains mandatory;
-- approved-brand assets remain confined to the profile's approved asset root.
+- blank supporting copy is omitted rather than emitted as invalid whitespace;
+- Burger defaults to `BRAND_YELLOW` pricing and Restaurant to `BRAND_RED`;
+- existing square/portrait/story adaptation behavior is unchanged;
+- existing A/B/C direction names, layouts, copy zones and price-aware Burger direction remain unchanged;
+- 5% QA safe area and 32px minimum digital logo size remain unchanged;
+- ATTHA'S approved colors/fonts remain authoritative;
+- approved logo remains mandatory;
+- task facts still require explicit confirmation before production;
+- confirmed facts still become the immutable snapshot used by downstream generation.
 
-## Remaining portability seam
+## Remaining multi-client blocker
 
-The principal remaining client-specific boundary is **task-truth preparation and branch/product fact retrieval**. The current `/api/ui/prepare` and `/api/ui/confirm` flow is intentionally ATTHA'S-specific because no second client's source-of-truth system exists yet.
+The shared dispatch contracts now exist, but **only ATTHA'S has a real authoritative truth dataset, task-intent mapping, branch/product facts and production implementation registered behind them**.
 
-The correct next abstraction is a truth-provider contract that preserves the current hard fact gate:
-
-```text
-client/brand selection
-→ client truth provider
-→ task questionnaire
-→ explicit user confirmation
-→ immutable task snapshot
-→ creative orchestration
-```
-
-A second client must not be activated until its truth provider can satisfy that contract without bypassing fact confirmation.
+That is intentional. A second client should be enabled only after its source-of-truth implementation can satisfy the same confirmation and immutable-snapshot guarantees. The architecture must not simulate multi-client support by falling back to ATTHA'S data or by allowing creative generation before truth confirmation.
