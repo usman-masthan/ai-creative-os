@@ -296,14 +296,14 @@ test("execution audit derives specialist outputs from the existing governed pipe
   assert.equal(execution.renderer.deterministic, true);
 });
 
-test("execution audit blocks generated media from being recorded as verified product truth", () => {
+test("generated media can never be audited as verified product truth", () => {
   assert.throws(
     () => buildCreativeOrchestrationExecution({
       plan: plan(),
       trace: trace(),
       document: document("VERIFIED_PRODUCT_VISUAL"),
     }),
-    /ORCHESTRATION_EXECUTION_PROVENANCE_BLOCK/,
+    /cannot classify a generated asset as VERIFIED_PRODUCT_VISUAL|ORCHESTRATION_EXECUTION_PROVENANCE_BLOCK/,
   );
 });
 
