@@ -1,4 +1,4 @@
-import { ATTHAS_TOKENS, atthasDisplayFont } from "../atthasTokens.js";
+import { getCreativeBrandTheme } from "./clientProfiles/registry.js";
 import type { TaskTruthSnapshot } from "../taskTruth.js";
 import type { DesignDocument, DesignLayer, DesignTextLayer } from "../designDocument/types.js";
 import { validateDesignDocument } from "../designDocument/validator.js";
@@ -40,14 +40,10 @@ function normalizeColour(value: string | undefined): string | undefined {
   return value?.trim().toUpperCase();
 }
 
-function approvedColours(): Set<string> {
-  return new Set(Object.values(ATTHAS_TOKENS.colours).map((value) => value.toUpperCase()));
-}
-
-function isInsideSafeArea(layer: DesignLayer, document: DesignDocument): boolean {
+function isInsideSafeArea(layer: DesignLayer, document: DesignDocument, ratio: number): boolean {
   const safe = safeAreaRect(
     { width: document.artboard.width, height: document.artboard.height },
-    0.05,
+    ratio,
   );
   return (
     layer.x >= safe.x &&
@@ -108,16 +104,11 @@ export function runDesignQa(input: {
     issues.push(issue("DESIGN_DOCUMENT_INVALID", "HIGH", message, true));
   }
 
+  const theme = getCreativeBrandTheme(document.brand.clientId, document.brand.brandId);
+  const approvedColours = new Set(theme.qa.approvedColours.map((value) => value.toUpperCase()));
+  const approvedFonts = new Set(theme.qa.approvedFonts);
+  const safePercent = Math.round(theme.qa.safeAreaRatio * 100);
   const visible = document.layers.filter((layer) => layer.visible);
-  const approved = approvedColours();
-  const displayFont = atthasDisplayFont(
-    document.brand.brandId === "ATTHAS_RESTAURANT" ? "ATTHAS_RESTAURANT" : "ATTHAS_BURGER",
-  );
-  const approvedFonts = new Set([
-    displayFont,
-    ATTHAS_TOKENS.typography.body,
-    ATTHAS_TOKENS.typography.price,
-  ]);
 
   const background = visible.find((layer) => layer.type === "background");
   if (!background) {
@@ -125,27 +116,33 @@ export function runDesignQa(input: {
   }
 
   const logo = visible.find((layer) => layer.type === "logo");
-  if (!logo) {
-    issues.push(issue("LOGO_MISSING", "HIGH", "The design requires an approved ATTHA'S logo/symbol layer.", true));
-  } else {
-    if (Math.min(logo.width, logo.height) < 32) {
-      issues.push(issue("LOGO_TOO_SMALL", "HIGH", "The approved logo/symbol is below the 32px digital minimum.", true, logo.id));
+  if (theme.qa.logoRequired && !logo) {
+    issues.push(issue("LOGO_MISSING", "HIGH", `The design requires an ${theme.qa.logoRequirementLabel} layer.`, true));
+  } else if (logo) {
+    if (Math.min(logo.width, logo.height) < theme.qa.minimumLogoPx) {
+      issues.push(issue(
+        "LOGO_TOO_SMALL",
+        "HIGH",
+        `The approved logo/symbol is below the ${theme.qa.minimumLogoPx}px digital minimum.`,
+        true,
+        logo.id,
+      ));
     }
-    if (!isInsideSafeArea(logo, document)) {
-      issues.push(issue("LOGO_SAFE_AREA", "MEDIUM", "The logo is outside the recommended 5% safe area.", false, logo.id));
+    if (!isInsideSafeArea(logo, document, theme.qa.safeAreaRatio)) {
+      issues.push(issue("LOGO_SAFE_AREA", "MEDIUM", `The logo is outside the recommended ${safePercent}% safe area.`, false, logo.id));
     }
   }
 
   for (const layer of visible) {
-    if (importantLayer(layer) && !isInsideSafeArea(layer, document)) {
-      issues.push(issue("SAFE_MARGIN", "MEDIUM", `${layer.name} crosses the recommended 5% safe area.`, false, layer.id));
+    if (importantLayer(layer) && !isInsideSafeArea(layer, document, theme.qa.safeAreaRatio)) {
+      issues.push(issue("SAFE_MARGIN", "MEDIUM", `${layer.name} crosses the recommended ${safePercent}% safe area.`, false, layer.id));
     }
     if (layer.type === "text") {
       if (!approvedFonts.has(layer.fontFamily)) {
         issues.push(issue("NON_BRAND_FONT", "MEDIUM", `${layer.name} uses non-approved font ${layer.fontFamily}.`, false, layer.id));
       }
       const fill = normalizeColour(layer.fill);
-      if (fill && !approved.has(fill)) {
+      if (fill && !approvedColours.has(fill)) {
         issues.push(issue("NON_BRAND_COLOUR", "MEDIUM", `${layer.name} uses a non-token text colour ${layer.fill}.`, false, layer.id));
       }
       if (layer.text.length > estimatedTextCapacity(layer) * 1.15) {
@@ -162,10 +159,10 @@ export function runDesignQa(input: {
     if (layer.type === "shape") {
       const fill = normalizeColour(layer.fill);
       const stroke = normalizeColour(layer.stroke);
-      if (fill && !approved.has(fill)) {
+      if (fill && !approvedColours.has(fill)) {
         issues.push(issue("NON_BRAND_COLOUR", "MEDIUM", `${layer.name} uses a non-token fill ${layer.fill}.`, false, layer.id));
       }
-      if (stroke && !approved.has(stroke)) {
+      if (stroke && !approvedColours.has(stroke)) {
         issues.push(issue("NON_BRAND_COLOUR", "MEDIUM", `${layer.name} uses a non-token stroke ${layer.stroke}.`, false, layer.id));
       }
     }
