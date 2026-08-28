@@ -1,0 +1,38 @@
+name: Apply M3 Finalizer Freeze
+
+on:
+  push:
+    branches:
+      - m3-exit-calibration
+    paths:
+      - .github/workflows/apply-m3-finalizer-freeze.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: m3-exit-calibration
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Apply deterministic concept freeze
+        run: python3 scripts/_temp_patch_m3_finalizer_freeze.py
+      - name: Full repository gate
+        run: npm run check
+      - name: Commit validated changes
+        run: |
+          rm scripts/_temp_patch_m3_finalizer_freeze.py
+          rm .github/workflows/apply-m3-finalizer-freeze.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Freeze Creative Director source concepts deterministically"
+          git push origin HEAD:m3-exit-calibration
