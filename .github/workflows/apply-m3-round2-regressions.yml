@@ -33,6 +33,7 @@ jobs:
         run: |
           python3 scripts/_temp_patch_m3_round2.py
           python3 scripts/_temp_patch_m3_round2_fixtures.py
+          python3 scripts/_temp_patch_m3_round2_legacy_assertion.py
 
       - name: Full repository gate
         run: npm run check
@@ -41,6 +42,7 @@ jobs:
         run: |
           rm scripts/_temp_patch_m3_round2.py
           rm scripts/_temp_patch_m3_round2_fixtures.py
+          rm scripts/_temp_patch_m3_round2_legacy_assertion.py
           rm .github/workflows/apply-m3-round2-regressions.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
