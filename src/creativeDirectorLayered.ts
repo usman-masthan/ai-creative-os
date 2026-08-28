@@ -1,6 +1,7 @@
 import type { CampaignGenerationProvider } from "./providers/types.js";
 import type { DesignDocument } from "./designDocument/types.js";
 import type { DesignQaResult } from "./creativeStudio/designQa.js";
+import { getCreativeBrandTheme } from "./creativeStudio/clientProfiles/registry.js";
 
 export interface LayeredCreativeDirectorScores {
   hierarchy: number;
@@ -158,9 +159,11 @@ export async function reviewLayeredDesignWithCreativeDirector(input: {
   deterministicQa: DesignQaResult;
   provider: CampaignGenerationProvider;
 }): Promise<LayeredCreativeDirectorReview> {
+  const theme = getCreativeBrandTheme(input.document.brand.clientId, input.document.brand.brandId);
   const prompt = [
-    "You are the existing AI Creative OS Creative Director reviewing the assembled structured design after layout and native typography have been applied.",
+    `You are the AI Creative OS Creative Director reviewing the assembled structured design for ${theme.displayName} after layout and native typography have been applied.`,
     "Review the design systemically; do not rewrite it and do not invent any new factual claims.",
+    ...theme.review.creativeDirectorGuidance,
     "Judge: visual hierarchy, composition, balance, typography, brand consistency, product prominence, CTA prominence, readability, whitespace, visual depth, color harmony, offer clarity, image quality, authenticity, and risk of obvious AI artifacts.",
     "Return JSON only with exactly these keys:",
     '{"overallScore":0,"scores":{"hierarchy":0,"composition":0,"balance":0,"typography":0,"brandConsistency":0,"productProminence":0,"ctaProminence":0,"readability":0,"whitespace":0,"visualDepth":0,"colorHarmony":0,"offerClarity":0,"imageQuality":0,"authenticity":0,"aiArtifactSafety":0},"issues":[{"severity":"low|medium|high","layerId":"optional-existing-layer-id","message":"..."}],"recommendations":["..."]}',
