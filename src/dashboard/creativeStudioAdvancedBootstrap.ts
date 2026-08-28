@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { resolve } from "node:path";
 
+import { assertCreativeClientRegistration } from "../creativeStudio/clientRegistration.js";
 import { listCreativeClientProfiles } from "../creativeStudio/clientProfiles/registry.js";
 import { getCreativeLayoutProvider } from "../creativeStudio/layoutProfiles/registry.js";
 import { FileDesignProjectStore } from "../creativeStudio/projectStore.js";
@@ -32,10 +33,12 @@ export function createCreativeStudioAdvancedBootstrapHandler(
     const clientProfiles = listCreativeClientProfiles().map((profile) => {
       const layouts = getCreativeLayoutProvider(profile.clientId);
       const truthProvider = getCreativeTruthProvider(profile.clientId);
+      assertCreativeClientRegistration({ profile, layoutProvider: layouts, truthProvider });
       return {
         clientId: profile.clientId,
         displayName: profile.displayName,
         defaultBrandKitId: profile.defaultBrandKitId,
+        registrationValidated: true,
         truthProvider: {
           providerId: truthProvider.providerId,
           endpoints: truthProvider.endpoints,
@@ -47,11 +50,7 @@ export function createCreativeStudioAdvancedBootstrapHandler(
           brandId: brand.brandId,
           displayName: brand.displayName,
           layoutCount: layouts.list(brand.brandId).length,
-          reviewContextRegistered: Boolean(
-            brand.review.expectedBrandIdentifier.trim()
-            && brand.review.finalArtReviewLabel.trim()
-            && brand.review.creativeDirectorGuidance.length,
-          ),
+          reviewContextRegistered: true,
         })),
       };
     });
@@ -69,6 +68,7 @@ export function createCreativeStudioAdvancedBootstrapHandler(
         clientLayoutProviderRegistry: true,
         clientTruthProviderRegistry: true,
         clientReviewContextRegistry: true,
+        failClosedClientRegistration: true,
         truthGate: {
           explicitConfirmationRequired: true,
           immutableSnapshotRequired: true,
