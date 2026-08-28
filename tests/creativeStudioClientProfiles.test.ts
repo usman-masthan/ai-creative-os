@@ -57,12 +57,22 @@ const restaurantCreative: CampaignCreativeOutput = {
   factualQaNotes: [],
 };
 
-test("Creative Studio client profile registry exposes ATTHAS without hard-coding theme selection in assembler", () => {
+test("Creative Studio client profile registry exposes ATTHAS styling and QA governance", () => {
   const profiles = listCreativeClientProfiles();
   assert.equal(profiles.length, 1);
   assert.equal(profiles[0]?.clientId, "T001");
-  assert.equal(getCreativeBrandTheme("T001", "ATTHAS_BURGER").defaultPriceStyle, "BRAND_YELLOW");
-  assert.equal(getCreativeBrandTheme("T001", "ATTHAS_RESTAURANT").defaultPriceStyle, "BRAND_RED");
+
+  const burger = getCreativeBrandTheme("T001", "ATTHAS_BURGER");
+  const restaurant = getCreativeBrandTheme("T001", "ATTHAS_RESTAURANT");
+  assert.equal(burger.defaultPriceStyle, "BRAND_YELLOW");
+  assert.equal(restaurant.defaultPriceStyle, "BRAND_RED");
+  assert.equal(burger.qa.safeAreaRatio, 0.05);
+  assert.equal(burger.qa.minimumLogoPx, 32);
+  assert.equal(burger.qa.logoRequired, true);
+  assert.ok(burger.qa.approvedColours.includes(ATTHAS_TOKENS.colours.primaryYellow));
+  assert.ok(restaurant.qa.approvedColours.includes(ATTHAS_TOKENS.colours.primaryRed));
+  assert.ok(burger.qa.approvedFonts.includes(burger.displayFont));
+  assert.ok(restaurant.qa.approvedFonts.includes(restaurant.bodyFont));
   assert.throws(() => getCreativeBrandTheme("UNKNOWN", "ANY"), /CREATIVE_CLIENT_PROFILE_NOT_FOUND/);
 });
 
