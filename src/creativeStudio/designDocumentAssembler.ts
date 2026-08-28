@@ -1,9 +1,9 @@
-import { ATTHAS_TOKENS, atthasDisplayFont } from "../atthasTokens.js";
 import type { CampaignCreativeOutput, CampaignProductionFormat } from "../creativeTypes.js";
 import type { AtthasBrandId, AtthasLayoutDefinition } from "../layouts/atthas.js";
 import { assertDesignDocument } from "../designDocument/validator.js";
 import type { DesignAssetRef, DesignDocument, DesignLayer, DesignTextLayer } from "../designDocument/types.js";
 import { resolveLayerGeometry, type DesignCopyZone } from "../layoutEngine/resolver.js";
+import { getCreativeBrandTheme } from "./clientProfiles/registry.js";
 
 function textLayer(input: Omit<DesignTextLayer, "type" | "rotation" | "opacity" | "visible" | "locked" | "aiEditable">): DesignTextLayer {
   return {
@@ -38,6 +38,7 @@ export interface AssembleDesignDocumentRequest {
 export function assembleDesignDocument(request: AssembleDesignDocumentRequest): DesignDocument {
   const createdAt = request.createdAt ?? new Date().toISOString();
   const overlay = request.creative.overlaySpec;
+  const theme = getCreativeBrandTheme(request.clientId, request.brandId);
   if (overlay.logoUsage === "APPROVED_ONLY" && !request.logoAsset) {
     throw new Error("BRAND_ASSET_MISSING: an approved logo asset is required by the creative overlay.");
   }
@@ -51,12 +52,6 @@ export function assembleDesignDocument(request: AssembleDesignDocumentRequest): 
     ...(request.copyZone ? { copyZone: request.copyZone } : {}),
     hasPrice: Boolean(overlay.price),
   });
-  const restaurant = request.brandId === "ATTHAS_RESTAURANT";
-  const displayFont = atthasDisplayFont(request.brandId);
-  const primaryText = restaurant ? ATTHAS_TOKENS.colours.ink : ATTHAS_TOKENS.colours.white;
-  const secondaryText = restaurant ? ATTHAS_TOKENS.colours.ink : ATTHAS_TOKENS.colours.cream;
-  const ctaFill = restaurant ? ATTHAS_TOKENS.colours.primaryRed : ATTHAS_TOKENS.colours.primaryYellow;
-  const ctaText = restaurant ? ATTHAS_TOKENS.colours.white : ATTHAS_TOKENS.colours.ink;
   const layers: DesignLayer[] = [
     {
       id: "background",
@@ -97,29 +92,35 @@ export function assembleDesignDocument(request: AssembleDesignDocumentRequest): 
       ...geometry.headline,
       zIndex: 20,
       text: overlay.headline,
-      fontFamily: displayFont,
+      fontFamily: theme.displayFont,
       fontSize: Math.max(32, Math.round(request.format.width * 0.078)),
       fontWeight: 800,
       lineHeight: 0.98,
       letterSpacing: -1,
       align: request.copyZone?.endsWith("Right") ? "right" : "left",
-      fill: primaryText,
+      fill: theme.primaryText,
     }),
-    textLayer({
-      id: "supporting-copy",
-      name: "Supporting Copy",
-      role: "supporting",
-      ...geometry.supporting,
-      zIndex: 21,
-      text: overlay.supportingCopy || " ",
-      fontFamily: ATTHAS_TOKENS.typography.body,
-      fontSize: Math.max(18, Math.round(request.format.width * 0.029)),
-      fontWeight: 600,
-      lineHeight: 1.22,
-      letterSpacing: 0,
-      align: request.copyZone?.endsWith("Right") ? "right" : "left",
-      fill: secondaryText,
-    }),
+  );
+  if (overlay.supportingCopy.trim()) {
+    layers.push(
+      textLayer({
+        id: "supporting-copy",
+        name: "Supporting Copy",
+        role: "supporting",
+        ...geometry.supporting,
+        zIndex: 21,
+        text: overlay.supportingCopy,
+        fontFamily: theme.bodyFont,
+        fontSize: Math.max(18, Math.round(request.format.width * 0.029)),
+        fontWeight: 600,
+        lineHeight: 1.22,
+        letterSpacing: 0,
+        align: request.copyZone?.endsWith("Right") ? "right" : "left",
+        fill: theme.secondaryText,
+      }),
+    );
+  }
+  layers.push(
     {
       id: "cta-background",
       name: "CTA Background",
@@ -132,7 +133,7 @@ export function assembleDesignDocument(request: AssembleDesignDocumentRequest): 
       visible: true,
       locked: false,
       aiEditable: false,
-      fill: ctaFill,
+      fill: theme.ctaFill,
       cornerRadius: Math.max(6, Math.round(request.format.width * 0.008)),
     },
     textLayer({
@@ -142,22 +143,18 @@ export function assembleDesignDocument(request: AssembleDesignDocumentRequest): 
       ...geometry.cta,
       zIndex: 30,
       text: overlay.cta,
-      fontFamily: ATTHAS_TOKENS.typography.body,
+      fontFamily: theme.bodyFont,
       fontSize: Math.max(18, Math.round(request.format.width * 0.026)),
       fontWeight: 800,
       lineHeight: 1,
       letterSpacing: 0,
       align: "center",
-      fill: ctaText,
+      fill: theme.ctaText,
     }),
   );
   if (overlay.price) {
-    const priceFill = overlay.price.priceStyle === "BRAND_RED"
-      ? ATTHAS_TOKENS.colours.primaryRed
-      : ATTHAS_TOKENS.colours.primaryYellow;
-    const priceText = overlay.price.priceStyle === "BRAND_RED"
-      ? ATTHAS_TOKENS.colours.white
-      : ATTHAS_TOKENS.colours.ink;
+    const priceStyle = overlay.price.priceStyle ?? theme.defaultPriceStyle;
+    const priceTheme = theme.priceThemes[priceStyle];
     layers.push(
       {
         id: "price-background",
@@ -171,7 +168,7 @@ export function assembleDesignDocument(request: AssembleDesignDocumentRequest): 
         visible: true,
         locked: false,
         aiEditable: false,
-        fill: priceFill,
+        fill: priceTheme.fill,
         cornerRadius: Math.max(6, Math.round(request.format.width * 0.008)),
       },
       textLayer({
@@ -181,20 +178,20 @@ export function assembleDesignDocument(request: AssembleDesignDocumentRequest): 
         ...geometry.price,
         zIndex: 32,
         text: overlay.price.display,
-        fontFamily: ATTHAS_TOKENS.typography.price,
+        fontFamily: theme.priceFont,
         fontSize: Math.max(24, Math.round(request.format.width * 0.043)),
         fontWeight: 700,
         lineHeight: 1,
         letterSpacing: 0,
         align: "center",
-        fill: priceText,
+        fill: priceTheme.text,
       }),
     );
   }
   if (request.logoAsset) {
     layers.push({
       id: "logo",
-      name: "Approved ATTHA'S Logo",
+      name: theme.logoLayerName,
       type: "logo",
       ...geometry.logo,
       rotation: 0,
@@ -217,7 +214,7 @@ export function assembleDesignDocument(request: AssembleDesignDocumentRequest): 
     truthSnapshotId: request.truthSnapshotId,
     artboard: {
       ...artboard,
-      background: restaurant ? ATTHAS_TOKENS.colours.cream : ATTHAS_TOKENS.colours.deepRed,
+      background: theme.artboardBackground,
     },
     brand: {
       clientId: request.clientId,
