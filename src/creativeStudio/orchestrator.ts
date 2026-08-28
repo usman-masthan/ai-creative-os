@@ -200,7 +200,7 @@ export function createCreativeOrchestrationPlan(
     briefId: brief.id,
     clientId: brief.clientId,
     brandId: brief.brandId,
-    truthSnapshotId: brief.truthSnapshotId,
+    truthSnapshotId: brief.truthSnapshotId!,
     truthConfirmation: {
       sessionId: input.truthSnapshot.sessionId,
       confirmedBy: input.truthSnapshot.confirmedBy,
