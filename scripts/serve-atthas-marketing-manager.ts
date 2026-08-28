@@ -11,4 +11,5 @@ server.listen(port, "127.0.0.1", () => {
   console.log(`Persistence: ${rootDir}`);
   console.log(`Gemini: ${process.env.GEMINI_API_KEY?.trim() ? "configured" : "not configured"}`);
   console.log(`AI image spend: ${process.env.ALLOW_PAID_MEDIA?.trim().toLowerCase() === "true" ? "allowed" : "off"}`);
+  console.log("Production profile: calibrated M2/M3 (structured brief + food composer + M3 renderer)");
 });
