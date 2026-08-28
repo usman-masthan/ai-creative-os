@@ -29,14 +29,32 @@ function safeId(value: unknown, name: string): string {
   return value.trim();
 }
 
+const PRESETS: CreativeAdaptationPreset[] = [
+  "instagram-square",
+  "instagram-portrait",
+  "instagram-story",
+  "facebook-post",
+  "facebook-story",
+  "digital-menu",
+  "web-banner",
+  "poster",
+  "custom",
+];
+
 function preset(value: unknown): CreativeAdaptationPreset {
-  if (
-    value === "instagram-square" ||
-    value === "instagram-portrait" ||
-    value === "instagram-story" ||
-    value === "facebook-post"
-  ) return value;
+  if (typeof value === "string" && PRESETS.includes(value as CreativeAdaptationPreset)) {
+    return value as CreativeAdaptationPreset;
+  }
   throw new Error("Unsupported adaptation preset.");
+}
+
+function customDimension(value: unknown, name: string): number | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (!Number.isInteger(numeric) || numeric < 64 || numeric > 16384) {
+    throw new Error(`${name} must be an integer from 64 to 16384.`);
+  }
+  return numeric;
 }
 
 function sendJson(res: ServerResponse, status: number, value: unknown): void {
@@ -52,13 +70,21 @@ export function createCreativeStudioAdaptationHandler(options: CreativeStudioAda
   const store = new FileDesignProjectStore(resolve(options.rootDir ?? ".atthas-os"));
   return async function handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> {
     if (req.method === "GET" && url.pathname === "/api/studio/adaptation-presets") {
-      sendJson(res, 200, Object.values(CREATIVE_ADAPTATION_TARGETS));
+      sendJson(res, 200, [
+        ...Object.values(CREATIVE_ADAPTATION_TARGETS),
+        { preset: "custom", width: null, height: null, aspectRatio: "custom" },
+      ]);
       return true;
     }
     if (req.method !== "POST" || url.pathname !== "/api/studio/adapt") return false;
     const data = await readBody(req);
     const sourceDesignId = safeId(data.designId, "designId");
     const targetPreset = preset(data.preset);
+    const customWidth = customDimension(data.customWidth, "customWidth");
+    const customHeight = customDimension(data.customHeight, "customHeight");
+    if (targetPreset === "custom" && (customWidth === undefined || customHeight === undefined)) {
+      throw new Error("Custom adaptation requires customWidth and customHeight.");
+    }
     const newDesignId = data.newDesignId === undefined
       ? `${sourceDesignId}-${targetPreset}`
       : safeId(data.newDesignId, "newDesignId");
@@ -69,6 +95,8 @@ export function createCreativeStudioAdaptationHandler(options: CreativeStudioAda
       document: source.document,
       preset: targetPreset,
       newDesignId,
+      ...(customWidth !== undefined ? { customWidth } : {}),
+      ...(customHeight !== undefined ? { customHeight } : {}),
     });
     const created = await store.create({
       document,
