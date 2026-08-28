@@ -13,6 +13,8 @@ A user can move from a structured marketing brief to a governed creative, open i
 | Structured Creative Brief | PASS | `CreativeBrief` contract/schema + `/studio` intake UI. |
 | Complete brief content requirements | PASS | Intake explicitly controls price, offer, CTA, product name, branch, contact details, campaign dates, headline direction and custom creative instructions rather than deriving them from hidden defaults. |
 | Truth-aware requested content | PASS | Before production authorization, Creative Orchestrator requires matching confirmed facts for requested visible price, offer, product name, contact details and campaign dates. Missing fact support fails closed instead of permitting invented copy. |
+| Complete governed output formats | PASS | One shared output-format registry drives intake and adaptation for Instagram Square/Portrait/Story, Facebook Post/Story, Digital Menu 16:9, Web Banner 21:9, Poster 3:4 and validated Custom artboards. |
+| Exact custom artboard dimensions | PASS | Custom width/height are validated from 64–16384 px, reduced to an explicit aspect ratio and preserved as the final renderer/DesignDocument dimensions. |
 | Profile-driven Studio intake | PASS | Client, brand-kit and truth-provider metadata come from `/api/studio/bootstrap`; fixed T001 request constants are removed from the active intake flow. |
 | Profile-driven Brand Kit preview | PASS | The intake displays the selected registered brand's approved logo, palette, semantic colors, display/body/price typography, approved graphical elements and photography direction. Logo bytes are served through the same approved asset-root governance used by Studio designs. |
 | Existing truth confirmation reused | PASS | ATTHA'S truth provider points to the existing `/api/ui/*` questionnaire/confirmation/production endpoints; no parallel fact system. |
@@ -30,6 +32,7 @@ A user can move from a structured marketing brief to a governed creative, open i
 | Client profile boundary | PASS | Brand tokens, fonts, QA governance, approved asset root/logo metadata and default brand kit resolve through client profiles. |
 | Client layout-provider boundary | PASS | Layout selection, adaptation, geometry semantics and A/B/C direction recipes resolve through the registered client layout provider. |
 | Layout-id-agnostic geometry | PASS | Shared resolver consumes `STANDARD_HERO`, `EDITORIAL_OFFCENTER` or `VERTICAL_STORY`; no ATTHA'S layout-name substring checks remain in shared geometry. |
+| Fluid format layout semantics | PASS | Exact social ratios remain supported, while standard layouts deterministically recompose wide/poster/custom artboards and story layouts remain restricted to story-like tall artboards. |
 | Layered native typography | PASS | Headline/supporting/CTA/price are native text layers. |
 | Approved logo as separate layer | PASS WITH ASSET LIMIT | Approved A/fork working master is enforced. Full official Burger/Restaurant lockups are still pending source assets in the brand manifest. |
 | Governed asset-root isolation | PASS | Approved-brand assets must resolve inside the active client's declared approved asset root; runtime assets remain confined to Creative OS storage. |
@@ -55,7 +58,8 @@ A user can move from a structured marketing brief to a governed creative, open i
 | PNG export | PASS | Standard, 2× high-resolution and 4× artboard scale. Draft export remains available separately from approved production export. |
 | SVG export | PASS | Standalone source-preserving SVG export. |
 | Rect / ellipse mask rendering | PASS | HTML/PNG and SVG render paths support rotated rect/ellipse masks. Multiple visible masks targeting the same layer are rejected explicitly. |
-| Multi-format adaptation | PASS | 1:1, 4:5 and 9:16 recomposition creates new DesignDocuments rather than stretching. |
+| Multi-format adaptation | PASS | All governed fixed presets plus validated Custom dimensions are recomposed into new DesignDocuments using client layout semantics and deterministic geometry rather than stretching the source design. |
+| Custom media-source ratio safety | PASS | When an arbitrary custom ratio is unsupported by the image provider, only the generated source-media request maps to the nearest supported ratio; the DesignDocument and final renderer keep the exact requested artboard. |
 | Cost controls | PASS | Manual edits are free; image generation/editing and segmentation background repair use existing paid-media gates/spend tracking. |
 | Existing campaign lifecycle retained | PASS | Existing campaign store/workflow, approval and publication infrastructure remain available. |
 | Second live client | NOT ENABLED | Shared provider boundaries exist, but only ATTHA'S currently has authoritative truth/task-intent data and a production implementation. No unsafe fallback is allowed. |
@@ -81,24 +85,28 @@ Stage 1 is not accepted if any of the following regress:
 12. Promotional typography must remain native/editable rather than baked into image generation.
 13. Manual geometry/styling/history operations must not invoke a model.
 14. AI image operations must target a single isolated layer.
-15. Deterministic blockers must be resolved before final visual QA or production approval.
-16. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
-17. Any later edit must require a fresh final visual QA and explicit approval before approved export.
-18. Registering an approved Studio asset must not impersonate a client/admin lifecycle approval or automatically change campaign state.
-19. Restoring a version must create a new revision rather than erasing history.
+15. A custom or non-social output format must preserve the exact requested DesignDocument/render dimensions; image-provider aspect normalization may affect only generated source media.
+16. Format adaptation must create a new recomposed DesignDocument and must not stretch or destructively overwrite the source design.
+17. Story-layout semantics must not be forced onto a non-story artboard, and standard-fluid layout semantics must not silently masquerade as a story layout.
+18. Deterministic blockers must be resolved before final visual QA or production approval.
+19. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
+20. Any later edit must require a fresh final visual QA and explicit approval before approved export.
+21. Registering an approved Studio asset must not impersonate a client/admin lifecycle approval or automatically change campaign state.
+22. Restoring a version must create a new revision rather than erasing history.
 
 ## Governed Studio creation state machine
 
 ```text
 Structured CreativeBrief
+→ governed output-format resolution
 → registered client truth provider
 → questionnaire preparation
 → explicit user confirmation
 → immutable task truth snapshot
 → requested visible-content truth check
 → persisted CreativeOrchestrationPlan
-→ existing governed campaign production
-→ DesignDocument assembly
+→ existing governed campaign production at the requested format
+→ DesignDocument assembly at exact artboard dimensions
 → orchestration plan linked to design provenance
 → immutable orchestration execution audit extracted from existing AI trace
 → editable Studio
@@ -119,6 +127,19 @@ Editable DesignDocument vN
 ```
 
 A change after approval creates `vN+1`. The approval for `vN` remains in governance history but is not eligible for `vN+1`.
+
+## Format adaptation state machine
+
+```text
+Editable source DesignDocument
+→ governed fixed preset or validated Custom dimensions
+→ client layout-provider semantic selection
+→ deterministic geometry recomposition
+→ new DesignDocument with new identity/version lineage
+→ QA / editing / approval continue normally
+```
+
+The source DesignDocument is never destructively resized. For custom artboards unsupported by the media provider, only generated source imagery uses a nearest supported source aspect ratio; final layout and export remain exact to the requested width and height.
 
 ## Client truth state machine
 
