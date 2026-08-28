@@ -47,6 +47,11 @@ export function createCreativeStudioAdvancedBootstrapHandler(
           brandId: brand.brandId,
           displayName: brand.displayName,
           layoutCount: layouts.list(brand.brandId).length,
+          reviewContextRegistered: Boolean(
+            brand.review.expectedBrandIdentifier.trim()
+            && brand.review.finalArtReviewLabel.trim()
+            && brand.review.creativeDirectorGuidance.length,
+          ),
         })),
       };
     });
@@ -63,6 +68,7 @@ export function createCreativeStudioAdvancedBootstrapHandler(
         clientProfileRegistry: true,
         clientLayoutProviderRegistry: true,
         clientTruthProviderRegistry: true,
+        clientReviewContextRegistry: true,
         truthGate: {
           explicitConfirmationRequired: true,
           immutableSnapshotRequired: true,
