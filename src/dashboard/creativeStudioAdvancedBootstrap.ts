@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { resolve } from "node:path";
 
+import { listCreativeClientProfiles } from "../creativeStudio/clientProfiles/registry.js";
 import { FileDesignProjectStore } from "../creativeStudio/projectStore.js";
 import { FileCampaignStore } from "../operations/fileStore.js";
 
@@ -26,15 +27,27 @@ export function createCreativeStudioAdvancedBootstrapHandler(
       designs.list(),
       campaigns.listCampaigns(),
     ]);
+    const clientProfiles = listCreativeClientProfiles().map((profile) => ({
+      clientId: profile.clientId,
+      displayName: profile.displayName,
+      defaultBrandKitId: profile.defaultBrandKitId,
+      brands: Object.values(profile.brands).map((brand) => ({
+        brandId: brand.brandId,
+        displayName: brand.displayName,
+      })),
+    }));
     sendJson(res, 200, {
       designs: designStates,
       campaigns: campaignRecords,
+      clientProfiles,
       geminiConfigured: Boolean(process.env.GEMINI_API_KEY?.trim()),
       paidMediaAllowed: process.env.ALLOW_PAID_MEDIA?.trim().toLowerCase() === "true",
       capabilities: {
         documentModel: "DesignDocument-v1",
         renderer: "DesignDocument HTML/SVG renderer",
         canvas: "native-svg-adapter",
+        clientProfileRegistry: true,
+        activeClientProfiles: clientProfiles.length,
         manualEditing: true,
         nativeTypography: true,
         undoRedo: true,
@@ -52,6 +65,7 @@ export function createCreativeStudioAdvancedBootstrapHandler(
           explicitHumanApprovalRequired: true,
           staleApprovalRejectedAfterEdit: true,
           approvedPngExport: true,
+          campaignAssetHandoff: true,
         },
         initialRendererParityGate: true,
         designDirections: {
