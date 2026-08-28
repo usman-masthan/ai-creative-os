@@ -80,7 +80,7 @@ export function autoPolishDesign(input: {
   const layers = document.layers.map((original): DesignLayer => {
     let layer = original;
     const safeIssue = actionable.get(`SAFE_MARGIN:${original.id}`) ?? actionable.get(`LOGO_SAFE_AREA:${original.id}`);
-    if (safeIssue && !original.locked) {
+    if (safeIssue && (!original.locked || original.type === "logo")) {
       const next = clampImportantLayer(layer, document);
       if (next.x !== layer.x || next.y !== layer.y || next.width !== layer.width || next.height !== layer.height) {
         layer = next;
