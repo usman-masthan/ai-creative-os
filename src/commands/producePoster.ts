@@ -50,6 +50,8 @@ export interface PosterFinalArtQaConfig {
     | "expectedSupportingCopy"
     | "expectedCta"
     | "expectedPrice"
+    | "expectedProductName"
+    | "expectedPlatforms"
     | "logoExpected"
   >;
 }
@@ -64,6 +66,7 @@ export interface ProducePosterRequest {
   baseImagePath?: string;
   visualQa?: PosterVisualQaConfig;
   finalArtQa?: PosterFinalArtQaConfig;
+  finalArtQaRequired?: boolean;
   rendererMode?: "LEGACY" | "M3_V2";
   copyZones?: M3CopyZones;
   chromePath?: string;
@@ -104,6 +107,27 @@ function extensionForMime(mimeType: string | undefined): string {
     default:
       return ".jpg";
   }
+}
+
+function stringsFromUnknown(value: unknown): string[] {
+  if (typeof value === "string") return value.trim() ? [value.trim()] : [];
+  if (Array.isArray(value)) return value.flatMap(stringsFromUnknown);
+  if (value && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).flatMap(stringsFromUnknown);
+  }
+  return [];
+}
+
+function verifiedFactStrings(campaign: GeneratedCampaign, key: string): string[] {
+  return [
+    ...new Set(
+      campaign.preflight.facts
+        .filter(
+          (fact) => fact.verified && (fact.key === key || fact.key.startsWith(`${key}|`)),
+        )
+        .flatMap((fact) => stringsFromUnknown(fact.value)),
+    ),
+  ];
 }
 
 function summarizeImageGeneration(result: ImageDraftResult): ImageGenerationSummary {
@@ -208,6 +232,8 @@ async function runFinalArtQa(input: {
   const bytes = await readFile(input.pngPath);
   const creative = input.campaign.creative;
   const format = input.campaign.production.format;
+  const productNames = verifiedFactStrings(input.campaign, "productName");
+  const platforms = verifiedFactStrings(input.campaign, "deliveryChannel");
   const result = await input.config.provider.review({
     ...(input.config.request ?? {}),
     imageBase64: bytes.toString("base64"),
@@ -224,6 +250,8 @@ async function runFinalArtQa(input: {
     ...(creative.overlaySpec.price?.display
       ? { expectedPrice: creative.overlaySpec.price.display }
       : {}),
+    ...(productNames[0] ? { expectedProductName: productNames[0] } : {}),
+    ...(platforms.length ? { expectedPlatforms: platforms } : {}),
     logoExpected: creative.overlaySpec.logoUsage === "APPROVED_ONLY",
   });
   await writeFile(join(input.outputDir, "final-art-qa.json"), JSON.stringify(result, null, 2), "utf8");
@@ -238,6 +266,9 @@ async function runFinalArtQa(input: {
 export async function producePoster(request: ProducePosterRequest): Promise<ProducePosterResult> {
   if (!request.baseImagePath && !request.imageProvider) {
     throw new Error("Poster production requires either baseImagePath or an imageProvider.");
+  }
+  if (request.finalArtQaRequired && !request.finalArtQa) {
+    throw new Error("Final poster production requires final-art QA before rendering.");
   }
 
   const outputDir = resolve(request.outputDir);
