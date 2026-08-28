@@ -1,4 +1,5 @@
 name: Apply M3 final-art QA
+# retry after fixture typing fix
 on:
   push:
     branches: [m3-final-art-qa]
