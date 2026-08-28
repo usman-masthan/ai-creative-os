@@ -185,6 +185,14 @@ function getLayout(id: AtthasLayoutId): AtthasLayoutDefinition {
   return layout;
 }
 
+function isStoryLikeFormat(format: CampaignProductionFormat): boolean {
+  return format.height / format.width >= 1.55;
+}
+
+function isStoryLayout(layout: AtthasLayoutDefinition): boolean {
+  return layout.supportedAspectRatios.length === 1 && layout.supportedAspectRatios[0] === "9:16";
+}
+
 function assertLayoutCompatible(
   layout: AtthasLayoutDefinition,
   brandId: AtthasBrandId,
@@ -195,11 +203,11 @@ function assertLayoutCompatible(
       `ATTHA'S layout ${layout.id} belongs to ${layout.brandId}, not ${brandId}.`,
     );
   }
-  if (!layout.supportedAspectRatios.includes(format.aspectRatio)) {
-    throw new Error(
-      `ATTHA'S layout ${layout.id} does not support aspect ratio ${format.aspectRatio}.`,
-    );
-  }
+  if (layout.supportedAspectRatios.includes(format.aspectRatio)) return;
+  if (isStoryLayout(layout) === isStoryLikeFormat(format)) return;
+  throw new Error(
+    `ATTHA'S layout ${layout.id} is not compatible with ${format.width}x${format.height} (${format.aspectRatio}).`,
+  );
 }
 
 function recommendedRole(creative: CampaignCreativeOutput): string | undefined {
@@ -228,7 +236,7 @@ export function selectAtthasLayout(input: SelectAtthasLayoutInput): AtthasLayout
     return preferred;
   }
 
-  if (input.format.aspectRatio === "9:16") {
+  if (isStoryLikeFormat(input.format)) {
     return getLayout(
       input.brandId === "ATTHAS_BURGER"
         ? "ATTHAS_BURGER_STORY_VERTICAL_V1"
