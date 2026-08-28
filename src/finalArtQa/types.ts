@@ -12,7 +12,10 @@ export interface FinalArtQaDimensionEvidence {
 export interface FinalArtQaRequest {
   imageBase64: string;
   mimeType: string;
-  brandId: "ATTHAS_BURGER" | "ATTHAS_RESTAURANT";
+  brandId: string;
+  brandDisplayName: string;
+  expectedBrandIdentifier: string;
+  finalArtReviewLabel: string;
   layoutId: string;
   channel: string;
   assetType: string;
