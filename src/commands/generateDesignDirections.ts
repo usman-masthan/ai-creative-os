@@ -1,3 +1,4 @@
+import { getCreativeLayoutProvider } from "../creativeStudio/layoutProfiles/registry.js";
 import type { DesignDocument, DesignLayer } from "../designDocument/types.js";
 import { assertDesignDocument } from "../designDocument/validator.js";
 import type { AtthasBrandId, AtthasLayoutId } from "../layouts/atthas.js";
@@ -98,9 +99,10 @@ function buildDirection(input: {
   createdAt: string;
 }): DesignDirection {
   const price = hasPrice(input.source);
+  const layout = getCreativeLayoutProvider(input.source.brand.clientId).get(input.spec.layoutId);
   const geometry = resolveLayerGeometry({
     artboard: input.source.artboard,
-    layoutId: input.spec.layoutId,
+    geometryProfile: layout.geometryProfile,
     hasPrice: price,
     copyZone: input.spec.copyZone,
   });
@@ -108,7 +110,7 @@ function buildDirection(input: {
     ...input.source,
     id: input.designId,
     version: 1,
-    layoutId: input.spec.layoutId,
+    layoutId: layout.id,
     layers: input.source.layers.map((layer) => reflowLayer(layer, geometry)),
     history: [{
       version: 1,
