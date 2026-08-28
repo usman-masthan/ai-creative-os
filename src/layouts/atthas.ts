@@ -247,7 +247,9 @@ export function selectAtthasLayout(input: SelectAtthasLayoutInput): AtthasLayout
   if (input.brandId === "ATTHAS_BURGER") {
     if (offerLanguage) return getLayout("ATTHAS_BURGER_OFFER_DEAL_V1");
     if (hasVerifiedPriceOverlay) return getLayout("ATTHAS_BURGER_PROMOTIONAL_PRICE_V1");
-    if (role === "brand-building") return getLayout("ATTHAS_BURGER_MINIMAL_PREMIUM_V1");
+    if (input.campaignType === "BRAND_BUILDING" || role === "brand-building") {
+      return getLayout("ATTHAS_BURGER_MINIMAL_PREMIUM_V1");
+    }
     return getLayout("ATTHAS_BURGER_HERO_PRODUCT_V1");
   }
 

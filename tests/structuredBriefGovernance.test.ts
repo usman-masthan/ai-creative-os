@@ -157,6 +157,35 @@ function safeSubject(productName = "Crispy Chicken Burger") {
   };
 }
 
+test("generic no-product structured brief fallback is lexical-claim safe", () => {
+  const genericPreflight: CampaignPreflight = {
+    status: "READY_FOR_CREATIVE",
+    factGate: "PASS",
+    missing: [],
+    conflicts: [],
+    facts: [],
+    riskLevel: "low",
+    humanApprovalRequired: false,
+  };
+  const brief = buildStructuredImageBrief({
+    campaignId: "M3-GENERIC-CONCEPT",
+    brandId: "ATTHAS_BURGER",
+    creative: creative(),
+    format,
+    layout,
+    verifiedFacts: [],
+  });
+  const result = validateStructuredBriefGovernance({
+    brief,
+    preflight: genericPreflight,
+    creative: creative(),
+  });
+
+  assert.equal(brief.subject.productName, "Generic concept visual — no verified product identity");
+  assert.doesNotMatch(Object.values(brief.subject).join(" "), /\bfresh(?:ness)?\b|\bjuicy|\bsteam(?:ing)?\b/i);
+  assert.ok(!result.issues.some((issue) => issue.code === "FAIL_STRUCTURED_BRIEF_UNSUPPORTED_CLAIM"));
+});
+
 test("structured brief governance rejects renderer-style graphic design language", () => {
   const brief = baseBrief();
   brief.subject.compositionDescription =

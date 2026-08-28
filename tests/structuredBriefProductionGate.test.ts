@@ -194,7 +194,7 @@ function sequenceProvider(name: string, outputs: unknown[]): CampaignGenerationP
   };
 }
 
-function safeRepairSubject(productName = "No specific verified SKU supplied") {
+function safeRepairSubject(productName = "Generic concept visual — no verified product identity") {
   return {
     productName,
     physicalState:

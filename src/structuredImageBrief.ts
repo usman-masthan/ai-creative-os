@@ -313,10 +313,10 @@ export function buildStructuredImageBrief(
     productName:
       input.subject?.productName?.trim() ||
       verifiedProductName(input.verifiedFacts) ||
-      "No specific verified SKU supplied",
+      "Generic concept visual — no verified product identity",
     physicalState:
       input.subject?.physicalState?.trim() ||
-      "physically plausible food subject matching only the verified product identity; do not infer preparation method",
+      "physically plausible generic concept subject; do not imply a specific menu item, preparation method or product identity",
     compositionDescription:
       input.subject?.compositionDescription?.trim() ||
       compactUnique([
@@ -326,7 +326,7 @@ export function buildStructuredImageBrief(
       ]).join("; "),
     textureDescription:
       input.subject?.textureDescription?.trim() ||
-      "show only directly visible surface texture; do not imply freshness, juiciness, premium quality or cooking method",
+      "show only neutral, directly visible material texture; do not infer unverified condition, temperature, moisture, preparation or sensory attributes",
     ingredientInteraction:
       input.subject?.ingredientInteraction?.trim() ||
       "do not add or infer ingredients; ingredient layering or contact must come from verified product facts or a governed physical-food composition",

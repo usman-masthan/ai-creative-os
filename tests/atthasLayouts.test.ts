@@ -127,6 +127,19 @@ test("brand-building Burger creative selects minimal-premium layout without pric
   );
 });
 
+test("Burger BRAND_BUILDING campaign type selects minimal-premium even when AI role drifts", () => {
+  const value = creative();
+  assert.equal(
+    selectAtthasLayout({
+      brandId: "ATTHAS_BURGER",
+      creative: value,
+      format: squareish,
+      campaignType: "BRAND_BUILDING",
+    }).id,
+    "ATTHAS_BURGER_MINIMAL_PREMIUM_V1",
+  );
+});
+
 test("Restaurant shared-table language selects multi-dish layout", () => {
   const value = creative();
   value.creativeBrief.visualDirection = "A generous shared table spread with variety";
