@@ -53,6 +53,17 @@ export function creativeStudioProfiledHtml(): string {
     `$('brandId').onchange=function(){reloadTruthBootstrap().catch(function(error){setStatus(error.message,'error');});};`,
   );
 
+  html = replaceRequired(
+    html,
+    `state.snapshot=confirmed.snapshot;state.brief.truthSnapshotId='task:'+state.snapshot.sessionId;$('truthModal').classList.add('hidden');showProgress(2);setStatus('Generating governed campaign…');var baseImageAssetId=await uploadBaseImage(intent);`,
+    `state.snapshot=confirmed.snapshot;state.brief.truthSnapshotId='task:'+state.snapshot.sessionId;$('truthModal').classList.add('hidden');showProgress(2);setStatus('Coordinating creative strategy…');state.orchestration=await api('/api/studio/orchestrate',{method:'POST',body:JSON.stringify({campaignId:state.prepared.campaignId,brief:state.brief,taskTruthSnapshot:state.snapshot})});if(!state.orchestration||state.orchestration.status!=='READY_FOR_GOVERNED_PRODUCTION')throw new Error('Creative Orchestrator did not authorize governed production.');setStatus('Generating governed campaign…');var baseImageAssetId=await uploadBaseImage(intent);`,
+  );
+  html = replaceRequired(
+    html,
+    `var project=await api('/api/studio/open',{method:'POST',body:JSON.stringify({campaignId:state.prepared.campaignId,brief:state.brief})});loadProject(project);`,
+    `var project=await api('/api/studio/open',{method:'POST',body:JSON.stringify({campaignId:state.prepared.campaignId,brief:state.brief})});var orchestrationLink=await api('/api/studio/orchestration/link',{method:'POST',body:JSON.stringify({designId:project.document.id,orchestrationId:state.orchestration.id})});if(!orchestrationLink.linked)throw new Error('Creative Orchestrator provenance could not be linked to the design.');project.orchestration=state.orchestration;loadProject(project);`,
+  );
+
   const profileScript = `<script>
 (function(){
   'use strict';
