@@ -103,7 +103,7 @@ export function adaptCreativeDesign(input: {
   const hasPrice = source.layers.some((layer) => layer.type === "text" && layer.role === "price" && layer.visible);
   const geometry = resolveLayerGeometry({
     artboard: { width: target.width, height: target.height },
-    layoutId: layout.id,
+    geometryProfile: layout.geometryProfile,
     hasPrice,
     ...(input.copyZone ? { copyZone: input.copyZone } : {}),
   });
