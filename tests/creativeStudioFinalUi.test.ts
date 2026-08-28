@@ -49,3 +49,22 @@ test("active Studio intake resolves client, brand-kit and truth provider metadat
   assert.doesNotMatch(html, /clientId:'T001',brandId:/);
   assert.doesNotMatch(html, /brandKitId:'ATTHAS_WORKING_V1',createdAt:/);
 });
+
+test("Studio generation creates Creative Orchestration only after truth confirmation and before production", () => {
+  const html = creativeStudioProfiledHtml();
+  const confirm = html.indexOf("var confirmed=await api(truthEndpoint('confirm')");
+  const bindTruth = html.indexOf("state.brief.truthSnapshotId='task:'+state.snapshot.sessionId");
+  const orchestrate = html.indexOf("state.orchestration=await api('/api/studio/orchestrate'");
+  const produce = html.indexOf("var result=await api(truthEndpoint('produce')");
+  const open = html.indexOf("var project=await api('/api/studio/open'");
+  const link = html.indexOf("var orchestrationLink=await api('/api/studio/orchestration/link'");
+  assert.ok(confirm >= 0);
+  assert.ok(bindTruth > confirm);
+  assert.ok(orchestrate > bindTruth);
+  assert.ok(produce > orchestrate);
+  assert.ok(open > produce);
+  assert.ok(link > open);
+  assert.match(html, /taskTruthSnapshot:state\.snapshot/);
+  assert.match(html, /READY_FOR_GOVERNED_PRODUCTION/);
+  assert.match(html, /project\.orchestration=state\.orchestration/);
+});
