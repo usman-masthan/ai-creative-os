@@ -215,7 +215,7 @@ test("manual override cannot cross operating brands", () => {
   );
 });
 
-test("manual override cannot use an incompatible aspect ratio", () => {
+test("manual override cannot use a semantically incompatible artboard", () => {
   assert.throws(
     () =>
       selectAtthasLayout({
@@ -224,6 +224,6 @@ test("manual override cannot use an incompatible aspect ratio", () => {
         format: squareish,
         preferredLayoutId: "ATTHAS_BURGER_STORY_VERTICAL_V1",
       }),
-    /does not support aspect ratio 4:5/,
+    /not compatible with 1080x1350 \(4:5\)/,
   );
 });
