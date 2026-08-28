@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { extname, resolve } from "node:path";
 
 import { resolveGovernedStudioAssetPath } from "../creativeStudio/assetPathGovernance.js";
+import { getCreativeBrandTheme, getCreativeClientProfile } from "../creativeStudio/clientProfiles/registry.js";
 import { FileDesignProjectStore } from "../creativeStudio/projectStore.js";
 import type { DesignAssetRef, DesignLayer } from "../designDocument/types.js";
 
@@ -40,6 +41,36 @@ export function createCreativeStudioAssetServingHandler(options: CreativeStudioA
   const projects = new FileDesignProjectStore(rootDir);
 
   return async function handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> {
+    const brandAssetMatch = url.pathname.match(/^\/studio-brand-asset\/([^/]+)\/([^/]+)\/logo$/);
+    if (req.method === "GET" && brandAssetMatch) {
+      const clientId = safeId(decodeURIComponent(brandAssetMatch[1]!), "clientId");
+      const brandId = safeId(decodeURIComponent(brandAssetMatch[2]!), "brandId");
+      const profile = getCreativeClientProfile(clientId);
+      const theme = getCreativeBrandTheme(clientId, brandId);
+      const path = resolve(repoRoot, profile.approvedAssetRoot, theme.approvedLogoAsset.relativePath);
+      const asset: DesignAssetRef = {
+        assetId: theme.approvedLogoAsset.assetId,
+        source: "approved-brand",
+        uri: path,
+        mimeType: theme.approvedLogoAsset.mimeType,
+      };
+      const governedPath = resolveGovernedStudioAssetPath({
+        path,
+        asset,
+        clientId,
+        rootDir,
+        repoRoot,
+      });
+      const bytes = await readFile(governedPath);
+      res.writeHead(200, {
+        "content-type": contentType(governedPath, asset.mimeType),
+        "content-length": bytes.length,
+        "cache-control": "no-store",
+      });
+      res.end(bytes);
+      return true;
+    }
+
     const match = url.pathname.match(/^\/studio-asset\/([^/]+)\/([^/]+)$/);
     if (req.method !== "GET" || !match) return false;
 
