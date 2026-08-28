@@ -20,10 +20,16 @@ function sourceAsset(layer: DesignLayer): DesignAssetRef {
   throw new Error("SEGMENTATION_REQUIRES_ASSET: selected layer has no image asset.");
 }
 
-function assertPngPayload(value: string, name: string): Buffer {
+function assertImagePayload(value: string, name: string): Buffer {
   const bytes = Buffer.from(value, "base64");
   if (bytes.length < 1_000) throw new Error(`${name} segmentation payload is unexpectedly small.`);
   return bytes;
+}
+
+function extensionForMime(mimeType: "image/png" | "image/jpeg" | "image/webp"): string {
+  if (mimeType === "image/jpeg") return ".jpg";
+  if (mimeType === "image/webp") return ".webp";
+  return ".png";
 }
 
 export async function segmentCreativeSubject(input: {
@@ -50,9 +56,8 @@ export async function segmentCreativeSubject(input: {
     mimeType: input.mimeType,
     ...(input.subjectHint?.trim() ? { subjectHint: input.subjectHint.trim() } : {}),
   });
-  const foreground = assertPngPayload(result.foregroundBase64, "Foreground");
-  const background = Buffer.from(result.backgroundBase64, "base64");
-  if (background.length < 1_000) throw new Error("Background segmentation payload is unexpectedly small.");
+  const foreground = assertImagePayload(result.foregroundBase64, "Foreground");
+  const background = assertImagePayload(result.backgroundBase64, "Background");
   if (result.confidence !== undefined && (!Number.isFinite(result.confidence) || result.confidence < 0 || result.confidence > 1)) {
     throw new Error("SEGMENTATION_INVALID: confidence must be between 0 and 1.");
   }
@@ -61,7 +66,10 @@ export async function segmentCreativeSubject(input: {
   await mkdir(outputDir, { recursive: true });
   const nextVersion = input.document.version + 1;
   const foregroundPath = join(outputDir, `product-subject-v${nextVersion}.png`);
-  const backgroundPath = join(outputDir, `background-separated-v${nextVersion}.png`);
+  const backgroundPath = join(
+    outputDir,
+    `background-separated-v${nextVersion}${extensionForMime(result.backgroundMimeType)}`,
+  );
   await Promise.all([
     writeFile(foregroundPath, foreground),
     writeFile(backgroundPath, background),
@@ -81,7 +89,7 @@ export async function segmentCreativeSubject(input: {
   };
   const separatedSubject: DesignAssetRef = {
     assetId: `separated-subject-v${nextVersion}`,
-    source: asset.source === "verified-product" ? "verified-product" : "runtime",
+    source: sourceVisualTruth === "VERIFIED_PRODUCT_VISUAL" ? "verified-product" : "runtime",
     uri: foregroundPath,
     mimeType: result.foregroundMimeType,
     ...(sourceVisualTruth ? { visualTruthClass: sourceVisualTruth } : {}),
