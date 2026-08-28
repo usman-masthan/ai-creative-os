@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 
 import type { CreativeBrief } from "./contracts/creativeBrief.js";
 import { assertCreativeBrief } from "./contracts/creativeBrief.js";
+import type { LayeredCreativeDirectorReview } from "../creativeDirectorLayered.js";
 import type { DesignDocument } from "../designDocument/types.js";
 import { assertDesignDocument } from "../designDocument/validator.js";
 
@@ -36,6 +37,7 @@ export interface DesignProjectSnapshot {
   document: DesignDocument;
   brief?: CreativeBrief;
   qa?: DesignQaRecord;
+  directorReview?: LayeredCreativeDirectorReview;
   exports: DesignExportRecord[];
 }
 
@@ -119,10 +121,11 @@ export class FileDesignProjectStore {
   async get(designId: string): Promise<DesignProjectSnapshot | undefined> {
     const state = await this.getState(designId);
     if (!state) return undefined;
-    const [documentRaw, briefRaw, qaRaw, exports] = await Promise.all([
+    const [documentRaw, briefRaw, qaRaw, directorReview, exports] = await Promise.all([
       readJson<DesignDocument | null>(this.path(designId, "design.json"), null),
       readJson<CreativeBrief | null>(this.path(designId, "brief.json"), null),
       readJson<DesignQaRecord | null>(this.path(designId, "qa.json"), null),
+      readJson<LayeredCreativeDirectorReview | null>(this.path(designId, "director-review.json"), null),
       readJson<DesignExportRecord[]>(this.path(designId, "exports.json"), []),
     ]);
     if (!documentRaw) throw new Error(`Design project ${designId} is missing design.json.`);
@@ -131,6 +134,7 @@ export class FileDesignProjectStore {
       document: assertDesignDocument(documentRaw),
       ...(briefRaw ? { brief: assertCreativeBrief(briefRaw) } : {}),
       ...(qaRaw ? { qa: qaRaw } : {}),
+      ...(directorReview ? { directorReview } : {}),
       exports,
     };
   }
@@ -199,6 +203,11 @@ export class FileDesignProjectStore {
   async saveQa(designId: string, qa: DesignQaRecord): Promise<void> {
     if (!(await this.getState(designId))) throw new Error(`Design project ${designId} does not exist.`);
     await writeJson(this.path(designId, "qa.json"), qa);
+  }
+
+  async saveDirectorReview(designId: string, review: LayeredCreativeDirectorReview): Promise<void> {
+    if (!(await this.getState(designId))) throw new Error(`Design project ${designId} does not exist.`);
+    await writeJson(this.path(designId, "director-review.json"), review);
   }
 
   async appendExport(designId: string, record: DesignExportRecord): Promise<void> {
