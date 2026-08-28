@@ -61,7 +61,7 @@ const restaurantCreative: CampaignCreativeOutput = {
   factualQaNotes: [],
 };
 
-test("Creative Studio client profile registry exposes ATTHAS styling, assets and QA governance", () => {
+test("Creative Studio client profile registry exposes ATTHAS styling, assets, Brand Kit preview and QA governance", () => {
   const profiles = listCreativeClientProfiles();
   assert.equal(profiles.length, 1);
   assert.equal(profiles[0]?.clientId, "T001");
@@ -82,6 +82,10 @@ test("Creative Studio client profile registry exposes ATTHAS styling, assets and
   assert.ok(restaurant.qa.approvedColours.includes(ATTHAS_TOKENS.colours.primaryRed));
   assert.ok(burger.qa.approvedFonts.includes(burger.displayFont));
   assert.ok(restaurant.qa.approvedFonts.includes(restaurant.bodyFont));
+  assert.ok(burger.brandKitPreview.approvedGraphicElements.some((item) => item.includes("A/fork")));
+  assert.ok(burger.brandKitPreview.photographyDirection.some((item) => item.includes("QSR Macro Hero")));
+  assert.ok(restaurant.brandKitPreview.photographyDirection.some((item) => item.includes("Restaurant Plated")));
+  assert.ok(restaurant.brandKitPreview.photographyDirection.some((item) => item.includes("Restaurant Ambience")));
   assert.throws(() => getCreativeBrandTheme("UNKNOWN", "ANY"), /CREATIVE_CLIENT_PROFILE_NOT_FOUND/);
   assert.throws(() => findCreativeClientProfileForBrand("UNKNOWN_BRAND"), /CREATIVE_BRAND_PROFILE_NOT_FOUND/);
 });
