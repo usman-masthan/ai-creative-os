@@ -340,6 +340,7 @@ function parseOutput(text: string): Omit<VisualQaResult, "provider" | "model" | 
 
 function buildPrompt(request: VisualQaRequest): string {
   const verifiedIngredients = request.verifiedVisibleIngredients ?? [];
+  const verifiedCookingMethods = request.verifiedCookingMethods ?? [];
   const mustInclude = request.mustInclude ?? [];
   const mustNotInclude = request.mustNotInclude ?? [];
   const compositionRequirements = request.compositionRequirements ?? [];
@@ -365,6 +366,8 @@ function buildPrompt(request: VisualQaRequest): string {
     `Visual class: ${request.visualClass}`,
     `Rights status supplied by Creative OS: ${request.rightsStatus}`,
     `Verified visible ingredients: ${verifiedIngredients.length ? verifiedIngredients.join(", ") : "NONE PROVIDED"}`,
+    `Verified cooking methods: ${verifiedCookingMethods.length ? verifiedCookingMethods.join(", ") : "NONE PROVIDED"}`,
+    `Deterministic food template: ${request.foodTemplateId ?? "UNSPECIFIED"}`,
     `Must include: ${mustInclude.length ? mustInclude.join(", ") : "NONE"}`,
     `Must not include: ${mustNotInclude.length ? mustNotInclude.join(", ") : "NONE"}`,
     `Composition requirements: ${compositionRequirements.length ? compositionRequirements.join("; ") : "NONE"}`,
@@ -376,6 +379,9 @@ function buildPrompt(request: VisualQaRequest): string {
     "Rate each copy zone independently: GOOD = structurally calm/low-detail and suitable for copy; ACCEPTABLE = usable but may need a mild deterministic mask/gradient; POOR = busy subject detail, high contrast, highlights or edges make copy unsafe.",
     "Do not rate a zone GOOD merely because no text is currently present. Inspect visual detail, contrast and subject occupancy.",
     "Reject or escalate if the image contains unverified visible ingredients, wrong product form, accidental text/logo, malformed food, impossible geometry, misleading portion perspective, missing requested copy-safe space, unsafe crop, or brand-incompatible styling.",
+    "Serving configuration is part of product truth. A verified ingredient shown as a separate side dish, side salad, dipping bowl or ramekin is still an unverified serving element unless the supplied must-include contract explicitly authorizes that separate serving.",
+    "When the deterministic food template is WRAP_ROLL, inspect the full frame for side bowls, ramekins, salads, fries, garnish dishes or duplicated serving components outside the wrap. If any are visible without explicit authorization, list them in unexpectedVisibleElements and productTruth cannot be PASS.",
+    "Cooking-method cues are also product truth. When verified cooking methods are NONE PROVIDED, visible grill marks, griddle marks, toast marks, sear marks or deliberate charring that communicate a preparation method must be a productTruth CONCERN/FAIL and must not PASS merely because the underlying ingredient is verified.",
     "Rights are deterministic input, not visual inference: blocked rights must BLOCK; unknown rights cannot PASS final production.",
     "GENERIC_CONCEPT_VISUAL cannot PASS as an actual product advertisement. It must be HUMAN_REVIEW or BLOCK even when aesthetically strong.",
     "Return only JSON matching the required schema.",
@@ -463,6 +469,31 @@ function applyDeterministicGuards(
   if (request.visualClass === "GENERIC_CONCEPT_VISUAL" && decision === "PASS") {
     decision = "HUMAN_REVIEW";
     issues.push("Generic concept imagery cannot pass as verified product advertising.");
+  }
+
+  const evidenceText = [
+    ...result.issues,
+    ...result.notes,
+    ...result.unexpectedVisibleElements,
+    ...Object.values(result.scoreEvidence ?? {}).flatMap((item) => item.observations),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  if (
+    request.foodTemplateId === "WRAP_ROLL" &&
+    /\b(side salad|salad bowl|side dish|side bowl|dipping sauce|dip bowl|sauce ramekin|ramekin)\b/.test(evidenceText)
+  ) {
+    decision = "REGENERATE";
+    issues.push("Separate serving elements are outside the verified WRAP_ROLL presentation contract.");
+  }
+
+  if (
+    (request.verifiedCookingMethods?.length ?? 0) === 0 &&
+    /\b(grill marks?|griddle marks?|toast marks?|sear marks?|char marks?)\b/.test(evidenceText)
+  ) {
+    decision = "REGENERATE";
+    issues.push("Visible preparation cues imply a cooking method that was not separately verified.");
   }
 
   const productScoped = Boolean(request.productId || request.productName);

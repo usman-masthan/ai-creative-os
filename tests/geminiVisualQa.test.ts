@@ -275,3 +275,33 @@ test("evidence-consistency normalizes unsupported conservative scores instead of
   assert.equal(result.scores.rights, 100);
   assert.ok(result.notes.some((note) => note.includes("evidence-consistency")));
 });
+
+
+test("WRAP_ROLL rejects separate serving elements even when ingredients themselves are verified", async () => {
+  const response = visualQaResponse("PASS");
+  const payload = (await response.json()) as { candidates: Array<{ content: { parts: Array<{ text: string }> } }> };
+  const part = payload.candidates[0]!.content.parts[0]!;
+  const review = JSON.parse(part.text) as Record<string, any>;
+  review.scores = { productTruth: 95, brandFit: 80, realism: 90, foodTexture: 90, composition: 88, copyZoneSuitability: 80, governance: 95, rights: 100 };
+  review.scoreEvidence.productTruth = { status: "PASS", observations: ["Verified ingredients accurately depicted in wrap format, with a separate side salad and sauce ramekin."] };
+  review.unexpectedVisibleElements = [];
+  part.text = JSON.stringify(review);
+  const provider = new GeminiVisualQaProvider({ apiKey: "gemini-test-key", fetchImpl: async () => new Response(JSON.stringify(payload), { status: 200, headers: { "Content-Type": "application/json" } }) });
+  const result = await provider.review({ imageBase64: "ZmFrZQ==", mimeType: "image/jpeg", brandId: "ATTHAS_RESTAURANT", productId: "CALIBRATION_CHICKEN_TIKKA_WRAP", productName: "Chicken Tikka Wrap", visualClass: "CONSTRAINED_PRODUCT_GENERATION", rightsStatus: "cleared", verifiedVisibleIngredients: ["chicken tikka", "tortilla", "sauce", "lettuce", "onion", "tomato", "coriander"], verifiedCookingMethods: [], foodTemplateId: "WRAP_ROLL" });
+  assert.equal(result.decision, "REGENERATE");
+  assert.ok(result.issues.some((issue) => issue.includes("WRAP_ROLL presentation contract")));
+});
+
+test("unverified grill-mark evidence cannot PASS when no cooking method is verified", async () => {
+  const response = visualQaResponse("PASS");
+  const payload = (await response.json()) as { candidates: Array<{ content: { parts: Array<{ text: string }> } }> };
+  const part = payload.candidates[0]!.content.parts[0]!;
+  const review = JSON.parse(part.text) as Record<string, any>;
+  review.scores = { productTruth: 95, brandFit: 80, realism: 90, foodTexture: 90, composition: 88, copyZoneSuitability: 80, governance: 95, rights: 100 };
+  review.scoreEvidence.foodTexture = { status: "PASS", observations: ["Clear grill marks and fresh vegetable textures."] };
+  part.text = JSON.stringify(review);
+  const provider = new GeminiVisualQaProvider({ apiKey: "gemini-test-key", fetchImpl: async () => new Response(JSON.stringify(payload), { status: 200, headers: { "Content-Type": "application/json" } }) });
+  const result = await provider.review({ imageBase64: "ZmFrZQ==", mimeType: "image/jpeg", brandId: "ATTHAS_RESTAURANT", productId: "CALIBRATION_CHICKEN_TIKKA_WRAP", productName: "Chicken Tikka Wrap", visualClass: "CONSTRAINED_PRODUCT_GENERATION", rightsStatus: "cleared", verifiedVisibleIngredients: ["chicken tikka", "tortilla", "sauce", "lettuce", "onion", "tomato", "coriander"], verifiedCookingMethods: [], foodTemplateId: "WRAP_ROLL" });
+  assert.equal(result.decision, "REGENERATE");
+  assert.ok(result.issues.some((issue) => issue.includes("cooking method that was not separately verified")));
+});
