@@ -4,7 +4,7 @@ This document defines the acceptance status of the `layered-architecture` branch
 
 ## Stage 1 product goal
 
-A user can move from a structured marketing brief to a governed creative, open it as editable layered design data, refine it manually or with scoped AI assistance, review alternatives, run QA, adapt formats, preserve history, explicitly approve an exact reviewed version, export a clean production asset, and register that asset back into the existing campaign revision history without bypassing task truth, brand governance, or campaign lifecycle roles.
+A user can move from a structured marketing brief to a governed creative, open it as editable layered design data, refine it manually or with scoped AI assistance, review alternatives, run QA, adapt formats, preserve history, explicitly approve an exact reviewed version, export a clean production asset, and register that asset back into the existing campaign revision history without bypassing task truth, brand governance, orchestration provenance, or campaign lifecycle roles.
 
 ## Acceptance matrix
 
@@ -15,6 +15,12 @@ A user can move from a structured marketing brief to a governed creative, open i
 | Existing truth confirmation reused | PASS | ATTHA'S truth provider points to the existing `/api/ui/*` questionnaire/confirmation/production endpoints; no parallel fact system. |
 | Truth-provider dispatch | PASS | Client truth-provider registry exposes bootstrap/prepare/confirm/upload/produce endpoints and requires explicit confirmation + immutable snapshots. Unknown clients fail closed. |
 | Immutable task truth remains authoritative | PASS | Design imports and Studio QA/edit routes bind back to campaign trace task snapshot. |
+| First-class Creative Orchestrator | PASS | `/api/studio/orchestrate` creates an immutable `CreativeOrchestrationPlan` only after the CreativeBrief is bound to an explicitly confirmed task snapshot and before governed production begins. |
+| Orchestrator specialist responsibilities | PASS | The plan explicitly coordinates `COPY_CONTENT`, `ASSET_DIRECTION` and `LAYOUT_ART_DIRECTION`, all dependent on confirmed truth + brand context + creative strategy; independent responsibilities are marked parallelizable without creating fake agent processes. |
+| Orchestration production guards | PASS | Plan requires confirmed truth only, native typography, approved-source logos, deterministic layout, generated/verified visual provenance separation and Creative Director review. Guards cannot be disabled in a valid plan. |
+| Orchestration project provenance | PASS | Completed Studio generation links the immutable orchestration plan to the created design using campaign, CreativeBrief, truth snapshot, client and brand bindings. Conflicting provenance is rejected. |
+| Orchestration execution audit | PASS | `/api/studio/orchestration/complete` derives specialist outputs, provider/model evidence, Creative Director status, QA stages, renderer evidence and media provenance from the existing governed AI trace + final DesignDocument. Execution records are immutable and queryable. |
+| Orchestrator cost discipline | PASS | Creating the plan and extracting its execution audit add exactly `0` model calls; existing strategist/finalizer/image/director calls are reused and attributed rather than duplicated. |
 | Existing campaign generation reused | PASS | Studio uses the registered ATTHA'S provider's existing production route; no competing generation pipeline. |
 | Existing Creative Director reused | PASS | Existing campaign Creative Director remains; layered review extends it after assembly. |
 | Canonical renderer-neutral DesignDocument | PASS | `src/designDocument/*`; no canvas-library types in core document. |
@@ -60,18 +66,39 @@ Stage 1 is not accepted if any of the following regress:
 
 1. Campaign creative production must still pass through task truth confirmation.
 2. Client truth-provider selection must never fall back silently to another client's provider or facts.
-3. AI must not invent or silently overwrite price, offer, branch, contact, campaign date or product facts.
-4. Generated media must never be reclassified as a verified product visual.
-5. Verified product foreground pixels must remain protected after segmentation.
-6. Logos must originate from approved source-controlled assets inside the active client's approved asset root.
-7. Promotional typography must remain native/editable rather than baked into image generation.
-8. Manual geometry/styling/history operations must not invoke a model.
-9. AI image operations must target a single isolated layer.
-10. Deterministic blockers must be resolved before final visual QA or production approval.
-11. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
-12. Any later edit must require a fresh final visual QA and explicit approval before approved export.
-13. Registering an approved Studio asset must not impersonate a client/admin lifecycle approval or automatically change campaign state.
-14. Restoring a version must create a new revision rather than erasing history.
+3. Brief-driven Studio production must create a persisted Creative Orchestration Plan after truth confirmation and before calling the production route.
+4. The orchestration plan must remain bound to the exact campaign, CreativeBrief, confirmed task snapshot, client and brand used for the resulting design.
+5. Orchestration planning/audit must not add duplicate strategist, copy, image or layout model calls merely to simulate multi-agent architecture.
+6. AI must not invent or silently overwrite price, offer, branch, contact, campaign date or product facts.
+7. Generated media must never be reclassified as a verified product visual.
+8. Verified product foreground pixels must remain protected after segmentation.
+9. Logos must originate from approved source-controlled assets inside the active client's approved asset root.
+10. Promotional typography must remain native/editable rather than baked into image generation.
+11. Manual geometry/styling/history operations must not invoke a model.
+12. AI image operations must target a single isolated layer.
+13. Deterministic blockers must be resolved before final visual QA or production approval.
+14. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
+15. Any later edit must require a fresh final visual QA and explicit approval before approved export.
+16. Registering an approved Studio asset must not impersonate a client/admin lifecycle approval or automatically change campaign state.
+17. Restoring a version must create a new revision rather than erasing history.
+
+## Governed Studio creation state machine
+
+```text
+Structured CreativeBrief
+→ registered client truth provider
+→ questionnaire preparation
+→ explicit user confirmation
+→ immutable task truth snapshot
+→ persisted CreativeOrchestrationPlan
+→ existing governed campaign production
+→ DesignDocument assembly
+→ orchestration plan linked to design provenance
+→ immutable orchestration execution audit extracted from existing AI trace
+→ editable Studio
+```
+
+The orchestrator does not create a duplicate copywriter/image/layout generation pipeline. It coordinates and records the responsibilities already performed by governed production, while deterministic layout/rendering remain deterministic software.
 
 ## Production export and campaign handoff state machine
 
@@ -95,6 +122,7 @@ selected client/brand
 → questionnaire preparation
 → explicit user confirmation
 → immutable task snapshot
+→ Creative Orchestrator
 → governed creative/production
 ```
 
