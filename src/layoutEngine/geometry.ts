@@ -10,6 +10,11 @@ export interface ArtboardSize {
   height: number;
 }
 
+export type LayerGeometryProfile =
+  | "STANDARD_HERO"
+  | "EDITORIAL_OFFCENTER"
+  | "VERTICAL_STORY";
+
 export function safeAreaRect(artboard: ArtboardSize, ratio = 0.06): Rect {
   if (ratio < 0 || ratio >= 0.5) throw new Error("Safe-area ratio must be from 0 inclusive to 0.5 exclusive.");
   const x = Math.round(artboard.width * ratio);
