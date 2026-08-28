@@ -1,5 +1,5 @@
 name: M3 Exit Live Calibration
-# round 2 after generic concept governance and structured-brief fallback fixes
+# round 3 after claim-boundary, final-art evidence, contrast and DINE_IN routing fixes
 
 on:
   push:
