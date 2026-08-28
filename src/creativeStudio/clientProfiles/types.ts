@@ -20,6 +20,12 @@ export interface CreativeBrandQaGovernance {
   logoRequirementLabel: string;
 }
 
+export interface CreativeBrandReviewContext {
+  expectedBrandIdentifier: string;
+  finalArtReviewLabel: string;
+  creativeDirectorGuidance: readonly string[];
+}
+
 export interface CreativeBrandTheme {
   brandId: string;
   displayName: string;
@@ -36,6 +42,7 @@ export interface CreativeBrandTheme {
   logoLayerName: string;
   approvedLogoAsset: CreativeApprovedBrandAsset;
   qa: CreativeBrandQaGovernance;
+  review: CreativeBrandReviewContext;
 }
 
 export interface CreativeClientProfile {
