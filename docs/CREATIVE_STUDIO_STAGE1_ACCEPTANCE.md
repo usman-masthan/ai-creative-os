@@ -4,7 +4,7 @@ This document defines the acceptance status of the `layered-architecture` branch
 
 ## Stage 1 product goal
 
-A user can move from a structured marketing brief to a governed creative, open it as editable layered design data, refine it manually or with scoped AI assistance, review alternatives, run QA, adapt formats, preserve history, explicitly approve an exact reviewed version, and export a clean production asset without bypassing task truth or brand governance.
+A user can move from a structured marketing brief to a governed creative, open it as editable layered design data, refine it manually or with scoped AI assistance, review alternatives, run QA, adapt formats, preserve history, explicitly approve an exact reviewed version, export a clean production asset, and register that asset back into the existing campaign revision history without bypassing task truth, brand governance, or campaign lifecycle roles.
 
 ## Acceptance matrix
 
@@ -34,6 +34,8 @@ A user can move from a structured marketing brief to a governed creative, open i
 | Version-bound human approval | PASS | `/api/studio/approve-version` requires current-version final visual QA `PASS`; approval records design version, approver and timestamp. |
 | Stale approval rejection | PASS | Any later edit produces a new DesignDocument version; old QA/approval records remain auditable but cannot authorize the new version. |
 | Approved production PNG export | PASS | `/api/studio/export-approved` reruns deterministic QA and requires current-version visual PASS + explicit approval before rendering standard/2×/4× PNG. |
+| Approved asset campaign handoff | PASS | `/api/studio/register-approved-asset` registers the latest approved Studio PNG as an existing campaign asset + revision, with design/version/approver/QA provenance. Registration is idempotent. |
+| Campaign lifecycle role preservation | PASS | Studio asset handoff does not move `DRAFT`, `INTERNAL_REVIEW`, `CLIENT_REVIEW`, `APPROVED` or later states. Existing workflow remains the only authority for lifecycle transitions. |
 | Initial renderer migration parity | PASS | Version 1 can be compared against governed creative/format/layout/native copy/font/logo contract. |
 | PNG export | PASS | Standard, 2× high-resolution and 4× artboard scale. Draft export remains available separately from approved production export. |
 | SVG export | PASS | Standalone source-preserving SVG export. |
@@ -60,9 +62,10 @@ Stage 1 is not accepted if any of the following regress:
 9. Deterministic blockers must be resolved before final visual QA or production approval.
 10. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
 11. Any later edit must require a fresh final visual QA and explicit approval before approved export.
-12. Restoring a version must create a new revision rather than erasing history.
+12. Registering an approved Studio asset must not impersonate a client/admin lifecycle approval or automatically change campaign state.
+13. Restoring a version must create a new revision rather than erasing history.
 
-## Production export state machine
+## Production export and campaign handoff state machine
 
 ```text
 Editable DesignDocument vN
@@ -70,6 +73,8 @@ Editable DesignDocument vN
 → flattened final visual QA (must PASS)
 → explicit human approval for vN
 → approved PNG export for vN
+→ optional registration as campaign asset/revision
+→ existing campaign review/approval lifecycle continues unchanged
 ```
 
 A change after approval creates `vN+1`. The approval for `vN` remains in governance history but is not eligible for `vN+1`.
