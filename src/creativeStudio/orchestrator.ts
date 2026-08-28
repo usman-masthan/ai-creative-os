@@ -89,6 +89,49 @@ function safeId(value: string, name: string): string {
   return trimmed;
 }
 
+function hasConfirmedFact(snapshot: TaskTruthSnapshot, key: string): boolean {
+  return snapshot.facts.some((fact) => fact.key === key);
+}
+
+function hasAnyConfirmedFact(snapshot: TaskTruthSnapshot, keys: string[]): boolean {
+  return keys.some((key) => hasConfirmedFact(snapshot, key));
+}
+
+function requireConfirmedFact(snapshot: TaskTruthSnapshot, key: string, requestedContent: string): void {
+  if (!hasConfirmedFact(snapshot, key)) {
+    throw new Error(
+      `ORCHESTRATION_CONTENT_TRUTH_MISSING: ${requestedContent} requires confirmed task truth key ${key}.`,
+    );
+  }
+}
+
+function assertRequestedContentHasConfirmedTruth(brief: CreativeBrief, snapshot: TaskTruthSnapshot): void {
+  const requirements = brief.contentRequirements;
+
+  if (requirements.showPrice) {
+    requireConfirmedFact(snapshot, "price", "Visible price");
+  }
+  if (requirements.showOffer) {
+    requireConfirmedFact(snapshot, "offerTerms", "Visible offer");
+    requireConfirmedFact(snapshot, "offerValidity", "Visible offer");
+  }
+  if (requirements.showProductName && brief.product) {
+    requireConfirmedFact(snapshot, "productName", "Visible product name");
+  }
+  if (requirements.showContactDetails
+    && !hasAnyConfirmedFact(snapshot, ["branchContactDetails", "branchPhysicalAddress"])) {
+    throw new Error(
+      "ORCHESTRATION_CONTENT_TRUTH_MISSING: visible contact details require confirmed branchContactDetails or branchPhysicalAddress task truth.",
+    );
+  }
+  if (requirements.showCampaignDates
+    && !hasAnyConfirmedFact(snapshot, ["campaignDates", "offerValidity"])) {
+    throw new Error(
+      "ORCHESTRATION_CONTENT_TRUTH_MISSING: visible campaign dates require confirmed campaignDates or offerValidity task truth.",
+    );
+  }
+}
+
 function assertConfirmedTruthBinding(input: {
   campaignId: string;
   brief: CreativeBrief;
@@ -113,6 +156,7 @@ function assertConfirmedTruthBinding(input: {
   if (!input.snapshot.confirmedBy.trim() || Number.isNaN(Date.parse(input.snapshot.confirmedAt))) {
     throw new Error("ORCHESTRATION_UNCONFIRMED_TRUTH: task truth is missing confirmation provenance.");
   }
+  assertRequestedContentHasConfirmedTruth(input.brief, input.snapshot);
 }
 
 function specialistTasks(brief: CreativeBrief): CreativeSpecialistTask[] {
@@ -133,6 +177,9 @@ function specialistTasks(brief: CreativeBrief): CreativeSpecialistTask[] {
         "Keep promotional typography as native editable text; do not bake copy into generated imagery.",
         ...(brief.contentRequirements.headlineDirection
           ? [`Follow headline direction: ${brief.contentRequirements.headlineDirection}.`]
+          : []),
+        ...(brief.contentRequirements.customInstructions
+          ? [`Treat this as creative direction only; factual claims inside it remain subject to confirmed truth: ${brief.contentRequirements.customInstructions}.`]
           : []),
       ],
     },
