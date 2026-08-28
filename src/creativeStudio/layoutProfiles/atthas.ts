@@ -28,7 +28,7 @@ const GEOMETRY_PROFILE_BY_LAYOUT = {
   ATTHAS_RESTAURANT_STORY_VERTICAL_V1: "VERTICAL_STORY",
 } satisfies Record<AtthasLayoutId, LayerGeometryProfile>;
 
-const SQUARE_PORTRAIT_LAYOUT_BY_SOURCE = {
+const FLUID_LAYOUT_BY_SOURCE = {
   ATTHAS_BURGER_HERO_PRODUCT_V1: "ATTHAS_BURGER_HERO_PRODUCT_V1",
   ATTHAS_BURGER_PROMOTIONAL_PRICE_V1: "ATTHAS_BURGER_PROMOTIONAL_PRICE_V1",
   ATTHAS_BURGER_OFFER_DEAL_V1: "ATTHAS_BURGER_OFFER_DEAL_V1",
@@ -64,16 +64,28 @@ function enrichedLayout(layout: AtthasLayoutDefinition): CreativeLayoutDefinitio
   };
 }
 
+function ratioValue(value: string): number {
+  const match = value.trim().match(/^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/);
+  if (!match) throw new Error(`ATTHAS_LAYOUT_PROVIDER_INVALID_ASPECT_RATIO: ${value}.`);
+  const width = Number(match[1]);
+  const height = Number(match[2]);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    throw new Error(`ATTHAS_LAYOUT_PROVIDER_INVALID_ASPECT_RATIO: ${value}.`);
+  }
+  return width / height;
+}
+
+function storyLikeRatio(value: string): boolean {
+  return ratioValue(value) <= 1 / 1.55;
+}
+
 function adaptationLayoutId(input: CreativeLayoutAdaptationInput): AtthasLayoutId {
   const brand = brandId(input.brandId);
   const source = layoutById(input.sourceLayoutId);
   if (source.brandId !== brand) throw new Error("ATTHAS_LAYOUT_PROVIDER_BRAND_MISMATCH.");
 
-  if (input.targetAspectRatio === "9:16") return STORY_LAYOUT_BY_BRAND[brand];
-  if (input.targetAspectRatio !== "4:5" && input.targetAspectRatio !== "1:1") {
-    throw new Error(`ATTHAS_LAYOUT_PROVIDER_UNSUPPORTED_ASPECT_RATIO: ${input.targetAspectRatio}.`);
-  }
-  return SQUARE_PORTRAIT_LAYOUT_BY_SOURCE[source.id];
+  if (storyLikeRatio(input.targetAspectRatio)) return STORY_LAYOUT_BY_BRAND[brand];
+  return FLUID_LAYOUT_BY_SOURCE[source.id];
 }
 
 function directionSpecs(input: CreativeLayoutDirectionInput): CreativeLayoutDirectionSpec[] {
@@ -185,11 +197,7 @@ export const ATTHAS_CREATIVE_LAYOUT_PROVIDER: CreativeLayoutProvider = {
     return enrichedLayout(selected);
   },
   adaptationLayout(input: CreativeLayoutAdaptationInput): CreativeLayoutDefinition {
-    const selected = layoutById(adaptationLayoutId(input));
-    if (!selected.supportedAspectRatios.includes(input.targetAspectRatio)) {
-      throw new Error(`ATTHAS_LAYOUT_PROVIDER_INCOMPATIBLE_ADAPTATION: ${selected.id} does not support ${input.targetAspectRatio}.`);
-    }
-    return enrichedLayout(selected);
+    return enrichedLayout(layoutById(adaptationLayoutId(input)));
   },
   directions(input: CreativeLayoutDirectionInput): CreativeLayoutDirectionSpec[] {
     return directionSpecs(input).map((spec) => ({ ...spec }));
