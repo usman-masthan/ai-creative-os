@@ -15,6 +15,13 @@ export function getCreativeClientProfile(clientId: string): CreativeClientProfil
   return profile;
 }
 
+export function findCreativeClientProfileForBrand(brandId: string): CreativeClientProfile {
+  const matches = Object.values(PROFILES).filter((profile) => Boolean(profile.brands[brandId.trim()]));
+  if (!matches.length) throw new Error(`CREATIVE_BRAND_PROFILE_NOT_FOUND: ${brandId}.`);
+  if (matches.length > 1) throw new Error(`CREATIVE_BRAND_PROFILE_AMBIGUOUS: ${brandId} belongs to multiple client profiles.`);
+  return matches[0]!;
+}
+
 export function getCreativeBrandTheme(clientId: string, brandId: string): CreativeBrandTheme {
   const profile = getCreativeClientProfile(clientId);
   const theme = profile.brands[brandId.trim()];
