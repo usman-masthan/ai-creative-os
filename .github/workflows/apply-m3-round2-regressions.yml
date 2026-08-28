@@ -30,7 +30,9 @@ jobs:
         run: npm ci
 
       - name: Apply diagnosed Round2 fixes
-        run: python3 scripts/_temp_patch_m3_round2.py
+        run: |
+          python3 scripts/_temp_patch_m3_round2.py
+          python3 scripts/_temp_patch_m3_round2_fixtures.py
 
       - name: Full repository gate
         run: npm run check
@@ -38,6 +40,7 @@ jobs:
       - name: Commit validated permanent changes
         run: |
           rm scripts/_temp_patch_m3_round2.py
+          rm scripts/_temp_patch_m3_round2_fixtures.py
           rm .github/workflows/apply-m3-round2-regressions.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
