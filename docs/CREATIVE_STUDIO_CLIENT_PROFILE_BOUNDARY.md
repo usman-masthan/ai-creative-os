@@ -4,7 +4,7 @@ The layered Creative Studio is being prepared for future multi-client use withou
 
 ## Current status
 
-ATTHA'S (`T001`) remains the only active Creative Client Profile and layout provider. No second client is enabled by this change.
+ATTHA'S (`T001`) remains the only active Creative Client Profile and layout provider. No second client is enabled by this work.
 
 The profile registry now owns presentation-level brand decisions that previously lived directly in shared Studio modules:
 
@@ -28,14 +28,17 @@ The profile registry now owns presentation-level brand decisions that previously
 
 `src/creativeStudio/designDocumentAssembler.ts`, `src/creativeStudio/designQa.ts` and `src/creativeStudio/autoPolish.ts` resolve these values through the registry rather than importing ATTHA'S tokens directly.
 
-The layout-provider registry owns layout-family selection and cross-format layout adaptation:
+The layout-provider registry owns layout-family selection, geometry semantics and cross-format layout adaptation:
 
 - list layouts for a client/brand
 - resolve a layout by id
 - select a governed layout from creative + production format
+- declare one of the shared geometry profiles (`STANDARD_HERO`, `EDITORIAL_OFFCENTER`, `VERTICAL_STORY`)
 - choose the corresponding layout family for 1:1, 4:5 and 9:16 adaptation
 
-`src/commands/adaptCreativeDesign.ts` asks the active client layout provider for the target layout and the client brand profile for the target artboard styling. It no longer contains ATTHA'S Burger/Restaurant layout-family branching or ATTHA'S color-token branching.
+`src/layoutEngine/resolver.ts` is now client/layout-id agnostic. It consumes an explicit geometry profile instead of recognizing ATTHA'S words such as `STORY_VERTICAL`, `MINIMAL_PREMIUM` or `EDITORIAL` inside layout ids. ATTHA'S maps all ten governed layouts to explicit geometry/adaptation semantics inside its own provider.
+
+`src/commands/adaptCreativeDesign.ts` asks the active client layout provider for both the target layout and its geometry profile, and asks the client brand profile for target artboard styling. It contains no ATTHA'S Burger/Restaurant layout-family or color-token branching.
 
 Campaign-to-Studio import also resolves through the registries. `openCreativeStudioDesign.ts` now:
 
@@ -50,6 +53,8 @@ The DesignDocument assembly bridge uses generic string brand ids and generic `Cr
 
 Approved-brand asset serving also resolves through the client profile. `src/dashboard/creativeStudioAssetServing.ts` serves `/studio-asset/...` before the legacy Studio handler and asks `assetPathGovernance.ts` to validate `approved-brand` paths against the loaded DesignDocument's `clientId` profile. Runtime assets remain confined to `.atthas-os` storage.
 
+The active `/studio` intake is profile-driven as well. The source-controlled ATTHA'S options remain as a safe initial fallback, then `creativeStudioProfiledHtml.ts` enriches the brand selector from `GET /api/studio/bootstrap`. `CreativeBrief.clientId` and `brandKitId` are read from the selected profile/brand metadata rather than fixed T001 request constants.
+
 ## Why this boundary exists
 
 The Creative Studio core should eventually support another client without duplicating:
@@ -61,13 +66,15 @@ The Creative Studio core should eventually support another client without duplic
 - deterministic brand/layout QA
 - safe deterministic auto-polish
 - governed campaign-to-design import
+- shared geometry resolution
 - QA history
 - approval/export governance
 - governed asset serving
 - campaign handoff mechanics
 - multi-format adaptation orchestration
+- structured Creative Brief intake shell
 
-Client-specific facts, layouts, brand rules and assets remain separate concerns. This profile boundary does **not** claim that the complete ATTHA'S truth or canvas geometry systems are already generic.
+Client-specific facts, layouts, brand rules and assets remain separate concerns.
 
 ## Active profile and layout provider
 
@@ -79,7 +86,7 @@ T001 — ATTHA'S
     └── 5 governed layout families
 ```
 
-`GET /api/studio/bootstrap` publishes the active client/brand profile metadata and per-brand layout count so a future UI can populate selectors from registries rather than hard-coded constants.
+`GET /api/studio/bootstrap` publishes active client/brand metadata and per-brand layout availability so the Studio UI can populate selectors from registries rather than hard-coded request values.
 
 ## Registration rule for future clients
 
@@ -88,44 +95,41 @@ A future client must not be added by cloning the ATTHA'S folder and changing nam
 1. an authoritative truth source and task-truth mapping;
 2. explicit brand tokens, approved asset roots and approved logo metadata;
 3. typography, logo and deterministic QA governance;
-4. a registered layout provider with compatible layout families;
+4. a registered layout provider with explicit geometry/adaptation semantics;
 5. product-visual truth/provenance rules;
 6. client-appropriate QA rules and auto-polish thresholds;
 7. tests proving no cross-client asset, truth or brand-token leakage.
 
 Until those requirements exist, both registries should expose only ATTHA'S.
 
-## Parity corrections made with this boundary
+## Parity guarantees
 
-The assembler now also:
+The abstraction work preserves existing ATTHA'S behavior:
 
-- omits the supporting-copy layer when supporting copy is blank instead of creating invalid whitespace text;
-- uses the profile's default semantic price style when the creative does not specify one;
-- therefore matches the existing M3 behavior: ATTHA'S Burger defaults to `BRAND_YELLOW`, while ATTHA'S Restaurant defaults to `BRAND_RED`.
+- blank supporting copy is omitted rather than emitted as invalid whitespace text;
+- Burger defaults to `BRAND_YELLOW` pricing and Restaurant defaults to `BRAND_RED`, matching M3;
+- Burger promotional/offer/minimal families remain in-family for square/portrait and use Burger Story Vertical for 9:16;
+- Restaurant editorial/multi-dish/food-hero families remain in-family for square/portrait and use Restaurant Story Vertical for 9:16;
+- Story layouts adapted back to square/portrait preserve the previous fallback behavior (Burger Hero / Restaurant Hospitality);
+- 5% QA safe area remains unchanged;
+- 32px minimum digital logo size remains unchanged;
+- the current ATTHA'S token color and font sets remain authoritative;
+- the approved logo remains mandatory;
+- approved-brand assets remain confined to the profile's approved asset root.
 
-The adaptation command preserves the existing ATTHA'S mapping through the provider:
+## Remaining portability seam
 
-- Burger promotional/offer/minimal families remain in-family for square/portrait and move to Burger Story Vertical for 9:16;
-- Restaurant editorial/multi-dish/food-hero families remain in-family for square/portrait and move to Restaurant Story Vertical for 9:16.
+The principal remaining client-specific boundary is **task-truth preparation and branch/product fact retrieval**. The current `/api/ui/prepare` and `/api/ui/confirm` flow is intentionally ATTHA'S-specific because no second client's source-of-truth system exists yet.
 
-The QA/auto-polish profile preserves the existing ATTHA'S deterministic rules:
+The correct next abstraction is a truth-provider contract that preserves the current hard fact gate:
 
-- 5% safe area;
-- 32px minimum digital logo size;
-- current ATTHA'S token color set;
-- current display/body/price font set;
-- mandatory approved logo layer.
+```text
+client/brand selection
+→ client truth provider
+→ task questionnaire
+→ explicit user confirmation
+→ immutable task snapshot
+→ creative orchestration
+```
 
-The asset-serving boundary preserves the security model while removing the path literal from the active route:
-
-- `approved-brand` assets must resolve inside the active client's declared `approvedAssetRoot`;
-- generated/uploaded/runtime assets must resolve inside Creative OS runtime storage;
-- path traversal and cross-client/root paths are rejected.
-
-## Remaining portability seams
-
-The next client-neutral boundaries should address:
-
-1. the base Studio intake UI, which intentionally remains ATTHA'S-only while T001 is the only active profile;
-2. deterministic geometry semantics in `layoutEngine/resolver.ts`, which currently recognizes ATTHA'S-style layout id concepts such as Story Vertical, Minimal Premium and Editorial;
-3. task-truth retrieval and branch/product facts, which intentionally remain ATTHA'S-specific until another client's source-of-truth system exists.
+A second client must not be activated until its truth provider can satisfy that contract without bypassing fact confirmation.
