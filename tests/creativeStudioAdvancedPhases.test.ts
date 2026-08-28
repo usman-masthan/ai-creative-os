@@ -181,10 +181,12 @@ test("multi-format adaptation recomputes story geometry rather than stretching s
   assert.equal(story.layoutId, "ATTHAS_BURGER_STORY_VERTICAL_V1");
   assert.equal(story.version, 1);
   const headline = story.layers.find((layer) => layer.id === "headline");
+  const price = story.layers.find((layer) => layer.id === "price");
+  const logo = story.layers.find((layer) => layer.id === "logo");
   assert.ok(headline);
   assert.notEqual(headline?.height, Math.round(230 * (1920 / 1350)));
-  assert.equal(story.layers.find((layer) => layer.id === "price" && layer.type === "text")?.text, "LKR 1,250");
-  assert.equal(story.layers.find((layer) => layer.id === "logo" && layer.type === "logo")?.asset.assetId, "ATTHAS_MASTER_SYMBOL_A_FORK");
+  assert.equal(price?.type === "text" ? price.text : undefined, "LKR 1,250");
+  assert.equal(logo?.type === "logo" ? logo.asset.assetId : undefined, "ATTHAS_MASTER_SYMBOL_A_FORK");
 });
 
 test("layered Creative Director validates structured review and existing layer references", async () => {
