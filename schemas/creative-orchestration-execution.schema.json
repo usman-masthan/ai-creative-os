@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-creative-os.local/schemas/creative-orchestration-execution.schema.json",
+  "title": "CreativeOrchestrationExecution",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "orchestrationId",
+    "campaignId",
+    "designId",
+    "designVersion",
+    "truthSnapshotId",
+    "clientId",
+    "brandId",
+    "specialistExecutions",
+    "creativeDirector",
+    "qa",
+    "renderer",
+    "extraModelCallsAddedByOrchestrator",
+    "completedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "orchestrationId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "campaignId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "designId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "designVersion": { "type": "integer", "minimum": 1 },
+    "truthSnapshotId": { "type": "string", "minLength": 1 },
+    "clientId": { "type": "string", "minLength": 1 },
+    "brandId": { "type": "string", "minLength": 1 },
+    "specialistExecutions": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "status", "source", "modelCalls", "providerModels", "output"],
+        "properties": {
+          "role": { "enum": ["COPY_CONTENT", "ASSET_DIRECTION", "LAYOUT_ART_DIRECTION"] },
+          "status": { "const": "COMPLETED" },
+          "source": { "enum": ["EXISTING_GOVERNED_PIPELINE", "DETERMINISTIC_LAYOUT_ENGINE"] },
+          "modelCalls": { "type": "integer", "minimum": 0 },
+          "providerModels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["provider", "model"],
+              "properties": {
+                "provider": { "type": "string", "minLength": 1 },
+                "model": { "type": "string", "minLength": 1 }
+              }
+            }
+          },
+          "output": { "type": "object" }
+        }
+      }
+    },
+    "creativeDirector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "modelCalls", "providerModels", "reviewPresent"],
+      "properties": {
+        "status": { "type": "string" },
+        "modelCalls": { "type": "integer", "minimum": 0 },
+        "providerModels": { "type": "array" },
+        "reviewPresent": { "type": "boolean" }
+      }
+    },
+    "qa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visualQa", "finalArtQa"],
+      "properties": {
+        "deterministicDesignQa": { "enum": ["PASS", "WARN", "BLOCK"] },
+        "visualQa": { "type": "string" },
+        "finalArtQa": { "type": "string" }
+      }
+    },
+    "renderer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "deterministic", "callCount"],
+      "properties": {
+        "status": { "type": "string" },
+        "deterministic": { "const": true },
+        "callCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "extraModelCallsAddedByOrchestrator": { "const": 0 },
+    "completedAt": { "type": "string", "format": "date-time" }
+  }
+}
