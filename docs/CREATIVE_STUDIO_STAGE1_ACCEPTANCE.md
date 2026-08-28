@@ -4,7 +4,7 @@ This document defines the acceptance status of the `layered-architecture` branch
 
 ## Stage 1 product goal
 
-A user can move from a structured marketing brief to a governed creative, open it as editable layered design data, refine it manually or with scoped AI assistance, review alternatives, run QA, adapt formats, preserve history, and export a clean final asset without bypassing task truth or brand governance.
+A user can move from a structured marketing brief to a governed creative, open it as editable layered design data, refine it manually or with scoped AI assistance, review alternatives, run QA, adapt formats, preserve history, explicitly approve an exact reviewed version, and export a clean production asset without bypassing task truth or brand governance.
 
 ## Acceptance matrix
 
@@ -30,9 +30,12 @@ A user can move from a structured marketing brief to a governed creative, open i
 | Deterministic design QA | PASS | Checks structure, logo, fonts, colors, safe areas, collisions, text overflow, price truth and branch availability. |
 | Low-risk auto-polish | PASS | Deterministic corrections for safe margins, minimum logo size, approved fonts and overflow risk; no copy/price/product mutation. |
 | Layered Creative Director review | PASS | Structured hierarchy/composition/brand/readability/product/CTA review persisted per design. |
-| Flattened final visual QA | PASS | Final DesignDocument PNG is reviewed by the existing FinalArt QA provider after deterministic blockers are cleared. |
+| Flattened final visual QA | PASS | Final DesignDocument PNG is reviewed by the existing FinalArt QA provider after deterministic blockers are cleared. Result is persisted against the exact design version. |
+| Version-bound human approval | PASS | `/api/studio/approve-version` requires current-version final visual QA `PASS`; approval records design version, approver and timestamp. |
+| Stale approval rejection | PASS | Any later edit produces a new DesignDocument version; old QA/approval records remain auditable but cannot authorize the new version. |
+| Approved production PNG export | PASS | `/api/studio/export-approved` reruns deterministic QA and requires current-version visual PASS + explicit approval before rendering standard/2×/4× PNG. |
 | Initial renderer migration parity | PASS | Version 1 can be compared against governed creative/format/layout/native copy/font/logo contract. |
-| PNG export | PASS | Standard, 2× high-resolution and 4× artboard scale. |
+| PNG export | PASS | Standard, 2× high-resolution and 4× artboard scale. Draft export remains available separately from approved production export. |
 | SVG export | PASS | Standalone source-preserving SVG export. |
 | Rect / ellipse mask rendering | PASS | HTML/PNG and SVG render paths support rotated rect/ellipse masks. Multiple visible masks targeting the same layer are rejected explicitly. |
 | Multi-format adaptation | PASS | 1:1, 4:5 and 9:16 recomposition creates new DesignDocuments rather than stretching. |
@@ -54,8 +57,22 @@ Stage 1 is not accepted if any of the following regress:
 6. Promotional typography must remain native/editable rather than baked into image generation.
 7. Manual geometry/styling/history operations must not invoke a model.
 8. AI image operations must target a single isolated layer.
-9. Deterministic blockers must be resolved before final visual QA/export approval.
-10. Restoring a version must create a new revision rather than erasing history.
+9. Deterministic blockers must be resolved before final visual QA or production approval.
+10. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
+11. Any later edit must require a fresh final visual QA and explicit approval before approved export.
+12. Restoring a version must create a new revision rather than erasing history.
+
+## Production export state machine
+
+```text
+Editable DesignDocument vN
+→ deterministic QA (PASS or WARN; BLOCK stops)
+→ flattened final visual QA (must PASS)
+→ explicit human approval for vN
+→ approved PNG export for vN
+```
+
+A change after approval creates `vN+1`. The approval for `vN` remains in governance history but is not eligible for `vN+1`.
 
 ## CI acceptance gate
 
