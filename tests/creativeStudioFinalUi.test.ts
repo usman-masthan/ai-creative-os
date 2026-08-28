@@ -50,7 +50,7 @@ test("active Studio intake resolves client, brand-kit and truth provider metadat
   assert.doesNotMatch(html, /brandKitId:'ATTHAS_WORKING_V1',createdAt:/);
 });
 
-test("Studio generation creates Creative Orchestration only after truth confirmation and before production", () => {
+test("Studio generation creates and audits Creative Orchestration in governed order", () => {
   const html = creativeStudioProfiledHtml();
   const confirm = html.indexOf("var confirmed=await api(truthEndpoint('confirm')");
   const bindTruth = html.indexOf("state.brief.truthSnapshotId='task:'+state.snapshot.sessionId");
@@ -58,13 +58,19 @@ test("Studio generation creates Creative Orchestration only after truth confirma
   const produce = html.indexOf("var result=await api(truthEndpoint('produce')");
   const open = html.indexOf("var project=await api('/api/studio/open'");
   const link = html.indexOf("var orchestrationLink=await api('/api/studio/orchestration/link'");
+  const complete = html.indexOf("var orchestrationExecution=await api('/api/studio/orchestration/complete'");
+  const load = html.indexOf("loadProject(project);", complete);
   assert.ok(confirm >= 0);
   assert.ok(bindTruth > confirm);
   assert.ok(orchestrate > bindTruth);
   assert.ok(produce > orchestrate);
   assert.ok(open > produce);
   assert.ok(link > open);
+  assert.ok(complete > link);
+  assert.ok(load > complete);
   assert.match(html, /taskTruthSnapshot:state\.snapshot/);
   assert.match(html, /READY_FOR_GOVERNED_PRODUCTION/);
+  assert.match(html, /extraModelCallsAddedByOrchestrator!==0/);
   assert.match(html, /project\.orchestration=state\.orchestration/);
+  assert.match(html, /project\.orchestrationExecution=orchestrationExecution/);
 });
