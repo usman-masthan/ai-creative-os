@@ -8,8 +8,8 @@ import {
   getCreativeBrandTheme,
   listCreativeClientProfiles,
 } from "../src/creativeStudio/clientProfiles/registry.js";
+import { getCreativeLayoutProvider } from "../src/creativeStudio/layoutProfiles/registry.js";
 import type { CampaignCreativeOutput } from "../src/creativeTypes.js";
-import { ATTHAS_LAYOUTS } from "../src/layouts/atthas.js";
 
 const restaurantCreative: CampaignCreativeOutput = {
   concepts: [{
@@ -87,8 +87,7 @@ test("Creative Studio client profile registry exposes ATTHAS styling, assets and
 });
 
 test("Restaurant assembler uses M3-compatible red default price style and omits blank supporting text", () => {
-  const layout = ATTHAS_LAYOUTS.find((candidate) => candidate.id === "ATTHAS_RESTAURANT_FOOD_HERO_V1");
-  assert.ok(layout);
+  const layout = getCreativeLayoutProvider("T001").get("ATTHAS_RESTAURANT_FOOD_HERO_V1");
   const document = generateCreativeDesign({
     designId: "restaurant-profile-design",
     campaignId: "restaurant-profile-campaign",
