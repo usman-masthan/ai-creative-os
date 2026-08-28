@@ -85,3 +85,16 @@ The report's automated pass is deliberately stricter than a raw Visual QA `PASS`
 ## Important calibration distinction
 
 The M2 exit run is a **mini-calibration** of the integrated pipeline. The M2.8 model-escalation thresholds remain provisional until a broader 20-image calibration set is reviewed. Do not treat the current thresholds as permanently tuned production values until that work is complete.
+
+
+## 2026-08-28 exit result
+
+The integrated M2 exit calibration is **closed as PASS for the selected candidate**. The run remained synthetic, non-publishable and performed no truth write-back.
+
+- Selected reference: `draft-attempt-01.jpg` from `gemini-3.1-flash-lite-image`.
+- Corrected evidence-aware Visual QA: PASS with productTruth 90, realism 85, foodTexture 82, composition 83, governance 90 and upper-left copy zone GOOD.
+- Manual visual review: PASS. The selected image had no baked-in graphic elements, no obvious extra ingredient, credible food texture/lighting and the strongest upper-left copy-safe area of the three attempts.
+- Attempt 2 exposed a QA false positive: grill marks plus a separate side salad / sauce ramekin implied unverified preparation and serving configuration. M2 was not closed until a deterministic serving/preparation truth guard and regression tests were added.
+- Attempt 3 was visually strong but had a less reliable upper-left copy zone than attempt 1 in manual review.
+
+This closes the M2 mini-calibration and authorizes moving to M3 renderer work. The M2.8 Flash Lite / Flash / Pro score thresholds are still explicitly provisional until the separate 20-image calibration set is completed.

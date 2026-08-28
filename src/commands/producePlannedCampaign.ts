@@ -524,12 +524,29 @@ function buildVisualQaRequest(input: {
   bytes: Buffer;
   mimeType: string;
   structuredBrief?: StructuredImageBrief;
+  foodComposition?: DeterministicFoodComposition;
 }): VisualQaRequest {
   const compositionRequirements = [
     ...input.layout.imageCompositionRequirements,
     ...(input.context.compositionRequirements ?? []),
   ];
   const compositionExpectation = compositionExpectationFromBrief(input.structuredBrief);
+  const foodTruthMustInclude =
+    input.foodComposition?.templateId === "WRAP_ROLL"
+      ? ["one coherent wrap-style food subject; do not convert verified ingredients into separately served side dishes"]
+      : [];
+  const foodTruthMustNotInclude = [
+    ...(input.foodComposition?.templateId === "WRAP_ROLL"
+      ? [
+          "separate side salad, separate sauce or dip ramekin, extra side dish, or duplicate serving component outside the wrap unless explicitly verified",
+        ]
+      : []),
+    ...((input.foodComposition?.confirmedCookingMethods.length ?? 0) === 0 && input.foodComposition
+      ? [
+          "visible preparation cues that imply an unverified cooking method, including grill marks, griddle marks, toast marks, sear marks or deliberate charring beyond neutral browning",
+        ]
+      : []),
+  ];
 
   return {
     ...input.context,
@@ -539,7 +556,15 @@ function buildVisualQaRequest(input: {
       : {}),
     imageBase64: input.bytes.toString("base64"),
     mimeType: input.mimeType,
+    mustInclude: [...new Set([...(input.context.mustInclude ?? []), ...foodTruthMustInclude])],
+    mustNotInclude: [...new Set([...(input.context.mustNotInclude ?? []), ...foodTruthMustNotInclude])],
     compositionRequirements: [...new Set(compositionRequirements)],
+    ...(input.foodComposition
+      ? {
+          foodTemplateId: input.foodComposition.templateId,
+          verifiedCookingMethods: [...input.foodComposition.confirmedCookingMethods],
+        }
+      : {}),
     ...(compositionExpectation ? { compositionExpectation } : {}),
   };
 }
@@ -788,6 +813,9 @@ export async function producePlannedCampaign(
         mimeType: current.mimeType,
         ...(current.summary.structuredBrief
           ? { structuredBrief: current.summary.structuredBrief }
+          : {}),
+        ...(current.summary.foodComposition
+          ? { foodComposition: current.summary.foodComposition }
           : {}),
       }),
     );

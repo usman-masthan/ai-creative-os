@@ -47,6 +47,8 @@ export interface VisualQaRequest {
   visualClass: VisualClass;
   rightsStatus: VisualRightsStatus;
   verifiedVisibleIngredients?: string[];
+  verifiedCookingMethods?: string[];
+  foodTemplateId?: string;
   mustInclude?: string[];
   mustNotInclude?: string[];
   compositionRequirements?: string[];

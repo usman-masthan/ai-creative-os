@@ -15,7 +15,7 @@ const report = JSON.parse(await readFile(reportPath, "utf8")) as {
   publishable: boolean;
   product: { productId: string; productName: string; ingredients: string[] };
   selectedLayout: { brandId: "ATTHAS_RESTAURANT" | "ATTHAS_BURGER"; imageCompositionRequirements: string[] } | null;
-  imageAttempts: Array<{ attempt: number; model: string; rawImagePath: string; structuredBrief: StructuredImageBrief | null }>;
+  imageAttempts: Array<{ attempt: number; model: string; rawImagePath: string; structuredBrief: StructuredImageBrief | null; foodComposition?: { templateId: string; confirmedCookingMethods: string[] } }>;
 };
 if (report.calibrationOnly !== true || report.publishable !== false) throw new Error("Refusing QA recheck because the report is not calibration-only/non-publishable.");
 if (!report.selectedLayout) throw new Error("Calibration report is missing selectedLayout.");
@@ -36,8 +36,9 @@ for (const attempt of report.imageAttempts) {
     visualClass: "CONSTRAINED_PRODUCT_GENERATION",
     rightsStatus: "cleared",
     verifiedVisibleIngredients: [...report.product.ingredients],
-    mustInclude: ["one coherent wrap-style food hero"],
-    mustNotInclude: ["unverified ingredients", "generated text", "ATTHA'S logo or signage", "price or offer text", "branded packaging", "dark rectangular panels", "CTA panels", "headline panels", "badges", "decorative graphic strips"],
+    ...(attempt.foodComposition ? { foodTemplateId: attempt.foodComposition.templateId, verifiedCookingMethods: [...attempt.foodComposition.confirmedCookingMethods] } : {}),
+    mustInclude: ["one coherent wrap-style food hero; do not convert verified ingredients into separately served side dishes"],
+    mustNotInclude: ["unverified ingredients", "generated text", "ATTHA'S logo or signage", "price or offer text", "branded packaging", "dark rectangular panels", "CTA panels", "headline panels", "badges", "decorative graphic strips", "separate side salad, separate sauce or dip ramekin, extra side dish, or duplicate serving component outside the wrap", "visible grill marks, griddle marks, toast marks, sear marks or deliberate charring that imply an unverified cooking method"],
     compositionRequirements: [...report.selectedLayout.imageCompositionRequirements, "preserve a genuinely quiet copy-safe area", "keep the food hero clear of the intended copy zone", "use a crop that remains safe for deterministic poster overlay"],
     compositionExpectation: compositionExpectationFromBrief(attempt.structuredBrief),
   });
