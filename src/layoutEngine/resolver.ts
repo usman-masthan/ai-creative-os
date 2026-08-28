@@ -1,4 +1,10 @@
-import { clampRectToArtboard, safeAreaRect, type ArtboardSize, type Rect } from "./geometry.js";
+import {
+  clampRectToArtboard,
+  safeAreaRect,
+  type ArtboardSize,
+  type LayerGeometryProfile,
+  type Rect,
+} from "./geometry.js";
 
 export type DesignCopyZone = "upperLeft" | "upperRight" | "lowerLeft" | "lowerRight";
 
@@ -24,9 +30,34 @@ function copyAnchor(safe: Rect, zone: DesignCopyZone, width: number, height: num
   };
 }
 
+function subjectRect(profile: LayerGeometryProfile, artboard: ArtboardSize): Rect {
+  if (profile === "VERTICAL_STORY") {
+    return {
+      x: Math.round(artboard.width * 0.08),
+      y: Math.round(artboard.height * 0.30),
+      width: Math.round(artboard.width * 0.84),
+      height: Math.round(artboard.height * 0.52),
+    };
+  }
+  if (profile === "EDITORIAL_OFFCENTER") {
+    return {
+      x: Math.round(artboard.width * 0.42),
+      y: Math.round(artboard.height * 0.26),
+      width: Math.round(artboard.width * 0.52),
+      height: Math.round(artboard.height * 0.60),
+    };
+  }
+  return {
+    x: Math.round(artboard.width * 0.30),
+    y: Math.round(artboard.height * 0.30),
+    width: Math.round(artboard.width * 0.66),
+    height: Math.round(artboard.height * 0.58),
+  };
+}
+
 export function resolveLayerGeometry(input: {
   artboard: ArtboardSize;
-  layoutId: string;
+  geometryProfile: LayerGeometryProfile;
   copyZone?: DesignCopyZone;
   hasPrice: boolean;
 }): LayerGeometryPlan {
@@ -72,15 +103,10 @@ export function resolveLayerGeometry(input: {
     width: logoWidth,
     height: logoHeight,
   }, artboard);
-  const subject = input.layoutId.includes("STORY_VERTICAL")
-    ? { x: Math.round(artboard.width * 0.08), y: Math.round(artboard.height * 0.30), width: Math.round(artboard.width * 0.84), height: Math.round(artboard.height * 0.52) }
-    : input.layoutId.includes("MINIMAL_PREMIUM") || input.layoutId.includes("EDITORIAL")
-      ? { x: Math.round(artboard.width * 0.42), y: Math.round(artboard.height * 0.26), width: Math.round(artboard.width * 0.52), height: Math.round(artboard.height * 0.60) }
-      : { x: Math.round(artboard.width * 0.30), y: Math.round(artboard.height * 0.30), width: Math.round(artboard.width * 0.66), height: Math.round(artboard.height * 0.58) };
   return {
     safeArea: safe,
     background: { x: 0, y: 0, width: artboard.width, height: artboard.height },
-    subject: clampRectToArtboard(subject, artboard),
+    subject: clampRectToArtboard(subjectRect(input.geometryProfile, artboard), artboard),
     headline,
     supporting,
     cta,
