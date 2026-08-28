@@ -2,16 +2,18 @@ import { resolve } from "node:path";
 
 import { readAiTrace, type AiTraceDocument } from "../aiTrace.js";
 import type { CampaignCreativeOutput, CampaignProductionFormat } from "../creativeTypes.js";
+import { findCreativeClientProfileForBrand, getCreativeBrandTheme } from "../creativeStudio/clientProfiles/registry.js";
+import type { CreativeClientProfile, CreativeBrandTheme } from "../creativeStudio/clientProfiles/types.js";
+import { getCreativeLayoutProvider } from "../creativeStudio/layoutProfiles/registry.js";
 import type { DesignAssetRef, DesignDocument, VisualTruthClass } from "../designDocument/types.js";
-import { selectAtthasLayout, type AtthasBrandId, type AtthasLayoutId } from "../layouts/atthas.js";
 import type { TaskTruthSnapshot } from "../taskTruth.js";
 import type { DesignCopyZone } from "../layoutEngine/resolver.js";
 import { generateCreativeDesign } from "./generateCreativeDesign.js";
 
 interface RendererTraceRequest {
   campaignId?: string;
-  brandId?: AtthasBrandId;
-  layoutId?: AtthasLayoutId;
+  brandId?: string;
+  layoutId?: string;
   baseImagePath?: string;
   format?: CampaignProductionFormat;
 }
@@ -87,15 +89,16 @@ function backgroundAsset(input: {
   };
 }
 
-function approvedLogoAsset(repoRoot: string): DesignAssetRef {
+function approvedLogoAsset(
+  repoRoot: string,
+  profile: CreativeClientProfile,
+  theme: CreativeBrandTheme,
+): DesignAssetRef {
   return {
-    assetId: "ATTHAS_MASTER_SYMBOL_A_FORK",
+    assetId: theme.approvedLogoAsset.assetId,
     source: "approved-brand",
-    uri: resolve(
-      repoRoot,
-      "clients/T001-atthas/assets/logos/source/atthas-master-symbol-a-fork.svg",
-    ),
-    mimeType: "image/svg+xml",
+    uri: resolve(repoRoot, profile.approvedAssetRoot, theme.approvedLogoAsset.relativePath),
+    mimeType: theme.approvedLogoAsset.mimeType,
   };
 }
 
@@ -116,10 +119,10 @@ export async function openCreativeStudioDesign(input: {
   const renderer = rendererRequest(trace);
   const snapshot = truthSnapshot(trace);
   const brandId = renderer.brandId ?? snapshot.brandId;
-  if (brandId !== "ATTHAS_BURGER" && brandId !== "ATTHAS_RESTAURANT") {
-    throw new Error(`DESIGN_IMPORT_FAILED: unsupported ATTHA'S brand ${brandId}.`);
-  }
-  const layout = selectAtthasLayout({
+  const profile = findCreativeClientProfileForBrand(brandId);
+  const theme = getCreativeBrandTheme(profile.clientId, brandId);
+  const layoutProvider = getCreativeLayoutProvider(profile.clientId);
+  const layout = layoutProvider.select({
     brandId,
     creative,
     format: renderer.format!,
@@ -130,9 +133,9 @@ export async function openCreativeStudioDesign(input: {
     campaignId: input.campaignId,
     ...(input.creativeBriefId ? { creativeBriefId: input.creativeBriefId } : {}),
     truthSnapshotId: `task:${snapshot.sessionId}`,
-    clientId: "T001",
+    clientId: profile.clientId,
     brandId,
-    brandKitId: "ATTHAS_WORKING_V1",
+    brandKitId: profile.defaultBrandKitId,
     creative,
     format: renderer.format!,
     layout,
@@ -141,7 +144,7 @@ export async function openCreativeStudioDesign(input: {
       snapshot,
       path: renderer.baseImagePath!,
     }),
-    logoAsset: approvedLogoAsset(input.repoRoot),
+    logoAsset: approvedLogoAsset(input.repoRoot, profile, theme),
     ...(input.copyZone ? { copyZone: input.copyZone } : {}),
     ...(input.createdAt ? { createdAt: input.createdAt } : {}),
   });
