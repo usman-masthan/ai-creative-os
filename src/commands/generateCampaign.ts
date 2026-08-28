@@ -15,6 +15,7 @@ import type {
   CampaignProductionComplexity,
   CampaignProductionFormat,
 } from "../creativeTypes.js";
+import { assertCreativeProductionFormat } from "../creativeStudio/contracts/outputFormat.js";
 import { formatLkr } from "../money.js";
 import type { MarketingCampaignType } from "../marketingPlannerTypes.js";
 import { resolveProductionFormat } from "../platformFormat.js";
@@ -32,6 +33,7 @@ export interface GenerateCampaignRequest extends CreateCampaignRequest {
   campaignType?: MarketingCampaignType;
   brandGovernance?: BrandGovernance;
   claimGovernance?: ClaimGovernance;
+  productionFormat?: CampaignProductionFormat;
   maxRepairAttempts?: number;
 }
 
@@ -200,7 +202,9 @@ export async function generateCampaign(
     );
   }
 
-  const productionFormat = resolveProductionFormat(request.channel, request.assetType);
+  const productionFormat = request.productionFormat
+    ? assertCreativeProductionFormat(request.productionFormat)
+    : resolveProductionFormat(request.channel, request.assetType);
   const maxRepairAttempts = normalizeRepairCount(request.maxRepairAttempts);
   const originalPrompt = buildCampaignGenerationPrompt({
     request,
