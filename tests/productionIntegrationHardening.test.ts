@@ -8,6 +8,7 @@ import {
   assertWorkspaceUploadedAssetMatchesTask,
   buildWorkspaceVisualQaContext,
   coerceWorkspaceTruthValue,
+  assertWorkspaceProductPhotoApproval,
   type WorkspaceUploadedAsset,
 } from "../src/dashboard/workspaceProduction.js";
 import type { TaskTruthSnapshot } from "../src/taskTruth.js";
@@ -81,7 +82,7 @@ test("workspace truth values are typed instead of frozen as arbitrary strings", 
   assert.equal(coerceWorkspaceTruthValue("branchAvailability", "yes"), true);
   assert.equal(coerceWorkspaceTruthValue("branchAvailability", "no"), false);
   assert.equal(coerceWorkspaceTruthValue("price", "1,230"), 1230);
-  assert.deepEqual(coerceWorkspaceTruthValue("ingredients", "bun, chicken, lettuce"), ["bun", "chicken", "lettuce"]);
+  assert.deepEqual(coerceWorkspaceTruthValue("ingredients", "bun, chicken; lettuce\nsauce"), ["bun", "chicken", "lettuce", "sauce"]);
   assert.throws(() => coerceWorkspaceTruthValue("approvedProductVisual", "yes"));
 });
 
@@ -131,4 +132,20 @@ test("uploaded asset cannot cross campaign/product scope", () => {
     branchId: "BURGER_WELLAMPITIYA",
     productId: "Different Burger",
   }), /product binding mismatch/i);
+});
+
+
+test("product photo binding refuses incomplete approval metadata", () => {
+  assert.throws(() => assertWorkspaceProductPhotoApproval({
+    productId: "Crispy Chicken Burger",
+    approvedForAds: true,
+    appearanceVerified: false,
+    ingredientMatchVerified: true,
+  }), /product appearance verification/i);
+  assert.doesNotThrow(() => assertWorkspaceProductPhotoApproval({
+    productId: "Crispy Chicken Burger",
+    approvedForAds: true,
+    appearanceVerified: true,
+    ingredientMatchVerified: true,
+  }));
 });
