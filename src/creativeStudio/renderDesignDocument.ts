@@ -1,7 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
 
-import type { DesignAssetRef, DesignDocument, DesignLayer } from "../designDocument/types.js";
+import type {
+  DesignAssetRef,
+  DesignDocument,
+  DesignLayer,
+  DesignMaskLayer,
+} from "../designDocument/types.js";
 import { assertDesignDocument } from "../designDocument/validator.js";
 import { renderPosterPng } from "../posterRenderer.js";
 
@@ -21,6 +26,11 @@ export interface DesignSvgExportResult {
   outputPath: string;
   width: number;
   height: number;
+}
+
+interface Point {
+  x: number;
+  y: number;
 }
 
 function mimeFromPath(path: string): string {
@@ -58,7 +68,84 @@ function scaled(value: number, scale: number): number {
   return Math.round(value * scale * 100) / 100;
 }
 
-function layerStyle(layer: DesignLayer, scale: number): string {
+function rotatePoint(point: Point, centre: Point, degrees: number): Point {
+  if (!degrees) return point;
+  const radians = degrees * Math.PI / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const dx = point.x - centre.x;
+  const dy = point.y - centre.y;
+  return {
+    x: centre.x + dx * cos - dy * sin,
+    y: centre.y + dx * sin + dy * cos,
+  };
+}
+
+function maskArtboardPoints(mask: DesignMaskLayer): Point[] {
+  const centre = { x: mask.x + mask.width / 2, y: mask.y + mask.height / 2 };
+  const points: Point[] = [];
+  if (mask.shape === "rect") {
+    points.push(
+      { x: mask.x, y: mask.y },
+      { x: mask.x + mask.width, y: mask.y },
+      { x: mask.x + mask.width, y: mask.y + mask.height },
+      { x: mask.x, y: mask.y + mask.height },
+    );
+  } else {
+    const samples = 32;
+    for (let index = 0; index < samples; index += 1) {
+      const angle = index / samples * Math.PI * 2;
+      points.push({
+        x: centre.x + Math.cos(angle) * mask.width / 2,
+        y: centre.y + Math.sin(angle) * mask.height / 2,
+      });
+    }
+  }
+  return points.map((point) => rotatePoint(point, centre, mask.rotation));
+}
+
+function maskPointsRelativeToTarget(mask: DesignMaskLayer, target: DesignLayer): Point[] {
+  if (target.width <= 0 || target.height <= 0) {
+    throw new Error(`MASK_TARGET_INVALID: ${target.id} has zero-sized geometry.`);
+  }
+  const targetCentre = { x: target.x + target.width / 2, y: target.y + target.height / 2 };
+  return maskArtboardPoints(mask).map((point) => {
+    const local = rotatePoint(point, targetCentre, -target.rotation);
+    return {
+      x: (local.x - target.x) / target.width,
+      y: (local.y - target.y) / target.height,
+    };
+  });
+}
+
+function visibleMaskMap(document: DesignDocument): Map<string, DesignMaskLayer> {
+  const result = new Map<string, DesignMaskLayer>();
+  for (const layer of document.layers) {
+    if (layer.type !== "mask" || !layer.visible) continue;
+    for (const targetId of layer.targetLayerIds) {
+      const target = document.layers.find((candidate) => candidate.id === targetId);
+      if (!target) throw new Error(`MASK_TARGET_MISSING: ${layer.id} references ${targetId}.`);
+      if (target.type === "mask" || target.type === "group") {
+        throw new Error(`MASK_TARGET_UNSUPPORTED: ${layer.id} cannot target ${target.type} layer ${targetId}.`);
+      }
+      if (result.has(targetId)) {
+        throw new Error(`MASK_TARGET_AMBIGUOUS: ${targetId} has more than one visible mask.`);
+      }
+      result.set(targetId, layer);
+    }
+  }
+  return result;
+}
+
+function cssClipPath(mask: DesignMaskLayer | undefined, target: DesignLayer): string {
+  if (!mask) return "";
+  const points = maskPointsRelativeToTarget(mask, target)
+    .map((point) => `${Math.round(point.x * 10000) / 100}% ${Math.round(point.y * 10000) / 100}%`)
+    .join(",");
+  return `clip-path:polygon(${points})`;
+}
+
+function layerStyle(layer: DesignLayer, scale: number, mask?: DesignMaskLayer): string {
   return [
     "position:absolute",
     `left:${scaled(layer.x, scale)}px`,
@@ -69,12 +156,14 @@ function layerStyle(layer: DesignLayer, scale: number): string {
     `z-index:${layer.zIndex}`,
     `transform:rotate(${layer.rotation}deg)`,
     "transform-origin:center center",
+    cssClipPath(mask, layer),
     layer.visible ? "display:block" : "display:none",
-  ].join(";");
+  ].filter(Boolean).join(";");
 }
 
-async function renderLayer(layer: DesignLayer, scale: number): Promise<string> {
-  const base = layerStyle(layer, scale);
+async function renderLayer(layer: DesignLayer, scale: number, mask?: DesignMaskLayer): Promise<string> {
+  if (layer.type === "mask") return "";
+  const base = layerStyle(layer, scale, mask);
   switch (layer.type) {
     case "background": {
       if (layer.asset) {
@@ -110,8 +199,6 @@ async function renderLayer(layer: DesignLayer, scale: number): Promise<string> {
     }
     case "group":
       return "";
-    case "mask":
-      throw new Error(`UNSUPPORTED_LAYER: mask rendering is not implemented for ${layer.id}.`);
   }
 }
 
@@ -120,8 +207,9 @@ export async function buildDesignDocumentHtml(documentInput: DesignDocument, sca
   if (!Number.isFinite(scale) || scale <= 0 || scale > 8) throw new Error("Export scale must be greater than 0 and at most 8.");
   const width = Math.round(document.artboard.width * scale);
   const height = Math.round(document.artboard.height * scale);
+  const masks = visibleMaskMap(document);
   const sorted = [...document.layers].sort((a, b) => a.zIndex - b.zIndex);
-  const rendered = await Promise.all(sorted.map((layer) => renderLayer(layer, scale)));
+  const rendered = await Promise.all(sorted.map((layer) => renderLayer(layer, scale, masks.get(layer.id))));
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -150,57 +238,82 @@ function svgTransform(layer: DesignLayer): string {
   return ` transform="rotate(${layer.rotation} ${cx} ${cy})"`;
 }
 
-async function renderSvgLayer(layer: DesignLayer): Promise<string> {
-  if (!layer.visible) return "";
+function safeSvgId(value: string): string {
+  return value.replace(/[^A-Za-z0-9_.-]/g, "-");
+}
+
+function svgClipId(mask: DesignMaskLayer, target: DesignLayer): string {
+  return `clip-${safeSvgId(mask.id)}-${safeSvgId(target.id)}`;
+}
+
+function svgClipDefinition(mask: DesignMaskLayer, target: DesignLayer): string {
+  const points = maskPointsRelativeToTarget(mask, target)
+    .map((point) => `${Math.round(point.x * 1000000) / 1000000},${Math.round(point.y * 1000000) / 1000000}`)
+    .join(" ");
+  return `<clipPath id="${svgClipId(mask, target)}" clipPathUnits="objectBoundingBox"><polygon points="${points}"/></clipPath>`;
+}
+
+function svgClipAttribute(mask: DesignMaskLayer | undefined, target: DesignLayer): string {
+  return mask ? ` clip-path="url(#${svgClipId(mask, target)})"` : "";
+}
+
+async function renderSvgLayer(layer: DesignLayer, mask?: DesignMaskLayer): Promise<string> {
+  if (!layer.visible || layer.type === "mask") return "";
   const opacity = ` opacity="${layer.opacity}"`;
   const transform = svgTransform(layer);
+  const clip = svgClipAttribute(mask, layer);
   switch (layer.type) {
     case "background": {
       if (!layer.asset) {
-        return `<rect data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" fill="${escapeHtml(layer.fill ?? "transparent")}"${opacity}${transform}/>`;
+        return `<rect data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" fill="${escapeHtml(layer.fill ?? "transparent")}"${opacity}${transform}${clip}/>`;
       }
       const href = await assetDataUri(layer.asset);
-      return `<image data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" href="${escapeHtml(href)}" preserveAspectRatio="${layer.fit === "contain" ? "xMidYMid meet" : "xMidYMid slice"}"${opacity}${transform}/>`;
+      return `<image data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" href="${escapeHtml(href)}" preserveAspectRatio="${layer.fit === "contain" ? "xMidYMid meet" : "xMidYMid slice"}"${opacity}${transform}${clip}/>`;
     }
     case "image": {
       const href = await assetDataUri(layer.asset);
-      return `<image data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" href="${escapeHtml(href)}" preserveAspectRatio="${layer.fit === "contain" ? "xMidYMid meet" : layer.fit === "fill" ? "none" : "xMidYMid slice"}"${opacity}${transform}/>`;
+      return `<image data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" href="${escapeHtml(href)}" preserveAspectRatio="${layer.fit === "contain" ? "xMidYMid meet" : layer.fit === "fill" ? "none" : "xMidYMid slice"}"${opacity}${transform}${clip}/>`;
     }
     case "logo": {
       const href = await assetDataUri(layer.asset);
-      return `<image data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" href="${escapeHtml(href)}" preserveAspectRatio="xMidYMid meet"${opacity}${transform}/>`;
+      return `<image data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" href="${escapeHtml(href)}" preserveAspectRatio="xMidYMid meet"${opacity}${transform}${clip}/>`;
     }
     case "shape": {
       const fill = escapeHtml(layer.fill ?? "transparent");
       const stroke = escapeHtml(layer.stroke ?? "none");
       const strokeWidth = layer.strokeWidth ?? 0;
       if (layer.shape === "ellipse") {
-        return `<ellipse data-layer-id="${escapeHtml(layer.id)}" cx="${layer.x + layer.width / 2}" cy="${layer.y + layer.height / 2}" rx="${layer.width / 2}" ry="${layer.height / 2}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"${opacity}${transform}/>`;
+        return `<ellipse data-layer-id="${escapeHtml(layer.id)}" cx="${layer.x + layer.width / 2}" cy="${layer.y + layer.height / 2}" rx="${layer.width / 2}" ry="${layer.height / 2}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"${opacity}${transform}${clip}/>`;
       }
       if (layer.shape === "line") {
-        return `<line data-layer-id="${escapeHtml(layer.id)}" x1="${layer.x}" y1="${layer.y}" x2="${layer.x + layer.width}" y2="${layer.y + layer.height}" stroke="${escapeHtml(layer.stroke ?? layer.fill ?? "#000000")}" stroke-width="${Math.max(1, strokeWidth)}"${opacity}${transform}/>`;
+        return `<line data-layer-id="${escapeHtml(layer.id)}" x1="${layer.x}" y1="${layer.y}" x2="${layer.x + layer.width}" y2="${layer.y + layer.height}" stroke="${escapeHtml(layer.stroke ?? layer.fill ?? "#000000")}" stroke-width="${Math.max(1, strokeWidth)}"${opacity}${transform}${clip}/>`;
       }
-      return `<rect data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" rx="${layer.cornerRadius ?? 0}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"${opacity}${transform}/>`;
+      return `<rect data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" rx="${layer.cornerRadius ?? 0}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"${opacity}${transform}${clip}/>`;
     }
     case "text": {
       const alignItems = layer.role === "cta" || layer.role === "price" ? "center" : "flex-start";
       const justify = layer.align === "center" ? "center" : layer.align === "right" ? "flex-end" : "flex-start";
       const stroke = layer.stroke ? `-webkit-text-stroke:0.5px ${escapeCss(layer.stroke)};` : "";
-      return `<foreignObject data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}"${opacity}${transform}><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;overflow:hidden;display:flex;align-items:${alignItems};justify-content:${justify};white-space:pre-wrap;font-family:&quot;${escapeHtml(layer.fontFamily)}&quot;,Arial,sans-serif;font-size:${layer.fontSize}px;font-weight:${layer.fontWeight};line-height:${layer.lineHeight};letter-spacing:${layer.letterSpacing}px;text-align:${layer.align};color:${escapeCss(layer.fill)};${stroke}">${escapeHtml(layer.text)}</div></foreignObject>`;
+      return `<foreignObject data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}"${opacity}${transform}${clip}><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;overflow:hidden;display:flex;align-items:${alignItems};justify-content:${justify};white-space:pre-wrap;font-family:&quot;${escapeHtml(layer.fontFamily)}&quot;,Arial,sans-serif;font-size:${layer.fontSize}px;font-weight:${layer.fontWeight};line-height:${layer.lineHeight};letter-spacing:${layer.letterSpacing}px;text-align:${layer.align};color:${escapeCss(layer.fill)};${stroke}">${escapeHtml(layer.text)}</div></foreignObject>`;
     }
     case "group":
       return "";
-    case "mask":
-      throw new Error(`UNSUPPORTED_LAYER: mask SVG rendering is not implemented for ${layer.id}.`);
   }
 }
 
 export async function buildDesignDocumentSvg(documentInput: DesignDocument): Promise<string> {
   const document = assertDesignDocument(documentInput);
+  const masks = visibleMaskMap(document);
+  const definitions = [...masks.entries()].map(([targetId, mask]) => {
+    const target = document.layers.find((candidate) => candidate.id === targetId);
+    if (!target) throw new Error(`MASK_TARGET_MISSING: ${mask.id} references ${targetId}.`);
+    return svgClipDefinition(mask, target);
+  });
   const sorted = [...document.layers].sort((a, b) => a.zIndex - b.zIndex);
-  const rendered = await Promise.all(sorted.map(renderSvgLayer));
+  const rendered = await Promise.all(sorted.map((layer) => renderSvgLayer(layer, masks.get(layer.id))));
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${document.artboard.width}" height="${document.artboard.height}" viewBox="0 0 ${document.artboard.width} ${document.artboard.height}" data-design-id="${escapeHtml(document.id)}" data-design-version="${document.version}">
+<defs>${definitions.join("\n")}</defs>
 <rect x="0" y="0" width="100%" height="100%" fill="${escapeHtml(document.artboard.background)}"/>
 ${rendered.filter(Boolean).join("\n")}
 </svg>`;
