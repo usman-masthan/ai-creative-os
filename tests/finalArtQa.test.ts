@@ -80,7 +80,7 @@ function providerFor(review: unknown): GeminiFinalArtQaProvider {
   return new GeminiFinalArtQaProvider({
     apiKey: "test",
     fetchImpl: async () => fakeResponse({
-      candidates: [{ content: { parts: [{ text: JSON.stringify(review) }] }],
+      candidates: [{ content: { parts: [{ text: JSON.stringify(review) }] } }],
     }),
   });
 }
