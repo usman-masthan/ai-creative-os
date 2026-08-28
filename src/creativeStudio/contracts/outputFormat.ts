@@ -21,7 +21,7 @@ export const CREATIVE_OUTPUT_FORMAT_PRESETS: Readonly<Record<
     height: 1080,
     aspectRatio: "1:1",
     channel: "instagram",
-    assetType: "poster",
+    assetType: "square",
     label: "Instagram Square — 1:1",
   },
   "instagram-portrait": {
@@ -163,7 +163,7 @@ export function resolveCreativeOutputFormat(input: {
     height,
     aspectRatio: aspectRatioForDimensions(width, height),
     channel: "custom",
-    assetType: "custom",
+    assetType: `custom-${width}x${height}`,
   };
 }
 
