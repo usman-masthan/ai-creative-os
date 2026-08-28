@@ -137,7 +137,7 @@ function inferProduct(text: string): string | undefined {
     return quoted;
   }
 
-  const promote = text.match(/(?:promote|feature)\s+(?:our\s+)?(.+?)(?:\s+(?:at|in|for|on|this|tonight|across)\b|[.!?]|$)/i)?.[1]?.trim();
+  const promote = text.match(/(?:promote|feature|featuring)\s+(?:our\s+)?(.+?)(?:\s+(?:at|in|for|on|this|tonight|across)\b|[.!?]|$)/i)?.[1]?.trim();
   const promoted = cleanCandidateProduct(promote);
   if (promoted) return promoted;
 
@@ -272,6 +272,7 @@ export function normalizeAtthasTaskIntent(input: AtthasTaskIntent): NormalizedAt
 
   const requestedProductClaims = input.requestedProductClaims?.map((value) => value.trim()).filter(Boolean) ?? [];
   const additionalTruthNeeded = [
+    ...(input.campaignType === "PRODUCT_PUSH" ? ["ingredients", "mustInclude", "mustNotInclude"] : []),
     ...(input.showPrice ? ["price"] : []),
     ...(requestedProductClaims.length ? ["requestedProductClaims"] : []),
     ...(input.packagingDirectionRequested ? ["approvedPackagingDirection"] : []),

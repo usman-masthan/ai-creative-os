@@ -17,6 +17,14 @@ import { FileCampaignStore } from "../operations/fileStore.js";
 import { CampaignWorkflow } from "../operations/workflow.js";
 import { createGeminiCampaignProvider } from "../providers/gemini.js";
 import type { TaskTruthAnswer, TaskTruthSnapshot } from "../taskTruth.js";
+import {
+  WORKSPACE_PRODUCTION_PROFILE,
+  assertWorkspaceProductionTruth,
+  assertWorkspaceUploadedAssetMatchesTask,
+  buildWorkspaceVisualQaContext,
+  coerceWorkspaceTruthAnswers,
+  type WorkspaceUploadedAsset,
+} from "./workspaceProduction.js";
 import { GeminiVisualQaProvider } from "../visualQa/gemini.js";
 import {
   ATTHAS_BRANCH_OPTIONS,
@@ -236,6 +244,16 @@ async function persistProducedCampaign(input: {
       description: `Image attempt ${attempt.attempt}`,
     });
   }
+
+  if (result.status === "FINAL_RENDERED" && campaign.state === "DRAFT") {
+    await input.workflow.transition({
+      campaignId: input.campaignId,
+      to: "INTERNAL_REVIEW",
+      actorId: "marketing-manager-workspace",
+      actorRole: "system",
+      note: "Final + QA output rendered successfully and is ready for human internal review.",
+    });
+  }
 }
 
 export interface MarketingManagerHandlerOptions {
@@ -267,6 +285,7 @@ export function createMarketingManagerHandler(options: MarketingManagerHandlerOp
         salesChannels: ["DINE_IN", "TAKEAWAY", "UBER_EATS", "PICKME"],
         geminiConfigured: Boolean(process.env.GEMINI_API_KEY?.trim()),
         paidMediaAllowed: process.env.ALLOW_PAID_MEDIA?.trim().toLowerCase() === "true",
+        productionProfile: WORKSPACE_PRODUCTION_PROFILE,
         storedTruthCount: truth.records.length,
         runtimeTruthCount: truth.runtimeRecords.length,
         campaigns,
@@ -356,7 +375,7 @@ export function createMarketingManagerHandler(options: MarketingManagerHandlerOp
       });
       const snapshot = answerConfirmedCampaignTask({
         questionnaire,
-        answers: answerArray(data.answers),
+        answers: coerceWorkspaceTruthAnswers(questionnaire, answerArray(data.answers)),
         confirmedBy: stringValue(data.confirmedBy, "confirmedBy"),
       });
       const writeBacks = await runtimeTruth.writeBackRequested(snapshot);
@@ -367,6 +386,21 @@ export function createMarketingManagerHandler(options: MarketingManagerHandlerOp
     if (req.method === "POST" && url.pathname === "/api/ui/upload") {
       const data = await readBody(req);
       const sessionId = safeId(stringValue(data.sessionId, "sessionId"), "sessionId");
+      const campaignId = safeId(stringValue(data.campaignId, "campaignId"), "campaignId");
+      const brandId = data.brandId === "ATTHAS_BURGER" || data.brandId === "ATTHAS_RESTAURANT"
+        ? data.brandId
+        : undefined;
+      if (!brandId) throw new Error("A valid operating brand is required for image upload.");
+      const branchId = typeof data.branchId === "string" && data.branchId.trim()
+        ? safeId(data.branchId.trim(), "branchId")
+        : undefined;
+      const productId = typeof data.productId === "string" && data.productId.trim()
+        ? data.productId.trim()
+        : undefined;
+      const filename = stringValue(data.filename, "filename").slice(0, 180);
+      const approvedForAds = data.approvedForAds === true;
+      const appearanceVerified = data.appearanceVerified === true;
+      const ingredientMatchVerified = data.ingredientMatchVerified === true;
       const dataUrl = stringValue(data.dataUrl, "dataUrl");
       const match = dataUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=\r\n]+)$/);
       if (!match) throw new Error("Only PNG, JPEG and WebP image uploads are supported.");
@@ -376,9 +410,29 @@ export function createMarketingManagerHandler(options: MarketingManagerHandlerOp
       const extension = match[1] === "image/png" ? ".png" : match[1] === "image/webp" ? ".webp" : ".jpg";
       const dir = join(rootDir, "uploads", sessionId);
       await mkdir(dir, { recursive: true });
-      const path = join(dir, `${randomUUID()}${extension}`);
+      const assetId = safeId(`asset-${randomUUID()}`, "assetId");
+      const path = join(dir, `${assetId}${extension}`);
       await writeFile(path, bytes);
-      sendJson(res, 201, { path, mimeType: match[1], bytes: bytes.length });
+      const asset: WorkspaceUploadedAsset = {
+        schemaVersion: 1,
+        assetId,
+        sessionId,
+        campaignId,
+        filename,
+        path,
+        mimeType: match[1] as WorkspaceUploadedAsset["mimeType"],
+        bytes: bytes.length,
+        brandId,
+        ...(branchId ? { branchId } : {}),
+        ...(productId ? { productId } : {}),
+        sourceType: "owner_supplied",
+        approvedForAds,
+        appearanceVerified,
+        ingredientMatchVerified,
+        createdAt: new Date().toISOString(),
+      };
+      await writeFile(join(dir, `${assetId}.json`), JSON.stringify(asset, null, 2), "utf8");
+      sendJson(res, 201, asset);
       return true;
     }
 
@@ -394,16 +448,34 @@ export function createMarketingManagerHandler(options: MarketingManagerHandlerOp
       const snapshot = snapshotValue(data.taskTruthSnapshot);
       const truth = await loadAtthasStoredTruth({ repoRoot, runtimeStore: runtimeTruth });
       const mode = data.mode === "FINAL" ? "FINAL" : "DRAFT";
-      const baseImagePath = typeof data.baseImagePath === "string" && data.baseImagePath.trim()
-        ? resolve(data.baseImagePath.trim())
+      const assetId = typeof data.baseImageAssetId === "string" && data.baseImageAssetId.trim()
+        ? safeId(data.baseImageAssetId.trim(), "baseImageAssetId")
         : undefined;
-      if (baseImagePath) {
-        const uploadRoot = resolve(rootDir, "uploads") + sep;
+      let uploadedAsset: WorkspaceUploadedAsset | undefined;
+      let baseImagePath: string | undefined;
+      if (assetId) {
+        const assetPath = join(rootDir, "uploads", sessionId, `${assetId}.json`);
+        uploadedAsset = JSON.parse(await readFile(assetPath, "utf8")) as WorkspaceUploadedAsset;
+        assertWorkspaceUploadedAssetMatchesTask({
+          asset: uploadedAsset,
+          campaignId,
+          sessionId,
+          brandId: normalized.intent.brandId,
+          ...(normalized.intent.branchScope !== "BRAND_WIDE" ? { branchId: normalized.intent.branchScope } : {}),
+          ...(normalized.intent.productId ? { productId: normalized.intent.productId } : {}),
+        });
+        baseImagePath = resolve(uploadedAsset.path);
+        const uploadRoot = resolve(rootDir, "uploads", sessionId) + sep;
         if (!baseImagePath.startsWith(uploadRoot)) {
-          throw new Error("Workspace base images must come from the governed local upload area.");
+          throw new Error("Workspace base images must come from the governed task upload area.");
         }
         await readFile(baseImagePath);
       }
+      assertWorkspaceProductionTruth({
+        snapshot,
+        campaignType: normalized.intent.campaignType,
+        ...(uploadedAsset ? { uploadedAsset } : {}),
+      });
       const paidMediaAllowed = process.env.ALLOW_PAID_MEDIA?.trim().toLowerCase() === "true";
       if (!baseImagePath && !paidMediaAllowed) {
         throw new Error("Upload a product/base image or explicitly set ALLOW_PAID_MEDIA=true for AI image generation.");
@@ -469,6 +541,7 @@ export function createMarketingManagerHandler(options: MarketingManagerHandlerOp
             brandGovernance: brand.brandGovernance,
             outputDir,
             mode,
+            featureFlags: WORKSPACE_PRODUCTION_PROFILE,
             providers: {
               generation,
               director,
@@ -480,17 +553,22 @@ export function createMarketingManagerHandler(options: MarketingManagerHandlerOp
             ...(baseImagePath ? { baseImagePath } : {}),
             ...(mode === "FINAL"
               ? {
-                  visualQaContext: {
-                    visualClass: normalized.intent.campaignType === "PRODUCT_PUSH"
-                      ? "CONSTRAINED_PRODUCT_GENERATION"
-                      : "GENERIC_CONCEPT_VISUAL",
-                    rightsStatus: baseImagePath ? "unknown" : "cleared",
-                    mustNotInclude: [
-                      "generated ATTHA'S signage",
-                      "generated menu text",
-                      "unconfirmed product ingredients or product presentation",
-                    ],
-                  },
+                  visualQaContext: (() => {
+                    const context = buildWorkspaceVisualQaContext({
+                      campaignType: normalized.intent.campaignType,
+                      snapshot,
+                      ...(uploadedAsset ? { uploadedAsset } : {}),
+                    });
+                    return {
+                      ...context,
+                      mustNotInclude: [
+                        ...(context.mustNotInclude ?? []),
+                        "generated ATTHA'S signage",
+                        "generated menu text",
+                        "unconfirmed product ingredients or product presentation",
+                      ],
+                    };
+                  })(),
                 }
               : {}),
             posterProducer: async (request) => {

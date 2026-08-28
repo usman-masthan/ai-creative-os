@@ -564,6 +564,7 @@ function buildVisualQaRequest(input: {
     ...(input.foodComposition
       ? {
           foodTemplateId: input.foodComposition.templateId,
+          verifiedVisibleIngredients: [...input.foodComposition.confirmedIngredients],
           verifiedCookingMethods: [...input.foodComposition.confirmedCookingMethods],
         }
       : {}),
