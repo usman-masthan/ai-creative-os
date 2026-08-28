@@ -14,15 +14,29 @@ function finalArtResponse(): Response {
                 text: JSON.stringify({
                   decision: "PASS",
                   scores: {
-                    legibility: 92,
-                    hierarchy: 90,
-                    safeArea: 91,
-                    contrast: 89,
-                    brandFit: 88,
-                    platformFit: 90,
+                    brandVisibility: 94,
+                    headlineHierarchy: 92,
+                    ctaHierarchyPlacement: 90,
+                    priceVisibility: 100,
+                    safeAreas: 91,
+                    contrastLegibility: 89,
+                    productDominance: 100,
+                    platformReadability: 100,
+                    decorativeCoherence: 90,
+                  },
+                  checks: {
+                    brandVisibility: "PASS",
+                    headlineHierarchy: "PASS",
+                    ctaHierarchyPlacement: "PASS",
+                    priceVisibility: "NOT_APPLICABLE",
+                    safeAreas: "PASS",
+                    contrastLegibility: "PASS",
+                    productDominance: "NOT_APPLICABLE",
+                    platformReadability: "NOT_APPLICABLE",
+                    decorativeCoherence: "PASS",
                   },
                   issues: [],
-                  notes: ["Finished artwork is legible and within the expected safe areas."],
+                  notes: ["Finished artwork satisfies the M3.3 final-art checks."],
                 }),
               },
             ],
@@ -39,7 +53,7 @@ function finalArtResponse(): Response {
   );
 }
 
-test("Gemini final-art QA uses the REST response-format MIME enum", async () => {
+test("Gemini final-art QA uses the REST response-format MIME enum and nine-dimension schema", async () => {
   let requestInit: RequestInit | undefined;
 
   const provider = new GeminiFinalArtQaProvider({
@@ -59,18 +73,25 @@ test("Gemini final-art QA uses the REST response-format MIME enum", async () => 
     assetType: "poster",
     width: 1080,
     height: 1350,
-    expectedHeadline: "Chicken Tikka Wrap",
-    expectedSupportingCopy: "Calibration only",
-    expectedCta: "Discover",
+    expectedHeadline: "An evening around the table",
+    expectedSupportingCopy: "ATTHA'S Restaurant",
+    expectedCta: "Join Us",
     logoExpected: false,
   });
 
   const body = JSON.parse(String(requestInit?.body)) as {
+    contents: Array<{ parts: Array<{ text?: string }> }>;
     generationConfig: {
       responseFormat: {
         text: {
           mimeType: string;
-          schema: { type: string };
+          schema: {
+            type: string;
+            properties: {
+              scores: { required: string[] };
+              checks: { required: string[] };
+            };
+          };
         };
       };
     };
@@ -78,6 +99,9 @@ test("Gemini final-art QA uses the REST response-format MIME enum", async () => 
 
   assert.equal(body.generationConfig.responseFormat.text.mimeType, "APPLICATION_JSON");
   assert.equal(body.generationConfig.responseFormat.text.schema.type, "object");
+  assert.equal(body.generationConfig.responseFormat.text.schema.properties.scores.required.length, 9);
+  assert.equal(body.generationConfig.responseFormat.text.schema.properties.checks.required.length, 9);
+  assert.match(body.contents[0]!.parts[1]!.text ?? "", /Expected brand identifier: ATTHA'S RESTAURANT/);
   assert.equal(result.decision, "PASS");
   assert.equal(result.usage?.inputTokens, 50);
 });
