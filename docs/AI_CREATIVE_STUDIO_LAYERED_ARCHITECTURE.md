@@ -16,6 +16,7 @@ Structured Creative Brief
 → DesignDocument
 → Native SVG Studio Adapter
 → Human / Scoped AI Layer Editing
+→ Optional Source-Preserving Subject Separation
 → Deterministic Layered QA
 → Layered Creative Director Review
 → DesignDocument Export
@@ -32,10 +33,10 @@ Structured Creative Brief
 | `src/brandGovernance.ts` and ATTHA'S brand files | Reuse / extend | Continue authoritative brand rules; editor operations protect approved logos and brand tokens. |
 | `src/claimGovernance.ts` | Reuse | No generated copy or visual claim may escape verified truth. |
 | `src/commands/generateCampaign.ts` | Reuse | Continues governed campaign/copy generation. |
-| Existing Creative Director modules | Reuse / extend | Continue concept review; `src/creativeDirectorLayered.ts` now reviews assembled DesignDocuments. |
+| Existing Creative Director modules | Reuse / extend | Continue concept review; `src/creativeDirectorLayered.ts` reviews assembled DesignDocuments. |
 | `src/layouts/atthas.ts` | Reuse | Layout family selection remains authoritative. Geometry is converted into editable coordinates. |
 | `src/m3Renderer.ts` / poster renderer | Reuse | Existing renderer remains available while layered export is adopted. Existing Chrome render infrastructure is reused by layered PNG export. |
-| Gemini image providers | Reuse | Continue server-side asset generation only; promotional typography/logo remain native layers. |
+| Gemini image/text providers | Reuse / extend | Continue generation; native Gemini segmentation uses the documented multimodal Interactions API without changing campaign generation. |
 | Visual QA + final-art QA | Reuse | Existing production gates remain unchanged; deterministic DesignDocument QA is added before Studio export. |
 | `src/dashboard/marketingManager.ts` | Reuse unchanged | Existing `/api/ui/*` prepare/confirm/upload/produce APIs remain the governed production path used by the Studio. |
 | `src/dashboard/creativeStudio*.ts` | New extension | Adds `/studio` editor and layered project APIs without duplicating Marketing Manager production logic. |
@@ -110,7 +111,7 @@ Current capabilities:
 
 The SVG structure is an adapter only. `DesignDocument` remains renderer-neutral.
 
-### Stage E — Persistence and human-in-the-loop editing
+### Stage E — Persistence, history and human-in-the-loop editing
 
 `src/creativeStudio/projectStore.ts` persists editable projects under runtime storage, not source control.
 
@@ -126,6 +127,8 @@ Persisted data includes:
 - export records
 
 Every deterministic mutation creates a new DesignDocument version. Manual canvas operations do not invoke an AI provider.
+
+`src/creativeStudio/versioning.ts` adds arbitrary version inspection, structural comparison and restore-as-new-revision semantics. Restoring an older state never overwrites history.
 
 ### Stage F — Scoped AI layer editing
 
@@ -151,9 +154,27 @@ Image editing:
 - blocks AI replacement of verified product visuals
 - blocks background replacement when the product is still baked into the same composite image
 
-The isolation blocker is intentional: destructive image editing is refused until subject separation exists.
+### Stage G — Source-preserving subject separation
 
-### Stage G — QA and Creative Director review
+Implemented with a provider-neutral contract plus a Gemini production provider.
+
+`src/creativeStudio/segmentation/gemini.ts` uses Gemini native image understanding to request a polygon segmentation mask for the confirmed product/subject. The resulting foreground is **not regenerated**: the provider builds an SVG cutout that embeds the original source pixels and clips them with the detected polygon.
+
+Only the occluded background plate is generatively repaired. This allows later background editing while keeping the original verified product pixels intact.
+
+Governance rules:
+
+- endpoint requires `GEMINI_API_KEY`
+- generative background repair requires `ALLOW_PAID_MEDIA=true`
+- original foreground pixels are preserved
+- verified foreground stays protected/non-AI-editable
+- background repair is explicitly classified as generated/runtime media
+- image-generation spend is recorded in the existing campaign workflow
+- deterministic DesignDocument QA runs again after separation
+
+The implementation follows Gemini's documented polygon segmentation response (`box_2d` + polygon `mask`) instead of relying on a generative cutout to represent the product.
+
+### Stage H — QA and Creative Director review
 
 `src/creativeStudio/designQa.ts` performs deterministic structured QA over the editable document.
 
@@ -175,22 +196,22 @@ It returns `PASS`, `WARN` or `BLOCK` plus structured scores/issues.
 
 `src/creativeDirectorLayered.ts` extends the existing Creative Director role to review the assembled structured design across hierarchy, composition, balance, typography, brand consistency, product/CTA prominence, readability, whitespace, depth, color harmony, offer clarity, image quality, authenticity and AI-artifact risk.
 
-### Stage H — Layered export
+### Stage I — Layered export
 
 `src/creativeStudio/renderDesignDocument.ts` renders directly from DesignDocument.
 
 Current server export:
 
-- PNG
-- Standard resolution
-- High Resolution (2×)
-- 4K-style scale (4× source artboard dimensions)
+- PNG standard resolution
+- PNG High Resolution (2×)
+- PNG 4× source artboard scale
+- standalone SVG
 
 Export excludes editor selection boxes, guides, grids and UI. Typography is rendered from native text layers rather than being baked into generated imagery.
 
-The existing Chrome renderer infrastructure is reused, but the exported HTML is generated from DesignDocument rather than the old flattened poster template.
+The existing Chrome renderer infrastructure is reused for PNG, but exported HTML is generated from DesignDocument rather than the old flattened poster template.
 
-### Responsive / multi-format adaptation
+### Stage J — Responsive / multi-format adaptation
 
 `src/commands/adaptCreativeDesign.ts` implements format adaptation for:
 
@@ -200,14 +221,6 @@ The existing Chrome renderer infrastructure is reused, but the exported HTML is 
 - Facebook Post 4:5
 
 Adaptation does not stretch the source canvas. It chooses the corresponding ATTHA'S layout family, recomputes geometry and typography scale, preserves copy/assets/truth/logo relationships, and creates a new independent DesignDocument project.
-
-### Subject segmentation architecture
-
-`src/creativeStudio/segmentation/types.ts` defines a provider-neutral segmentation contract.
-
-`src/commands/segmentCreativeSubject.ts` can convert one composite image into independent background + subject layers while preserving visual truth provenance. A verified subject remains protected and non-AI-editable.
-
-No segmentation model/provider has been selected or wired to the public Studio UI yet. Until that happens, unsafe composite-background replacement remains blocked.
 
 ## Creative Studio API surface
 
@@ -232,11 +245,16 @@ POST /api/studio/undo
 POST /api/studio/redo
 POST /api/studio/qa
 POST /api/studio/export
+POST /api/studio/export-svg
 POST /api/studio/ai/text
 POST /api/studio/ai/image
 POST /api/studio/ai/review
+POST /api/studio/segment
 GET  /api/studio/adaptation-presets
 POST /api/studio/adapt
+GET  /api/studio/version
+POST /api/studio/compare
+POST /api/studio/restore
 ```
 
 Runtime asset paths are not exposed directly to the browser. Studio asset/media routes validate allowed runtime or source-controlled brand paths before serving bytes.
@@ -250,23 +268,24 @@ Runtime asset paths are not exposed directly to the browser. Studio asset/media 
 5. Manual deterministic edits spend zero model tokens.
 6. `DesignDocument` never depends on a canvas implementation.
 7. Existing campaign generation/QA/approval remains available and unchanged.
-8. Paid image generation/editing still requires the repository's explicit paid-media flag.
+8. Paid image generation/editing and segmentation background repair require the repository's explicit paid-media flag.
 9. Verified product visuals cannot silently degrade into generic generated imagery.
-10. Existing campaign spend tracking records paid Studio image edits.
+10. Segmentation preserves original foreground pixels and labels generative background repair separately.
+11. Existing campaign spend tracking records paid Studio image edits and segmentation background repair.
+12. Version restore creates a new revision instead of destroying history.
 
 ## Remaining limitations / next hardening milestone
 
 The following are intentionally not claimed complete:
 
-1. **Active segmentation provider** — the contract/command exist, but a production provider still needs selection, integration and calibration.
+1. **Segmentation calibration** — the production provider is integrated, but product-specific mask quality still needs empirical calibration across ATTHA'S photography before automatic use should be enabled by default in UI.
 2. **Full ATTHA'S logo lockups** — the repository currently contains the approved A/fork working master; full Burger/Restaurant vector lockups remain listed as pending brand assets.
-3. **JPG export** — server-side layered PNG export is implemented; JPG remains pending.
-4. **SVG export** — the document is vector-friendly and the Studio itself uses SVG, but a hardened standalone SVG export contract remains pending.
-5. **Mask rendering** — mask is represented in the schema but the layered server renderer currently rejects unsupported masks rather than silently flattening them.
-6. **Arbitrary version compare/restore UI** — every version is persisted and undo/redo work; dedicated compare/restore UX is still pending.
-7. **AI automatic layout polish** — Creative Director produces structured recommendations; deterministic safe auto-fixes are not yet applied automatically.
-8. **Konva adapter** — not required for the current MVP because native SVG supports the implemented interactions without a new dependency. If richer transforms/multi-select demand it, Konva can be added behind the existing adapter boundary.
-9. **Visual regression calibration** — the layered exporter should be visually calibrated against the existing M3 renderer before it becomes the sole production renderer.
+3. **JPG export** — PNG and standalone SVG export are implemented; JPG remains pending.
+4. **Mask layer rendering** — mask is represented in DesignDocument but generic mask-layer rendering remains intentionally unsupported; subject segmentation currently materializes its safe cutout as an SVG image asset instead.
+5. **Dedicated version-history UX** — arbitrary version API compare/restore is implemented; the current Studio UI still primarily exposes undo/redo.
+6. **AI automatic layout polish** — Creative Director produces structured recommendations; deterministic safe auto-fixes are not yet applied automatically.
+7. **Konva adapter** — not required for the current MVP because native SVG supports the implemented interactions without a new dependency. If richer transforms/multi-select demand it, Konva can be added behind the existing adapter boundary.
+8. **Visual regression calibration** — layered PNG/SVG output should be visually calibrated against the existing M3 renderer before it becomes the sole production renderer.
 
 ## Local development
 
@@ -280,11 +299,11 @@ Then use:
 
 ```text
 /workspace  → existing Marketing Manager
-/studio     → new layered Creative Studio
+/studio     → layered Creative Studio
 ```
 
 The two experiences intentionally share the same truth/generation backend instead of creating competing creative pipelines.
 
 ## Branch policy
 
-Development for this migration is isolated on `layered-architecture`. The draft pull request exists to exercise the repository's pull-request CI workflow. It is not a signal that the branch should be merged into `main` while the migration is still under active development.
+Development for this migration is isolated on `layered-architecture`. The draft pull request exists only to exercise the repository's pull-request CI workflow. It must remain draft and unmerged into `main` until explicit approval is given later.
