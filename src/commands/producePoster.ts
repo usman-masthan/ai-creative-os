@@ -4,6 +4,7 @@ import { extname, join, resolve } from "node:path";
 import type { GenerateCampaignResult } from "./generateCampaign.js";
 import type { ImageDraftProvider, ImageDraftResult } from "../imageProviders/types.js";
 import { buildM3RendererPlan, type M3CopyZones, type M3RendererPlan } from "../m3Renderer.js";
+import { atthasFinalArtReviewContext } from "../finalArtQa/atthasContext.js";
 import type {
   FinalArtQaProvider,
   FinalArtQaRequest,
@@ -41,6 +42,9 @@ export interface PosterFinalArtQaConfig {
     | "imageBase64"
     | "mimeType"
     | "brandId"
+    | "brandDisplayName"
+    | "expectedBrandIdentifier"
+    | "finalArtReviewLabel"
     | "layoutId"
     | "channel"
     | "assetType"
@@ -234,11 +238,13 @@ async function runFinalArtQa(input: {
   const format = input.campaign.production.format;
   const productNames = verifiedFactStrings(input.campaign, "productName");
   const platforms = verifiedFactStrings(input.campaign, "deliveryChannel");
+  const brandReview = atthasFinalArtReviewContext(input.brandId);
   const result = await input.config.provider.review({
     ...(input.config.request ?? {}),
     imageBase64: bytes.toString("base64"),
     mimeType: "image/png",
     brandId: input.brandId,
+    ...brandReview,
     layoutId: input.layout.id,
     channel: format.channel,
     assetType: format.assetType,
