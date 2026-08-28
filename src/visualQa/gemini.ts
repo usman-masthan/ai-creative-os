@@ -383,7 +383,9 @@ function buildPrompt(request: VisualQaRequest): string {
     "When the deterministic food template is WRAP_ROLL, inspect the full frame for side bowls, ramekins, salads, fries, garnish dishes or duplicated serving components outside the wrap. If any are visible without explicit authorization, list them in unexpectedVisibleElements and productTruth cannot be PASS.",
     "Cooking-method cues are also product truth. When verified cooking methods are NONE PROVIDED, visible grill marks, griddle marks, toast marks, sear marks or deliberate charring that communicate a preparation method must be a productTruth CONCERN/FAIL and must not PASS merely because the underlying ingredient is verified.",
     "Rights are deterministic input, not visual inference: blocked rights must BLOCK; unknown rights cannot PASS final production.",
-    "GENERIC_CONCEPT_VISUAL cannot PASS as an actual product advertisement. It must be HUMAN_REVIEW or BLOCK even when aesthetically strong.",
+    "GENERIC_CONCEPT_VISUAL may PASS for brand-building or hospitality concept imagery when no product ID/name is supplied, the pixels do not represent the scene as an actual ATTHA'S menu item, and every other QA dimension passes.",
+    "For non-product GENERIC_CONCEPT_VISUAL, productTruth measures whether the scene remains generic and avoids claiming a specific menu item. Do not penalize it merely because recipe mapping or product-reference photography is absent.",
+    "GENERIC_CONCEPT_VISUAL with a supplied product ID/name cannot PASS as an actual product visual. It must be HUMAN_REVIEW or BLOCK even when aesthetically strong.",
     "Return only JSON matching the required schema.",
   ].join("\n");
 }
@@ -466,7 +468,12 @@ function applyDeterministicGuards(
     issues.push("Commercial-use rights are not confirmed.");
   }
 
-  if (request.visualClass === "GENERIC_CONCEPT_VISUAL" && decision === "PASS") {
+  const productScoped = Boolean(request.productId || request.productName);
+  if (
+    request.visualClass === "GENERIC_CONCEPT_VISUAL" &&
+    productScoped &&
+    decision === "PASS"
+  ) {
     decision = "HUMAN_REVIEW";
     issues.push("Generic concept imagery cannot pass as verified product advertising.");
   }
@@ -496,7 +503,6 @@ function applyDeterministicGuards(
     issues.push("Visible preparation cues imply a cooking method that was not separately verified.");
   }
 
-  const productScoped = Boolean(request.productId || request.productName);
   if (
     productScoped &&
     request.visualClass !== "GENERIC_CONCEPT_VISUAL" &&

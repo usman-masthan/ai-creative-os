@@ -172,9 +172,8 @@ test("a POOR requested copy zone deterministically forces regeneration", async (
     compositionExpectation: { requestedQuietZones: ["upperLeft"] },
   });
 
-  // Generic concept imagery cannot PASS; the composition failure must still be surfaced.
-  assert.notEqual(result.decision, "PASS");
-  assert.ok(result.issues.some((issue) => issue.includes("Generic concept imagery")));
+  assert.equal(result.decision, "REGENERATE");
+  assert.ok(result.issues.some((issue) => issue.includes("copy-safe zones")));
 });
 
 test("hero-placement mismatch forces regeneration for a pass-eligible visual", async () => {
@@ -198,6 +197,24 @@ test("hero-placement mismatch forces regeneration for a pass-eligible visual", a
 
   assert.equal(result.decision, "REGENERATE");
   assert.ok(result.issues.some((issue) => issue.includes("hero placement")));
+});
+
+test("non-product generic concept imagery may PASS brand or hospitality QA", async () => {
+  const provider = new GeminiVisualQaProvider({
+    apiKey: "gemini-test-key",
+    fetchImpl: async () => visualQaResponse("PASS"),
+  });
+
+  const result = await provider.review({
+    imageBase64: "ZmFrZQ==",
+    mimeType: "image/jpeg",
+    brandId: "ATTHAS_RESTAURANT",
+    visualClass: "GENERIC_CONCEPT_VISUAL",
+    rightsStatus: "cleared",
+  });
+
+  assert.equal(result.decision, "PASS");
+  assert.ok(!result.issues.some((issue) => issue.includes("Generic concept imagery")));
 });
 
 test("generic concept imagery cannot deterministically PASS as an actual product visual", async () => {

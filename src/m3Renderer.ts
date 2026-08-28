@@ -242,7 +242,7 @@ export function buildM3PosterHtml(input: M3PosterTemplateInput): string {
     font-size: clamp(23px, 2.65vw, 34px);
     line-height: 1.22;
     font-weight: ${restaurant ? "500" : "600"};
-    color: ${restaurant ? "var(--atthas-grey)" : "var(--atthas-cream)"};
+    color: ${restaurant ? "var(--atthas-ink)" : "var(--atthas-cream)"};
   }
   .conversion-stack {
     display: flex;

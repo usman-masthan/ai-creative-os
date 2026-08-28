@@ -62,16 +62,10 @@ function normalize(value: string): string {
 }
 
 function collectClaimBearingText(creative: CampaignCreativeOutput): string[] {
-  const conceptCopy = creative.concepts.flatMap((concept) => [
-    concept.campaignName,
-    concept.coreIdea,
-    concept.headlineDirection,
-    concept.visualConcept,
-    concept.cta,
-  ]);
-
+  // Concept objects are internal ideation metadata. They are never rendered or sent
+  // directly to the image model. Govern only production-facing/customer-facing fields;
+  // if an internal idea leaks into final copy or image instructions it is still blocked.
   return [
-    ...conceptCopy,
     creative.creativeBrief.headline,
     creative.creativeBrief.supportingCopy,
     creative.creativeBrief.cta,

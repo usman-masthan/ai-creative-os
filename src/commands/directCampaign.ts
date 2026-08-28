@@ -161,7 +161,15 @@ async function finalizeWinner(
     attempts += 1;
     const raw = await provider.generate(prompt);
     try {
-      const creative = parseCampaignCreativeOutput(raw);
+      const parsed = parseCampaignCreativeOutput(raw);
+      // The three strategist concepts are immutable source material. The finalizer may
+      // rewrite production copy/brief fields, but concept edits are discarded
+      // deterministically instead of spending repair attempts asking the model to
+      // reproduce an already-known immutable array byte-for-byte.
+      const creative: CampaignCreativeOutput = {
+        ...parsed,
+        concepts: structuredClone(input.campaign.creative.concepts),
+      };
       const copyPolicy = assertDirectedCreative(
         creative,
         input.campaign.creative,

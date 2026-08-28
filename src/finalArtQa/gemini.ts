@@ -7,6 +7,9 @@ import type {
   FinalArtQaCheckState,
   FinalArtQaChecks,
   FinalArtQaDecision,
+  FinalArtQaDimensionEvidence,
+  FinalArtQaEvidence,
+  FinalArtQaEvidenceState,
   FinalArtQaProvider,
   FinalArtQaRequest,
   FinalArtQaResult,
@@ -36,6 +39,19 @@ const SCORE_SCHEMA = { type: "number", minimum: 0, maximum: 100 } as const;
 const CHECK_SCHEMA = {
   type: "string",
   enum: ["PASS", "FAIL", "NOT_APPLICABLE"],
+} as const;
+const EVIDENCE_STATUS_SCHEMA = {
+  type: "string",
+  enum: ["PASS", "CONCERN", "FAIL", "NOT_APPLICABLE"],
+} as const;
+const EVIDENCE_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    status: EVIDENCE_STATUS_SCHEMA,
+    observations: { type: "array", items: { type: "string" } },
+  },
+  required: ["status", "observations"],
 } as const;
 
 const FINAL_ART_DIMENSIONS = [
@@ -67,10 +83,16 @@ const FINAL_ART_SCHEMA = {
       properties: Object.fromEntries(FINAL_ART_DIMENSIONS.map((key) => [key, CHECK_SCHEMA])),
       required: [...FINAL_ART_DIMENSIONS],
     },
+    evidence: {
+      type: "object",
+      additionalProperties: false,
+      properties: Object.fromEntries(FINAL_ART_DIMENSIONS.map((key) => [key, EVIDENCE_SCHEMA])),
+      required: [...FINAL_ART_DIMENSIONS],
+    },
     issues: { type: "array", items: { type: "string" } },
     notes: { type: "array", items: { type: "string" } },
   },
-  required: ["decision", "scores", "checks", "issues", "notes"],
+  required: ["decision", "scores", "checks", "evidence", "issues", "notes"],
 } as const;
 
 function extractText(body: GeminiResponse): string {
@@ -131,6 +153,34 @@ function parseChecks(value: unknown): FinalArtQaChecks {
   };
 }
 
+function evidenceState(value: unknown, name: string): FinalArtQaEvidenceState {
+  if (value !== "PASS" && value !== "CONCERN" && value !== "FAIL" && value !== "NOT_APPLICABLE") {
+    throw new Error(`Gemini final-art QA returned invalid ${name} evidence status.`);
+  }
+  return value;
+}
+
+function parseEvidenceItem(value: unknown, name: string): FinalArtQaDimensionEvidence {
+  if (!value || typeof value !== "object") {
+    throw new Error(`Gemini final-art QA returned invalid ${name} evidence.`);
+  }
+  const item = value as Record<string, unknown>;
+  return {
+    status: evidenceState(item.status, name),
+    observations: strings(item.observations, `${name}.observations`),
+  };
+}
+
+function parseEvidence(value: unknown): FinalArtQaEvidence {
+  if (!value || typeof value !== "object") {
+    throw new Error("Gemini final-art QA returned invalid evidence.");
+  }
+  const evidence = value as Record<string, unknown>;
+  return Object.fromEntries(
+    FINAL_ART_DIMENSIONS.map((key) => [key, parseEvidenceItem(evidence[key], key)]),
+  ) as FinalArtQaEvidence;
+}
+
 function strings(value: unknown, name: string): string[] {
   if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
     throw new Error(`Gemini final-art QA returned invalid ${name}.`);
@@ -156,7 +206,7 @@ function buildPrompt(request: FinalArtQaRequest): string {
   return [
     "You are reviewing the FINISHED ATTHA'S advertising artwork after deterministic text/price rendering.",
     "Judge only the supplied pixels. Do not infer that an element exists because it appears in the expected-copy metadata.",
-    "Inspect all nine M3.3 dimensions and return a 0-100 score plus PASS/FAIL/NOT_APPLICABLE check for each.",
+    "Inspect all nine M3.3 dimensions and return a 0-100 score, PASS/FAIL/NOT_APPLICABLE check, and evidence for each.",
     "",
     "M3.3 DIMENSIONS",
     "1. brandVisibility — the deterministic operating-brand identifier is clearly visible and not obscured.",
@@ -173,6 +223,10 @@ function buildPrompt(request: FinalArtQaRequest): string {
     "- Always-applicable checks (brandVisibility, headlineHierarchy, ctaHierarchyPlacement, safeAreas, contrastLegibility, decorativeCoherence) must be PASS for the artwork to pass.",
     "- For non-applicable price/product/platform dimensions, use NOT_APPLICABLE and score 100 only when no conflicting unexpected element is visible.",
     "- If an unexpected price/platform/generated text or artifact is visible, use FAIL and explain it in issues.",
+    "- Evidence status PASS means no material visible defect for that dimension; scores for PASS evidence must meet the deterministic pass floor.",
+    "- Evidence status CONCERN means a concrete visible weakness or ambiguity. Name the actual pixel-level weakness in observations; do not use missing metadata or uncertainty as concern evidence.",
+    "- Evidence status FAIL means a concrete visible defect. Name it in observations and issues.",
+    "- NOT_APPLICABLE evidence is allowed only when the corresponding check is NOT_APPLICABLE.",
     "- Do not approve artwork if expected customer-facing copy is visibly missing, materially altered, duplicated, clipped or unreadable.",
     "",
     `Brand: ${request.brandId}`,
@@ -207,54 +261,97 @@ function applyGuards(
 ): Omit<FinalArtQaResult, "provider" | "model" | "usage"> {
   let decision = result.decision;
   const issues = [...result.issues];
+  const notes = [...result.notes];
+  const scores = { ...result.scores };
 
-  if (decision === "PASS") {
-    for (const [key, minimum] of REQUIRED_MINIMUMS) {
-      if (result.checks[key] !== "PASS") {
-        decision = "REGENERATE";
-        issues.push(`${key} check must be PASS for finished artwork.`);
-      }
-      if (result.scores[key] < minimum) {
-        decision = "REGENERATE";
-        issues.push(`${key} score ${result.scores[key]} is below required ${minimum}.`);
-      }
+  const optional: Array<{
+    key: "priceVisibility" | "productDominance" | "platformReadability";
+    applicable: boolean;
+    minimum: number;
+  }> = [
+    { key: "priceVisibility", applicable: Boolean(request.expectedPrice), minimum: 85 },
+    { key: "productDominance", applicable: Boolean(request.expectedProductName), minimum: 80 },
+    { key: "platformReadability", applicable: Boolean(request.expectedPlatforms?.length), minimum: 82 },
+  ];
+  const minimums = new Map<keyof FinalArtQaScores, number>([
+    ...REQUIRED_MINIMUMS,
+    ...optional.filter((item) => item.applicable).map((item) => [item.key, item.minimum] as const),
+  ]);
+
+  for (const key of FINAL_ART_DIMENSIONS) {
+    const evidence = result.evidence[key];
+    const check = result.checks[key];
+    if (evidence.status === "CONCERN") {
+      decision = decision === "BLOCK" ? "BLOCK" : "HUMAN_REVIEW";
+      issues.push(`${key} has concrete visible concern evidence: ${evidence.observations.join("; ") || "unspecified concern"}.`);
+      continue;
     }
-
-    const optional: Array<{
-      key: "priceVisibility" | "productDominance" | "platformReadability";
-      applicable: boolean;
-      minimum: number;
-    }> = [
-      { key: "priceVisibility", applicable: Boolean(request.expectedPrice), minimum: 85 },
-      { key: "productDominance", applicable: Boolean(request.expectedProductName), minimum: 80 },
-      {
-        key: "platformReadability",
-        applicable: Boolean(request.expectedPlatforms?.length),
-        minimum: 82,
-      },
-    ];
-
-    for (const item of optional) {
-      const state = result.checks[item.key];
-      if (item.applicable) {
-        if (state !== "PASS") {
-          decision = "REGENERATE";
-          issues.push(`${item.key} check must be PASS when the dimension is applicable.`);
-        }
-        if (result.scores[item.key] < item.minimum) {
-          decision = "REGENERATE";
-          issues.push(
-            `${item.key} score ${result.scores[item.key]} is below required ${item.minimum}.`,
-          );
-        }
-      } else if (state !== "NOT_APPLICABLE") {
-        decision = "REGENERATE";
-        issues.push(`${item.key} must be NOT_APPLICABLE when no corresponding verified element is expected.`);
+    if (evidence.status === "FAIL") {
+      if (decision !== "BLOCK") decision = "REGENERATE";
+      issues.push(`${key} has concrete visible fail evidence: ${evidence.observations.join("; ") || "unspecified defect"}.`);
+      continue;
+    }
+    if (evidence.status === "NOT_APPLICABLE" && check !== "NOT_APPLICABLE") {
+      if (decision !== "BLOCK") decision = "REGENERATE";
+      issues.push(`${key} evidence cannot be NOT_APPLICABLE when its check is ${check}.`);
+      continue;
+    }
+    if (evidence.status === "PASS" && check === "PASS") {
+      const minimum = minimums.get(key);
+      if (minimum !== undefined && scores[key] < minimum) {
+        notes.push(`Final-art QA evidence consistency normalized ${key} score from ${scores[key]} to ${minimum}.`);
+        scores[key] = minimum;
       }
     }
   }
 
-  return { ...result, decision, issues: [...new Set(issues)] };
+  for (const [key, minimum] of REQUIRED_MINIMUMS) {
+    if (result.checks[key] !== "PASS") {
+      if (decision !== "BLOCK") decision = "REGENERATE";
+      issues.push(`${key} check must be PASS for finished artwork.`);
+    }
+    if (scores[key] < minimum) {
+      if (decision !== "BLOCK") decision = "REGENERATE";
+      issues.push(`${key} score ${scores[key]} is below required ${minimum}.`);
+    }
+  }
+
+  for (const item of optional) {
+    const state = result.checks[item.key];
+    const evidence = result.evidence[item.key];
+    if (item.applicable) {
+      if (state !== "PASS") {
+        if (decision !== "BLOCK") decision = "REGENERATE";
+        issues.push(`${item.key} check must be PASS when the dimension is applicable.`);
+      }
+      if (scores[item.key] < item.minimum) {
+        if (decision !== "BLOCK") decision = "REGENERATE";
+        issues.push(`${item.key} score ${scores[item.key]} is below required ${item.minimum}.`);
+      }
+    } else {
+      if (state !== "NOT_APPLICABLE") {
+        if (decision !== "BLOCK") decision = "REGENERATE";
+        issues.push(`${item.key} must be NOT_APPLICABLE when no corresponding verified element is expected.`);
+      }
+      if (evidence.status !== "NOT_APPLICABLE") {
+        if (decision !== "BLOCK") decision = "REGENERATE";
+        issues.push(`${item.key} evidence must be NOT_APPLICABLE when no corresponding verified element is expected.`);
+      }
+    }
+  }
+
+  const materialIssues = [...new Set(issues)];
+  const allApplicableEvidencePass = FINAL_ART_DIMENSIONS.every((key) => {
+    const state = result.checks[key];
+    return state === "NOT_APPLICABLE"
+      ? result.evidence[key].status === "NOT_APPLICABLE"
+      : state === "PASS" && result.evidence[key].status === "PASS";
+  });
+  if (decision !== "BLOCK" && allApplicableEvidencePass && materialIssues.length === 0) {
+    decision = "PASS";
+  }
+
+  return { ...result, decision, scores, issues: materialIssues, notes: [...new Set(notes)] };
 }
 
 export class GeminiFinalArtQaProvider implements FinalArtQaProvider {
@@ -316,6 +413,7 @@ export class GeminiFinalArtQaProvider implements FinalArtQaProvider {
         decision: parseDecision(parsed.decision),
         scores: parseScores(parsed.scores),
         checks: parseChecks(parsed.checks),
+        evidence: parseEvidence(parsed.evidence),
         issues: strings(parsed.issues, "issues"),
         notes: strings(parsed.notes, "notes"),
       },
