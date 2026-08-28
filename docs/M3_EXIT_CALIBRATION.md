@@ -67,3 +67,27 @@ The root contains `m3-exit-calibration-report.json`. Each case has its own direc
 ## Exit decision
 
 Automated M3 exit requires all four cases to score 0 or 1. Manual visual review of the four finished posters is still mandatory before M3 is formally closed. Any score of 2 or 3 must be diagnosed from that case’s AI Trace; do not lower thresholds or bypass truth/final-art gates simply to make the calibration green.
+
+## Successful exit evidence — 2026-08-28
+
+The final bounded live run was GitHub Actions run `33154519467`, campaign run `M3-EXIT-2026-08-28T08-14-03-290Z`, on branch revision `ce2618f630a30209a11c128b6a8c4669b4de7dad` (production fixes validated immediately before the workflow-trigger-only revision).
+
+Automated result: **PASS — 4/4 target cases scored 0**.
+
+| Case | Status | Score | Image tier used |
+| --- | --- | ---: | --- |
+| Burger brand awareness | `FINAL_RENDERED` | 0 | Flash Lite |
+| Visit tonight — Wellampitiya | `FINAL_RENDERED` | 0 | Flash Lite |
+| Family dining — Wellawatte | `FINAL_RENDERED` | 0 | Flash Lite |
+| Chicken Tikka Wrap | `FINAL_RENDERED` | 0 | Flash Lite |
+
+Total image-generation estimate for the successful run: **USD 0.1344**. All four Final Art QA results were `PASS`; all applicable nine-dimension checks and evidence states were `PASS`, with non-applicable price/product/platform dimensions explicitly marked `NOT_APPLICABLE`.
+
+Manual visual review also met the roadmap’s 0–1 tolerance:
+
+- **Burger brand awareness:** clear hierarchy, brand identifier and CTA; no offer or price. Generic burger imagery remains calibration-only concept imagery and must not be represented as verified menu truth.
+- **Visit tonight — Wellampitiya:** verified location/hours are readable and the invitation hierarchy is strong. Generic burger imagery remains concept-only rather than verified product representation.
+- **Family dining — Wellawatte:** Restaurant supporting-copy contrast is materially improved and branch details are readable. Minor residual concern: the scene communicates hospitality/table setting more strongly than an explicit family/group moment.
+- **Chicken Tikka Wrap:** strong product dominance, coherent synthetic verified ingredient set, no extra side-service configuration and no obvious unverified grill-line preparation cue.
+
+The M3 exit calibration is therefore **PASS**. This does not make calibration imagery publishable and does not write synthetic facts into client truth. The next roadmap gate is the 20–30 real-campaign production validation before M4.
