@@ -56,8 +56,8 @@ function strongReview() {
       platformReadability: "PASS",
       decorativeCoherence: "PASS",
     },
-    issues: [],
-    notes: [],
+    issues: [] as string[],
+    notes: [] as string[],
   };
 }
 
