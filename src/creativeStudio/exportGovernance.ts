@@ -14,8 +14,8 @@ export interface ApprovedExportEligibility {
 export function assertApprovedExportEligible(input: {
   document: DesignDocument;
   deterministicQa: DesignQaResult;
-  finalVisualQa?: FinalVisualQaRecord;
-  approval?: DesignApprovalRecord;
+  finalVisualQa: FinalVisualQaRecord | undefined;
+  approval: DesignApprovalRecord | undefined;
 }): ApprovedExportEligibility {
   const { document, deterministicQa, finalVisualQa, approval } = input;
   if (deterministicQa.decision === "BLOCK") {
