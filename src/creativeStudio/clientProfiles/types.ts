@@ -5,6 +5,15 @@ export interface CreativePriceTheme {
   text: string;
 }
 
+export interface CreativeBrandQaGovernance {
+  approvedColours: string[];
+  approvedFonts: string[];
+  safeAreaRatio: number;
+  minimumLogoPx: number;
+  logoRequired: boolean;
+  logoRequirementLabel: string;
+}
+
 export interface CreativeBrandTheme {
   brandId: string;
   displayName: string;
@@ -19,6 +28,7 @@ export interface CreativeBrandTheme {
   defaultPriceStyle: CampaignPriceStyle;
   priceThemes: Record<CampaignPriceStyle, CreativePriceTheme>;
   logoLayerName: string;
+  qa: CreativeBrandQaGovernance;
 }
 
 export interface CreativeClientProfile {
