@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { producePoster } from "../src/commands/producePoster.js";
 import { GeminiFinalArtQaProvider } from "../src/finalArtQa/gemini.js";
 
 function fakeResponse(body: unknown, status = 200): Response {
@@ -127,4 +128,17 @@ test("accidental decorative artifacts force regeneration even when Gemini report
   const result = await providerFor(review).review(request());
   assert.equal(result.decision, "REGENERATE");
   assert.match(result.issues.join(" "), /decorativeCoherence check must be PASS/);
+});
+
+test("final poster production marked QA-required cannot bypass the reviewer", async () => {
+  await assert.rejects(
+    () => producePoster({
+      campaignId: "M3-FINAL-QA-GATE",
+      campaign: {} as Parameters<typeof producePoster>[0]["campaign"],
+      outputDir: "/tmp/m3-final-art-qa-gate",
+      baseImagePath: "/tmp/this-file-must-not-be-read.jpg",
+      finalArtQaRequired: true,
+    }),
+    /requires final-art QA before rendering/,
+  );
 });
