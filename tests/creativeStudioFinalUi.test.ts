@@ -26,14 +26,22 @@ test("final Studio UI exposes flattened QA, approval, campaign handoff and migra
   assert.match(html, /Apply Safe Auto-Polish/);
 });
 
-test("active Studio intake resolves client, brand-kit and truth provider metadata from profiles", () => {
+test("active Studio intake resolves client, brand-kit, truth provider and Brand Kit preview metadata from profiles", () => {
   const html = creativeStudioProfiledHtml();
   assert.match(html, /data-client-id="T001"/);
   assert.match(html, /data-brand-kit-id="ATTHAS_WORKING_V1"/);
   assert.match(html, /data-truth-provider-id="ATTHAS_UI_TRUTH_V1"/);
+  assert.match(html, /id="brandKitPreview"/);
   assert.match(html, /fetch\('\/api\/studio\/bootstrap'\)/);
   assert.match(html, /option\.dataset\.clientId=profile\.clientId/);
   assert.match(html, /option\.dataset\.brandKitId=profile\.defaultBrandKitId/);
+  assert.match(html, /option\.dataset\.brandKitPreview=JSON\.stringify\(brand\.brandKitPreview\|\|null\)/);
+  assert.match(html, /renderBrandKitPreview/);
+  assert.match(html, /preview\.logoUrl/);
+  assert.match(html, /preview\.colours/);
+  assert.match(html, /preview\.typography/);
+  assert.match(html, /preview\.approvedGraphicElements/);
+  assert.match(html, /preview\.photographyDirection/);
   assert.match(html, /option\.dataset\.truthPrepare=truth\.endpoints\.prepare/);
   assert.match(html, /option\.dataset\.truthConfirm=truth\.endpoints\.confirm/);
   assert.match(html, /option\.dataset\.truthUpload=truth\.endpoints\.upload/);
