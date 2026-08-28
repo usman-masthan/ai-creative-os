@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { creativeStudioFinalHtml } from "../src/dashboard/creativeStudioFinalHtml.js";
+import { creativeStudioProfiledHtml } from "../src/dashboard/creativeStudioProfiledHtml.js";
 
 test("final Studio UI exposes flattened QA, approval, campaign handoff and migration controls", () => {
   const html = creativeStudioFinalHtml();
@@ -23,4 +24,17 @@ test("final Studio UI exposes flattened QA, approval, campaign handoff and migra
   assert.match(html, /id="directionModal"/);
   assert.match(html, /Generate 3 Directions/);
   assert.match(html, /Apply Safe Auto-Polish/);
+});
+
+test("active Studio intake resolves client and brand-kit metadata from bootstrap profiles", () => {
+  const html = creativeStudioProfiledHtml();
+  assert.match(html, /data-client-id="T001"/);
+  assert.match(html, /data-brand-kit-id="ATTHAS_WORKING_V1"/);
+  assert.match(html, /fetch\('\/api\/studio\/bootstrap'\)/);
+  assert.match(html, /option\.dataset\.clientId=profile\.clientId/);
+  assert.match(html, /option\.dataset\.brandKitId=profile\.defaultBrandKitId/);
+  assert.match(html, /clientId:\$\('brandId'\)\.selectedOptions\[0\]\.dataset\.clientId/);
+  assert.match(html, /brandKitId:\$\('brandId'\)\.selectedOptions\[0\]\.dataset\.brandKitId/);
+  assert.doesNotMatch(html, /clientId:'T001',brandId:/);
+  assert.doesNotMatch(html, /brandKitId:'ATTHAS_WORKING_V1',createdAt:/);
 });
