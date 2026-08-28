@@ -11,6 +11,7 @@ import { createCreativeStudioDirectorHandler } from "./creativeStudioDirector.js
 import { createCreativeStudioEnhancedHandler } from "./creativeStudioEnhanced.js";
 import { createCreativeStudioFinalVisualQaHandler } from "./creativeStudioFinalVisualQa.js";
 import { createCreativeStudioHandler } from "./creativeStudio.js";
+import { createCreativeStudioOrchestratorHandler } from "./creativeStudioOrchestrator.js";
 import { createCreativeStudioParityHandler } from "./creativeStudioParity.js";
 import { createCreativeStudioSegmentationHandler } from "./creativeStudioSegmentation.js";
 import { createCreativeStudioSvgExportHandler } from "./creativeStudioSvgExport.js";
@@ -22,6 +23,7 @@ export function createAtthasMarketingManagerServer(options: MarketingManagerHand
   const handleStudio = createCreativeStudioHandler(options);
   const handleStudioEnhanced = createCreativeStudioEnhancedHandler();
   const handleStudioBootstrap = createCreativeStudioAdvancedBootstrapHandler(options);
+  const handleStudioOrchestrator = createCreativeStudioOrchestratorHandler(options);
   const handleStudioApproval = createCreativeStudioApprovalHandler(options);
   const handleStudioAssetServing = createCreativeStudioAssetServingHandler(options);
   const handleStudioCampaignHandoff = createCreativeStudioCampaignHandoffHandler(options);
@@ -48,6 +50,7 @@ export function createAtthasMarketingManagerServer(options: MarketingManagerHand
         return;
       }
       if (await handleStudioBootstrap(req, res, url)) return;
+      if (await handleStudioOrchestrator(req, res, url)) return;
       if (await handleStudioApproval(req, res, url)) return;
       if (await handleStudioAssetServing(req, res, url)) return;
       if (await handleStudioCampaignHandoff(req, res, url)) return;
