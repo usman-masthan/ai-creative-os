@@ -7,9 +7,10 @@ import {
 } from "../src/creativeStudio/contracts/creativeBrief.js";
 import { createCreativeOrchestrationPlan } from "../src/creativeStudio/orchestrator.js";
 import { creativeStudioProfiledHtml } from "../src/dashboard/creativeStudioProfiledHtml.js";
-import type { TaskTruthSnapshot } from "../src/taskTruth.js";
+import type { TaskTruthSnapshot, TaskTruthSnapshotFact } from "../src/taskTruth.js";
 
 const createdAt = "2026-08-29T00:30:00.000Z";
+const tenantId = "T001" as TaskTruthSnapshot["tenantId"];
 
 function completeBrief(): CreativeBrief {
   return {
@@ -42,29 +43,37 @@ function completeBrief(): CreativeBrief {
   };
 }
 
-function snapshot(): TaskTruthSnapshot {
+function fact(key: string, value: unknown): TaskTruthSnapshotFact {
+  return {
+    label: `${key}|branch=BURGER_WELLAMPITIYA`,
+    key,
+    value,
+    scope: {
+      tenantId,
+      brandId: "ATTHAS_BURGER",
+      branchId: "BURGER_WELLAMPITIYA",
+    },
+    confirmationAction: "PROVIDE",
+    updateStoredTruthRequested: false,
+  };
+}
+
+function snapshot(facts?: TaskTruthSnapshotFact[]): TaskTruthSnapshot {
   return {
     schemaVersion: 1,
     sessionId: "brief-complete-truth",
     campaignId: "campaign-complete-intake",
-    tenantId: "T001" as TaskTruthSnapshot["tenantId"],
+    tenantId,
     brandId: "ATTHAS_BURGER",
     branchId: "BURGER_WELLAMPITIYA",
     confirmedBy: "creative-studio-user",
     confirmedAt: "2026-08-29T00:31:00.000Z",
-    facts: [
-      {
-        label: "offerTerms|branch=BURGER_WELLAMPITIYA",
-        key: "offerTerms",
-        value: "Owner-confirmed offer terms",
-        scope: {
-          tenantId: "T001" as TaskTruthSnapshot["tenantId"],
-          brandId: "ATTHAS_BURGER",
-          branchId: "BURGER_WELLAMPITIYA",
-        },
-        confirmationAction: "PROVIDE",
-        updateStoredTruthRequested: false,
-      },
+    facts: facts ?? [
+      fact("productName", "Chicken Tikka Wrap"),
+      fact("price", 1250),
+      fact("offerTerms", "Owner-confirmed offer terms"),
+      fact("offerValidity", "Valid 29–31 August 2026"),
+      fact("branchPhysicalAddress", "Owner-confirmed branch address"),
     ],
   };
 }
@@ -127,4 +136,42 @@ test("Creative Orchestrator carries the complete content requirement set into cr
   assert.equal(plan.creativeStrategy.contentRequirements.showCampaignDates, true);
   assert.equal(plan.creativeStrategy.contentRequirements.headlineDirection, "Short, bold and craving-led");
   assert.equal(plan.creativeStrategy.contentRequirements.customInstructions, "Keep the composition restrained and premium");
+  const copyTask = plan.execution.specialistTasks.find((task) => task.role === "COPY_CONTENT");
+  assert.ok(copyTask?.constraints.some((value) => value.includes("creative direction only")));
+});
+
+test("Creative Orchestrator fails closed when requested visible content lacks matching confirmed truth", () => {
+  const facts = [
+    fact("productName", "Chicken Tikka Wrap"),
+    fact("price", 1250),
+    fact("offerTerms", "Owner-confirmed offer terms"),
+  ];
+  assert.throws(
+    () => createCreativeOrchestrationPlan({
+      campaignId: "campaign-complete-intake",
+      brief: completeBrief(),
+      truthSnapshot: snapshot(facts),
+    }),
+    /ORCHESTRATION_CONTENT_TRUTH_MISSING.*offerValidity/,
+  );
+
+  const contactBrief: CreativeBrief = {
+    ...completeBrief(),
+    goal: "Promote product",
+    contentRequirements: {
+      ...completeBrief().contentRequirements,
+      showPrice: false,
+      showOffer: false,
+      showCampaignDates: false,
+      showContactDetails: true,
+    },
+  };
+  assert.throws(
+    () => createCreativeOrchestrationPlan({
+      campaignId: "campaign-complete-intake",
+      brief: contactBrief,
+      truthSnapshot: snapshot([fact("productName", "Chicken Tikka Wrap")]),
+    }),
+    /ORCHESTRATION_CONTENT_TRUTH_MISSING.*contact details/,
+  );
 });
