@@ -12,6 +12,7 @@ The profile registry now owns presentation-level brand decisions that previously
 - brand display names
 - default brand-kit identifier
 - approved asset root
+- per-brand approved logo asset metadata
 - display/body/price typography
 - artboard background token
 - primary and secondary text tokens
@@ -36,6 +37,17 @@ The layout-provider registry owns layout-family selection and cross-format layou
 
 `src/commands/adaptCreativeDesign.ts` asks the active client layout provider for the target layout and the client brand profile for the target artboard styling. It no longer contains ATTHA'S Burger/Restaurant layout-family branching or ATTHA'S color-token branching.
 
+Campaign-to-Studio import also resolves through the registries. `openCreativeStudioDesign.ts` now:
+
+1. reads the governed brand id from renderer/task truth;
+2. discovers the owning client profile;
+3. resolves that client's layout provider;
+4. selects the traced/preferred layout through that provider;
+5. uses the profile's default brand-kit id;
+6. resolves the approved logo from the brand profile's asset metadata.
+
+The DesignDocument assembly bridge uses generic string brand ids and generic `CreativeLayoutDefinition` instead of ATTHA'S-specific TypeScript unions.
+
 Approved-brand asset serving also resolves through the client profile. `src/dashboard/creativeStudioAssetServing.ts` serves `/studio-asset/...` before the legacy Studio handler and asks `assetPathGovernance.ts` to validate `approved-brand` paths against the loaded DesignDocument's `clientId` profile. Runtime assets remain confined to `.atthas-os` storage.
 
 ## Why this boundary exists
@@ -48,6 +60,7 @@ The Creative Studio core should eventually support another client without duplic
 - layer-scoped AI operations
 - deterministic brand/layout QA
 - safe deterministic auto-polish
+- governed campaign-to-design import
 - QA history
 - approval/export governance
 - governed asset serving
@@ -73,7 +86,7 @@ T001 — ATTHA'S
 A future client must not be added by cloning the ATTHA'S folder and changing names. Before activation it needs:
 
 1. an authoritative truth source and task-truth mapping;
-2. explicit brand tokens and approved asset roots;
+2. explicit brand tokens, approved asset roots and approved logo metadata;
 3. typography, logo and deterministic QA governance;
 4. a registered layout provider with compatible layout families;
 5. product-visual truth/provenance rules;
@@ -113,7 +126,6 @@ The asset-serving boundary preserves the security model while removing the path 
 
 The next client-neutral boundaries should address:
 
-1. campaign-to-Studio opening/logo resolution, which still knows ATTHA'S source assets;
-2. the base Studio intake UI, which intentionally remains ATTHA'S-only while T001 is the only active profile;
-3. deterministic geometry semantics in `layoutEngine/resolver.ts`, which currently recognizes ATTHA'S-style layout id concepts such as Story Vertical, Minimal Premium and Editorial;
-4. task-truth retrieval and branch/product facts, which intentionally remain ATTHA'S-specific until another client's source-of-truth system exists.
+1. the base Studio intake UI, which intentionally remains ATTHA'S-only while T001 is the only active profile;
+2. deterministic geometry semantics in `layoutEngine/resolver.ts`, which currently recognizes ATTHA'S-style layout id concepts such as Story Vertical, Minimal Premium and Editorial;
+3. task-truth retrieval and branch/product facts, which intentionally remain ATTHA'S-specific until another client's source-of-truth system exists.
