@@ -171,10 +171,6 @@ export function createCreativeOrchestrationPlan(
 ): CreativeOrchestrationPlan {
   const campaignId = safeId(input.campaignId, "campaignId");
   const brief = assertCreativeBrief(input.brief);
-  if (brief.clientId !== input.truthSnapshot.tenantId && input.truthSnapshot.tenantId !== brief.clientId) {
-    // Tenant identifiers and Creative Client Profile identifiers are currently distinct concepts in T001.
-    // Do not force equality; cross-client safety is enforced through brand/profile ownership below.
-  }
   assertConfirmedTruthBinding({ campaignId, brief, snapshot: input.truthSnapshot });
 
   const profile = getCreativeClientProfile(brief.clientId);
@@ -185,6 +181,9 @@ export function createCreativeOrchestrationPlan(
   }
   if (brief.brandKitId !== profile.defaultBrandKitId) {
     throw new Error("ORCHESTRATION_BRAND_KIT_MISMATCH: CreativeBrief brand kit is not the registered client brand kit.");
+  }
+  if (layoutProvider.clientId !== brief.clientId) {
+    throw new Error("ORCHESTRATION_LAYOUT_PROVIDER_MISMATCH: layout provider belongs to a different client.");
   }
 
   const createdAt = input.createdAt ?? new Date().toISOString();
