@@ -4,6 +4,7 @@ import type { CampaignProductionFormat } from "../creativeTypes.js";
 import type { DesignDocument, DesignTextLayer } from "../designDocument/types.js";
 import type { FinalArtQaProvider, FinalArtQaResult } from "../finalArtQa/types.js";
 import type { TaskTruthSnapshot } from "../taskTruth.js";
+import { getCreativeBrandTheme } from "./clientProfiles/registry.js";
 
 function textByRole(document: DesignDocument, role: DesignTextLayer["role"]): string {
   const layer = document.layers.find(
@@ -32,9 +33,7 @@ export async function reviewLayeredFinalVisual(input: {
   pngPath: string;
   provider: FinalArtQaProvider;
 }): Promise<FinalArtQaResult> {
-  if (input.document.brand.brandId !== "ATTHAS_BURGER" && input.document.brand.brandId !== "ATTHAS_RESTAURANT") {
-    throw new Error(`FINAL_VISUAL_QA_UNSUPPORTED_BRAND: ${input.document.brand.brandId}.`);
-  }
+  const theme = getCreativeBrandTheme(input.document.brand.clientId, input.document.brand.brandId);
   const bytes = await readFile(input.pngPath);
   if (bytes.length < 1_000) throw new Error("FINAL_VISUAL_QA_INVALID_IMAGE: rendered PNG is unexpectedly small.");
   const productNames = truthStrings(input.truthSnapshot, "productName");
@@ -46,6 +45,9 @@ export async function reviewLayeredFinalVisual(input: {
     imageBase64: bytes.toString("base64"),
     mimeType: "image/png",
     brandId: input.document.brand.brandId,
+    brandDisplayName: theme.displayName,
+    expectedBrandIdentifier: theme.review.expectedBrandIdentifier,
+    finalArtReviewLabel: theme.review.finalArtReviewLabel,
     layoutId: input.document.layoutId,
     channel: input.format.channel,
     assetType: input.format.assetType,
