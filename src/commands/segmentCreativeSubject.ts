@@ -26,9 +26,10 @@ function assertImagePayload(value: string, name: string): Buffer {
   return bytes;
 }
 
-function extensionForMime(mimeType: "image/png" | "image/jpeg" | "image/webp"): string {
+function extensionForMime(mimeType: "image/png" | "image/jpeg" | "image/webp" | "image/svg+xml"): string {
   if (mimeType === "image/jpeg") return ".jpg";
   if (mimeType === "image/webp") return ".webp";
+  if (mimeType === "image/svg+xml") return ".svg";
   return ".png";
 }
 
@@ -54,6 +55,8 @@ export async function segmentCreativeSubject(input: {
   const result = await input.provider.segment({
     imageBase64: input.imageBase64,
     mimeType: input.mimeType,
+    width: input.document.artboard.width,
+    height: input.document.artboard.height,
     ...(input.subjectHint?.trim() ? { subjectHint: input.subjectHint.trim() } : {}),
   });
   const foreground = assertImagePayload(result.foregroundBase64, "Foreground");
@@ -65,7 +68,10 @@ export async function segmentCreativeSubject(input: {
   const outputDir = resolve(input.outputDir);
   await mkdir(outputDir, { recursive: true });
   const nextVersion = input.document.version + 1;
-  const foregroundPath = join(outputDir, `product-subject-v${nextVersion}.png`);
+  const foregroundPath = join(
+    outputDir,
+    `product-subject-v${nextVersion}${extensionForMime(result.foregroundMimeType)}`,
+  );
   const backgroundPath = join(
     outputDir,
     `background-separated-v${nextVersion}${extensionForMime(result.backgroundMimeType)}`,
