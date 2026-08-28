@@ -9,6 +9,8 @@ import type { LayerGeometryProfile } from "../../layoutEngine/geometry.js";
 import type {
   CreativeLayoutAdaptationInput,
   CreativeLayoutDefinition,
+  CreativeLayoutDirectionInput,
+  CreativeLayoutDirectionSpec,
   CreativeLayoutProvider,
   CreativeLayoutSelectionInput,
 } from "./types.js";
@@ -74,6 +76,90 @@ function adaptationLayoutId(input: CreativeLayoutAdaptationInput): AtthasLayoutI
   return SQUARE_PORTRAIT_LAYOUT_BY_SOURCE[source.id];
 }
 
+function directionSpecs(input: CreativeLayoutDirectionInput): CreativeLayoutDirectionSpec[] {
+  const brand = brandId(input.brandId);
+  if (input.vertical) {
+    const layoutId = STORY_LAYOUT_BY_BRAND[brand];
+    return [
+      {
+        id: "A",
+        name: "Hero Lead",
+        rationale: "Strong upper-left message field with the subject carrying the lower visual weight.",
+        layoutId,
+        copyZone: "upperLeft",
+      },
+      {
+        id: "B",
+        name: "Editorial Counterbalance",
+        rationale: "Upper-right copy creates a different visual flow while protecting story UI zones.",
+        layoutId,
+        copyZone: "upperRight",
+      },
+      {
+        id: "C",
+        name: "Lower Narrative",
+        rationale: "Lower-left copy creates a more editorial reveal while retaining the protected vertical composition.",
+        layoutId,
+        copyZone: "lowerLeft",
+      },
+    ];
+  }
+
+  if (brand === "ATTHAS_BURGER") {
+    return [
+      {
+        id: "A",
+        name: "Crave Hero",
+        rationale: "Product-first appetite composition with a direct conversion hierarchy.",
+        layoutId: "ATTHAS_BURGER_HERO_PRODUCT_V1",
+        copyZone: "upperLeft",
+      },
+      {
+        id: "B",
+        name: "Premium Minimal",
+        rationale: "More negative space and restrained premium hierarchy for brand-building strength.",
+        layoutId: "ATTHAS_BURGER_MINIMAL_PREMIUM_V1",
+        copyZone: "upperRight",
+      },
+      {
+        id: "C",
+        name: input.hasPrice ? "Conversion Price" : "Bold Counterflow",
+        rationale: input.hasPrice
+          ? "Price-forward conversion composition with a separate visual route from the hero treatment."
+          : "A contrasting lower-left message flow that keeps the product dominant.",
+        layoutId: input.hasPrice
+          ? "ATTHAS_BURGER_PROMOTIONAL_PRICE_V1"
+          : "ATTHAS_BURGER_HERO_PRODUCT_V1",
+        copyZone: "lowerLeft",
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "A",
+      name: "Food Hero",
+      rationale: "Warm food-led composition with a clear hospitality message field.",
+      layoutId: "ATTHAS_RESTAURANT_FOOD_HERO_V1",
+      copyZone: "upperLeft",
+    },
+    {
+      id: "B",
+      name: "Editorial Premium",
+      rationale: "Restrained editorial composition with more breathing room and premium pacing.",
+      layoutId: "ATTHAS_RESTAURANT_EDITORIAL_V1",
+      copyZone: "upperRight",
+    },
+    {
+      id: "C",
+      name: "Hospitality Invitation",
+      rationale: "Invitation-led lower message flow suited to dine-in and occasion storytelling.",
+      layoutId: "ATTHAS_RESTAURANT_HOSPITALITY_V1",
+      copyZone: "lowerLeft",
+    },
+  ];
+}
+
 export const ATTHAS_CREATIVE_LAYOUT_PROVIDER: CreativeLayoutProvider = {
   clientId: "T001",
   list(selectedBrandId?: string): CreativeLayoutDefinition[] {
@@ -104,5 +190,8 @@ export const ATTHAS_CREATIVE_LAYOUT_PROVIDER: CreativeLayoutProvider = {
       throw new Error(`ATTHAS_LAYOUT_PROVIDER_INCOMPATIBLE_ADAPTATION: ${selected.id} does not support ${input.targetAspectRatio}.`);
     }
     return enrichedLayout(selected);
+  },
+  directions(input: CreativeLayoutDirectionInput): CreativeLayoutDirectionSpec[] {
+    return directionSpecs(input).map((spec) => ({ ...spec }));
   },
 };
