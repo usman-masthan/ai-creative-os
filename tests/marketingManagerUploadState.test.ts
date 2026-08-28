@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { Script } from "node:vm";
 import { marketingManagerHtml } from "../src/dashboard/marketingManagerHtml.js";
 
 // These checks protect the operator-facing binding contract exposed by Campaign 01 validation.
@@ -14,4 +15,13 @@ test("Marketing Manager list truth controls clearly support structured separator
   const html = marketingManagerHtml();
   assert.match(html, /one per line, or comma\/semicolon separated/);
   assert.match(html, /semicolon separated/);
+});
+
+// Parse the generated inline browser script itself so template-escaping regressions cannot silently disable the UI.
+test("generated Marketing Manager browser script is valid JavaScript", () => {
+  const html = marketingManagerHtml();
+  const match = html.match(/<script>([\s\S]*?)<\/script>/);
+  const browserScript = match?.[1];
+  if (!browserScript) assert.fail("expected inline Marketing Manager script");
+  assert.doesNotThrow(() => new Script(browserScript));
 });
