@@ -21,7 +21,7 @@ export function creativeStudioProfiledHtml(): string {
   html = replaceRequired(
     html,
     `<select id="brandId"><option value="ATTHAS_BURGER">ATTHA'S Burger</option><option value="ATTHAS_RESTAURANT">ATTHA'S Restaurant</option></select>`,
-    `<select id="brandId"><option value="ATTHAS_BURGER" ${fallbackAttributes}>ATTHA'S Burger</option><option value="ATTHAS_RESTAURANT" ${fallbackAttributes}>ATTHA'S Restaurant</option></select>`,
+    `<select id="brandId"><option value="ATTHAS_BURGER" ${fallbackAttributes}>ATTHA'S Burger</option><option value="ATTHAS_RESTAURANT" ${fallbackAttributes}>ATTHA'S Restaurant</option></select><div id="brandKitPreview" style="margin-top:8px;border:1px solid var(--line);border-radius:8px;padding:9px;background:#121416"><div class="note">Brand Kit preview loads from the registered client profile.</div></div>`,
   );
 
   html = replaceRequired(
@@ -67,6 +67,24 @@ export function creativeStudioProfiledHtml(): string {
   const profileScript = `<script>
 (function(){
   'use strict';
+  function addText(parent,label,value){
+    var row=document.createElement('div');row.style.marginTop='7px';
+    var strong=document.createElement('strong');strong.textContent=label;strong.style.display='block';strong.style.fontSize='10px';strong.style.color='#aaa';
+    var text=document.createElement('div');text.textContent=value;text.style.fontSize='11px';text.style.lineHeight='1.4';
+    row.appendChild(strong);row.appendChild(text);parent.appendChild(row);
+  }
+  function renderBrandKitPreview(option){
+    var panel=document.getElementById('brandKitPreview');if(!panel)return;panel.replaceChildren();
+    var preview=null;try{preview=option&&option.dataset.brandKitPreview?JSON.parse(option.dataset.brandKitPreview):null;}catch(_error){}
+    if(!preview){var note=document.createElement('div');note.className='note';note.textContent='Brand Kit preview is unavailable until the registered client profile loads.';panel.appendChild(note);return;}
+    var header=document.createElement('div');header.style.display='flex';header.style.gap='9px';header.style.alignItems='center';
+    var img=document.createElement('img');img.src=preview.logoUrl;img.alt='Approved brand logo';img.style.width='58px';img.style.height='44px';img.style.objectFit='contain';img.style.background='#fff';img.style.borderRadius='6px';img.style.padding='4px';
+    var title=document.createElement('div');var name=document.createElement('strong');name.textContent='Active Brand Kit';name.style.fontSize='12px';var id=document.createElement('div');id.className='note';id.textContent=option.dataset.brandKitId+' · '+preview.approvedLogoAssetId;title.appendChild(name);title.appendChild(id);header.appendChild(img);header.appendChild(title);panel.appendChild(header);
+    var swatches=document.createElement('div');swatches.style.display='flex';swatches.style.flexWrap='wrap';swatches.style.gap='4px';swatches.style.marginTop='8px';(preview.colours||[]).forEach(function(color){var chip=document.createElement('span');chip.title=color;chip.style.width='20px';chip.style.height='20px';chip.style.borderRadius='5px';chip.style.background=color;chip.style.border='1px solid #ffffff33';swatches.appendChild(chip);});panel.appendChild(swatches);
+    if(preview.typography)addText(panel,'Typography',preview.typography.display+' · '+preview.typography.body+' · '+preview.typography.price);
+    if(preview.approvedGraphicElements&&preview.approvedGraphicElements.length)addText(panel,'Approved graphical elements',preview.approvedGraphicElements.join(' · '));
+    if(preview.photographyDirection&&preview.photographyDirection.length)addText(panel,'Photography direction',preview.photographyDirection.join('  |  '));
+  }
   async function populateCreativeClientProfiles(){
     try{
       var response=await fetch('/api/studio/bootstrap');
@@ -91,6 +109,7 @@ export function creativeStudioProfiledHtml(): string {
           option.dataset.truthConfirm=truth.endpoints.confirm;
           option.dataset.truthUpload=truth.endpoints.upload;
           option.dataset.truthProduce=truth.endpoints.produce;
+          option.dataset.brandKitPreview=JSON.stringify(brand.brandKitPreview||null);
           option.textContent=(manyClients?profile.displayName+' — ':'')+brand.displayName;
           options.push(option);
         });
@@ -98,6 +117,8 @@ export function creativeStudioProfiledHtml(): string {
       if(!options.length)return;
       select.replaceChildren.apply(select,options);
       if(options.some(function(option){return option.value===previous;}))select.value=previous;
+      if(!select.dataset.brandKitPreviewBound){select.addEventListener('change',function(){renderBrandKitPreview(select.selectedOptions[0]);});select.dataset.brandKitPreviewBound='true';}
+      renderBrandKitPreview(select.selectedOptions[0]);
       select.dispatchEvent(new Event('change'));
     }catch(_error){
       // Source-controlled ATTHA'S provider metadata remains usable if bootstrap enrichment fails.
