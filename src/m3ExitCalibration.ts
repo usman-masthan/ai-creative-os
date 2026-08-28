@@ -81,6 +81,7 @@ export interface M3ExitScoreInput {
   status: string;
   visualQa?: VisualQaResult;
   finalArtQa?: FinalArtQaResult;
+  additionalIssues?: string[];
   error?: string;
 }
 
@@ -100,6 +101,7 @@ export function scoreM3ExitScenario(input: M3ExitScoreInput): M3ExitScoreResult 
     ...(input.visualQa?.issues ?? []),
     ...(input.visualQa?.unexpectedVisibleElements ?? []),
     ...(input.finalArtQa?.issues ?? []),
+    ...(input.additionalIssues ?? []),
     ...(input.error ? [input.error] : []),
   ]);
 
