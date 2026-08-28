@@ -242,26 +242,24 @@ test("Creative Director selects a winner and finalizes the campaign without chan
   assert.equal(directed.creativeDirector.finalization.repairs, 0);
 });
 
-test("Creative Director repairs a finalizer that tries to mutate the three source concepts", async () => {
+test("Creative Director deterministically freezes source concepts instead of spending a repair on model drift", async () => {
   const campaign = await generatedCampaign();
-  const bad = structuredClone(campaign.creative);
-  bad.recommendedConceptId = "C2";
-  bad.concepts[0]!.campaignName = "Mutated concept";
-
-  const good = structuredClone(campaign.creative);
-  good.recommendedConceptId = "C2";
-  good.recommendationReason = "C2 selected after structured Creative Director review.";
+  const drifted = structuredClone(campaign.creative);
+  drifted.recommendedConceptId = "C2";
+  drifted.recommendationReason = "C2 selected after structured Creative Director review.";
+  drifted.concepts[0]!.campaignName = "Mutated concept";
+  drifted.concepts[2]!.risks = ["Model invented a replacement internal risk."];
 
   const directed = await directGeneratedCampaign(
     { request: request(), campaign, maxFinalizerRepairAttempts: 1 },
     {
       director: provider("creative-director", [directorReview()]),
-      finalizer: provider("finalizer", [bad, good]),
+      finalizer: provider("finalizer", [drifted]),
     },
   );
 
-  assert.equal(directed.creativeDirector.finalization.attempts, 2);
-  assert.equal(directed.creativeDirector.finalization.repairs, 1);
+  assert.equal(directed.creativeDirector.finalization.attempts, 1);
+  assert.equal(directed.creativeDirector.finalization.repairs, 0);
   assert.deepEqual(directed.creative.concepts, campaign.creative.concepts);
 });
 
