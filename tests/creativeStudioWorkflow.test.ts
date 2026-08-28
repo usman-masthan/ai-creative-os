@@ -187,8 +187,10 @@ test("AI text edit changes only selected text and blocks invented numbers", asyn
     provider,
     timestamp: "2026-08-28T16:02:00.000Z",
   });
-  assert.equal(edited.layers.find((layer) => layer.id === "headline" && layer.type === "text")?.text, "Tikka Worth Craving");
-  assert.equal(edited.layers.find((layer) => layer.id === "price" && layer.type === "text")?.text, "LKR 1,250");
+  const headline = edited.layers.find((layer) => layer.id === "headline");
+  const price = edited.layers.find((layer) => layer.id === "price");
+  assert.equal(headline?.type === "text" ? headline.text : undefined, "Tikka Worth Craving");
+  assert.equal(price?.type === "text" ? price.text : undefined, "LKR 1,250");
   const unsafe: CampaignGenerationProvider = {
     providerName: "mock",
     model: "mock-text",
