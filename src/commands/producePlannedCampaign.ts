@@ -117,6 +117,7 @@ export interface ProducePlannedCampaignRequest {
   claimGovernance?: ClaimGovernance;
   baseImagePath?: string;
   visualQaContext?: PlannedVisualQaContext | undefined;
+  finalArtQa?: ProducePosterRequest["finalArtQa"];
   preferredLayoutId?: AtthasLayoutId;
   maxCampaignRepairAttempts?: number;
   maxDirectorRepairAttempts?: number;
@@ -1020,6 +1021,8 @@ export async function producePlannedCampaign(
     brandId: request.entry.brandId,
     layoutId: layout.id,
     baseImagePath: current.path,
+    finalArtQaRequired: true,
+    ...(request.finalArtQa ? { finalArtQa: request.finalArtQa } : {}),
     ...(featureFlags.useNewRenderer ? { rendererMode: "M3_V2" as const } : {}),
     ...(featureFlags.useNewRenderer && lastQa?.compositionEvidence
       ? { copyZones: lastQa.compositionEvidence.copyZones }
