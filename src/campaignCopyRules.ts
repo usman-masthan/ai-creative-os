@@ -19,7 +19,7 @@ export const FORBIDDEN_GENERIC_COPY_DEFAULTS = Object.freeze([
 ] as const);
 
 export interface CampaignCopyRuleContext {
-  campaignType?: MarketingCampaignType;
+  campaignType: MarketingCampaignType | undefined;
   brandId: string;
   facts: VerifiedFact[];
 }
@@ -313,7 +313,7 @@ export function assertCampaignTypeCopyRules(
 }
 
 export function campaignCopyPolicyPrompt(input: {
-  campaignType?: MarketingCampaignType;
+  campaignType: MarketingCampaignType | undefined;
   brandId: string;
 }): string {
   const policy = resolveCampaignCopyPolicy(input.campaignType, input.brandId);

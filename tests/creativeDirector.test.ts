@@ -264,3 +264,42 @@ test("Creative Director repairs a finalizer that tries to mutate the three sourc
   assert.equal(directed.creativeDirector.finalization.repairs, 1);
   assert.deepEqual(directed.creative.concepts, campaign.creative.concepts);
 });
+
+
+test("M3.2 PRODUCT_PUSH finalizer repairs generic copy before production", async () => {
+  const campaign = await generatedCampaign();
+  const typedRequest = request();
+  typedRequest.campaignType = "PRODUCT_PUSH";
+
+  const bad = structuredClone(campaign.creative);
+  bad.recommendedConceptId = "C2";
+  bad.recommendationReason = "C2 selected.";
+  bad.creativeBrief.headline = "Passion for flavour";
+  bad.overlaySpec.headline = "Passion for flavour";
+
+  const good = structuredClone(campaign.creative);
+  good.recommendedConceptId = "C2";
+  good.recommendationReason = "C2 selected with a product-specific conversion route.";
+  good.creativeBrief.headline = "Crispy Chicken Burger";
+  good.overlaySpec.headline = "Crispy Chicken Burger";
+  good.creativeBrief.cta = "Order Now";
+  good.overlaySpec.cta = "Order Now";
+
+  const directed = await directGeneratedCampaign(
+    {
+      request: typedRequest,
+      campaign,
+      maxFinalizerRepairAttempts: 1,
+    },
+    {
+      director: provider("creative-director", [directorReview()]),
+      finalizer: provider("finalizer", [bad, good]),
+    },
+  );
+
+  assert.equal(directed.creativeDirector.finalization.attempts, 2);
+  assert.equal(directed.creativeDirector.finalization.repairs, 1);
+  assert.equal(directed.creativeDirector.finalization.copyPolicy, "PRODUCT_PUSH");
+  assert.equal(directed.creative.overlaySpec.headline, "Crispy Chicken Burger");
+  assert.equal(directed.creative.overlaySpec.cta, "Order Now");
+});

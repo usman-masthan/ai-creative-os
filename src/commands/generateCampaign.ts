@@ -16,6 +16,7 @@ import type {
   CampaignProductionFormat,
 } from "../creativeTypes.js";
 import { formatLkr } from "../money.js";
+import type { MarketingCampaignType } from "../marketingPlannerTypes.js";
 import { resolveProductionFormat } from "../platformFormat.js";
 import { evaluateProductionComplexity } from "../productionComplexity.js";
 import type { CampaignGenerationProvider } from "../providers/types.js";
@@ -28,6 +29,7 @@ import {
 
 export interface GenerateCampaignRequest extends CreateCampaignRequest {
   brandContext: string;
+  campaignType?: MarketingCampaignType;
   brandGovernance?: BrandGovernance;
   claimGovernance?: ClaimGovernance;
   maxRepairAttempts?: number;

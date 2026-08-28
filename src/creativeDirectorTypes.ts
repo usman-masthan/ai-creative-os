@@ -1,3 +1,5 @@
+import type { CampaignCopyPolicyId } from "./campaignCopyRules.js";
+
 export interface CreativeDirectorScores {
   strategicFit: number;
   brandFit: number;
@@ -42,5 +44,6 @@ export interface CreativeDirectorTrace {
   finalization: {
     attempts: number;
     repairs: number;
+    copyPolicy?: CampaignCopyPolicyId;
   };
 }
