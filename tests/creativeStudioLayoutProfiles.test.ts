@@ -5,6 +5,7 @@ import { ATTHAS_TOKENS } from "../src/atthasTokens.js";
 import { adaptCreativeDesign } from "../src/commands/adaptCreativeDesign.js";
 import { getCreativeLayoutProvider } from "../src/creativeStudio/layoutProfiles/registry.js";
 import type { DesignDocument } from "../src/designDocument/types.js";
+import { resolveLayerGeometry } from "../src/layoutEngine/resolver.js";
 
 function source(input: {
   brandId: "ATTHAS_BURGER" | "ATTHAS_RESTAURANT";
@@ -50,6 +51,11 @@ test("ATTHAS layout provider lists, resolves and adapts existing layout families
   assert.ok(burger.every((layout) => layout.brandId === "ATTHAS_BURGER"));
   assert.ok(restaurant.every((layout) => layout.brandId === "ATTHAS_RESTAURANT"));
 
+  assert.equal(provider.get("ATTHAS_BURGER_HERO_PRODUCT_V1").geometryProfile, "STANDARD_HERO");
+  assert.equal(provider.get("ATTHAS_BURGER_MINIMAL_PREMIUM_V1").geometryProfile, "EDITORIAL_OFFCENTER");
+  assert.equal(provider.get("ATTHAS_RESTAURANT_EDITORIAL_V1").geometryProfile, "EDITORIAL_OFFCENTER");
+  assert.equal(provider.get("ATTHAS_RESTAURANT_STORY_VERTICAL_V1").geometryProfile, "VERTICAL_STORY");
+
   assert.equal(provider.adaptationLayout({
     brandId: "ATTHAS_BURGER",
     sourceLayoutId: "ATTHAS_BURGER_PROMOTIONAL_PRICE_V1",
@@ -77,6 +83,17 @@ test("ATTHAS layout provider lists, resolves and adapts existing layout families
     targetAspectRatio: "4:5",
   }), /BRAND_MISMATCH/);
   assert.throws(() => getCreativeLayoutProvider("UNKNOWN"), /CREATIVE_LAYOUT_PROVIDER_NOT_FOUND/);
+});
+
+test("shared geometry resolver consumes semantics instead of client layout ids", () => {
+  const artboard = { width: 1080, height: 1350 };
+  const standard = resolveLayerGeometry({ artboard, geometryProfile: "STANDARD_HERO", hasPrice: false });
+  const editorial = resolveLayerGeometry({ artboard, geometryProfile: "EDITORIAL_OFFCENTER", hasPrice: false });
+  const story = resolveLayerGeometry({ artboard: { width: 1080, height: 1920 }, geometryProfile: "VERTICAL_STORY", hasPrice: false });
+
+  assert.deepEqual(standard.subject, { x: 324, y: 405, width: 713, height: 783 });
+  assert.deepEqual(editorial.subject, { x: 454, y: 351, width: 562, height: 810 });
+  assert.deepEqual(story.subject, { x: 86, y: 576, width: 907, height: 998 });
 });
 
 test("multi-format adaptation uses layout provider and client theme without changing truth binding", () => {
