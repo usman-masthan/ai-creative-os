@@ -180,10 +180,12 @@ test("Creative Orchestrator is created only from confirmed truth and coordinates
 });
 
 test("Creative Orchestrator rejects unbound or mismatched task truth", () => {
+  const unboundBrief = brief();
+  delete unboundBrief.truthSnapshotId;
   assert.throws(
     () => createCreativeOrchestrationPlan({
       campaignId: "campaign-orchestrator-1",
-      brief: brief({ truthSnapshotId: undefined }),
+      brief: unboundBrief,
       truthSnapshot: snapshot(),
     }),
     /ORCHESTRATION_TRUTH_REQUIRED/,
