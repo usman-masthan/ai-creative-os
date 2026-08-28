@@ -1,4 +1,5 @@
 import type { CampaignCreativeOutput, CampaignProductionFormat } from "../../creativeTypes.js";
+import type { LayerGeometryProfile } from "../../layoutEngine/geometry.js";
 import type { MarketingCampaignType } from "../../marketingPlannerTypes.js";
 
 export interface CreativeLayoutDefinition {
@@ -9,6 +10,7 @@ export interface CreativeLayoutDefinition {
   supportedAspectRatios: string[];
   copyDensity: "low" | "medium";
   imageCompositionRequirements: string[];
+  geometryProfile: LayerGeometryProfile;
 }
 
 export interface CreativeLayoutSelectionInput {
