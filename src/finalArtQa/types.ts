@@ -1,6 +1,7 @@
 import type { GeminiUsageTelemetry } from "../providers/geminiUsage.js";
 
 export type FinalArtQaDecision = "PASS" | "REGENERATE" | "HUMAN_REVIEW" | "BLOCK";
+export type FinalArtQaCheckState = "PASS" | "FAIL" | "NOT_APPLICABLE";
 
 export interface FinalArtQaRequest {
   imageBase64: string;
@@ -15,16 +16,33 @@ export interface FinalArtQaRequest {
   expectedSupportingCopy: string;
   expectedCta: string;
   expectedPrice?: string;
+  expectedProductName?: string;
+  expectedPlatforms?: string[];
   logoExpected: boolean;
 }
 
 export interface FinalArtQaScores {
-  legibility: number;
-  hierarchy: number;
-  safeArea: number;
-  contrast: number;
-  brandFit: number;
-  platformFit: number;
+  brandVisibility: number;
+  headlineHierarchy: number;
+  ctaHierarchyPlacement: number;
+  priceVisibility: number;
+  safeAreas: number;
+  contrastLegibility: number;
+  productDominance: number;
+  platformReadability: number;
+  decorativeCoherence: number;
+}
+
+export interface FinalArtQaChecks {
+  brandVisibility: FinalArtQaCheckState;
+  headlineHierarchy: FinalArtQaCheckState;
+  ctaHierarchyPlacement: FinalArtQaCheckState;
+  priceVisibility: FinalArtQaCheckState;
+  safeAreas: FinalArtQaCheckState;
+  contrastLegibility: FinalArtQaCheckState;
+  productDominance: FinalArtQaCheckState;
+  platformReadability: FinalArtQaCheckState;
+  decorativeCoherence: FinalArtQaCheckState;
 }
 
 export interface FinalArtQaResult {
@@ -32,6 +50,7 @@ export interface FinalArtQaResult {
   model: string;
   decision: FinalArtQaDecision;
   scores: FinalArtQaScores;
+  checks: FinalArtQaChecks;
   issues: string[];
   notes: string[];
   usage?: GeminiUsageTelemetry;
