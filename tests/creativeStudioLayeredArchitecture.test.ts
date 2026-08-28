@@ -2,12 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { assertCreativeBrief, type CreativeBrief } from "../src/creativeStudio/contracts/creativeBrief.js";
+import { getCreativeLayoutProvider } from "../src/creativeStudio/layoutProfiles/registry.js";
 import { generateCreativeDesign } from "../src/commands/generateCreativeDesign.js";
 import { applyDesignOperation } from "../src/designDocument/operations.js";
 import { validateDesignDocument } from "../src/designDocument/validator.js";
 import { safeAreaRect, rectWithin } from "../src/layoutEngine/geometry.js";
 import type { CampaignCreativeOutput } from "../src/creativeTypes.js";
-import { ATTHAS_LAYOUTS } from "../src/layouts/atthas.js";
 
 const creative: CampaignCreativeOutput = {
   concepts: [{
@@ -59,7 +59,7 @@ const creative: CampaignCreativeOutput = {
   factualQaNotes: [],
 };
 
-const layout = ATTHAS_LAYOUTS.find((candidate) => candidate.id === "ATTHAS_BURGER_PROMOTIONAL_PRICE_V1")!;
+const layout = getCreativeLayoutProvider("T001").get("ATTHAS_BURGER_PROMOTIONAL_PRICE_V1");
 
 test("CreativeBrief normalizes structured intake and validates dimensions", () => {
   const brief: CreativeBrief = {
