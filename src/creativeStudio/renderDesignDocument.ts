@@ -16,6 +16,13 @@ export interface DesignExportResult {
   height: number;
 }
 
+export interface DesignSvgExportResult {
+  format: "svg";
+  outputPath: string;
+  width: number;
+  height: number;
+}
+
 function mimeFromPath(path: string): string {
   switch (extname(path).toLowerCase()) {
     case ".png": return "image/png";
@@ -136,6 +143,69 @@ ${rendered.filter(Boolean).join("\n")}
 </html>`;
 }
 
+function svgTransform(layer: DesignLayer): string {
+  if (!layer.rotation) return "";
+  const cx = layer.x + layer.width / 2;
+  const cy = layer.y + layer.height / 2;
+  return ` transform="rotate(${layer.rotation} ${cx} ${cy})"`;
+}
+
+async function renderSvgLayer(layer: DesignLayer): Promise<string> {
+  if (!layer.visible) return "";
+  const opacity = ` opacity="${layer.opacity}"`;
+  const transform = svgTransform(layer);
+  switch (layer.type) {
+    case "background": {
+      if (!layer.asset) {
+        return `<rect data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" fill="${escapeHtml(layer.fill ?? "transparent")}"${opacity}${transform}/>`;
+      }
+      const href = await assetDataUri(layer.asset);
+      return `<image data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" href="${escapeHtml(href)}" preserveAspectRatio="${layer.fit === "contain" ? "xMidYMid meet" : "xMidYMid slice"}"${opacity}${transform}/>`;
+    }
+    case "image": {
+      const href = await assetDataUri(layer.asset);
+      return `<image data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" href="${escapeHtml(href)}" preserveAspectRatio="${layer.fit === "contain" ? "xMidYMid meet" : layer.fit === "fill" ? "none" : "xMidYMid slice"}"${opacity}${transform}/>`;
+    }
+    case "logo": {
+      const href = await assetDataUri(layer.asset);
+      return `<image data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" href="${escapeHtml(href)}" preserveAspectRatio="xMidYMid meet"${opacity}${transform}/>`;
+    }
+    case "shape": {
+      const fill = escapeHtml(layer.fill ?? "transparent");
+      const stroke = escapeHtml(layer.stroke ?? "none");
+      const strokeWidth = layer.strokeWidth ?? 0;
+      if (layer.shape === "ellipse") {
+        return `<ellipse data-layer-id="${escapeHtml(layer.id)}" cx="${layer.x + layer.width / 2}" cy="${layer.y + layer.height / 2}" rx="${layer.width / 2}" ry="${layer.height / 2}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"${opacity}${transform}/>`;
+      }
+      if (layer.shape === "line") {
+        return `<line data-layer-id="${escapeHtml(layer.id)}" x1="${layer.x}" y1="${layer.y}" x2="${layer.x + layer.width}" y2="${layer.y + layer.height}" stroke="${escapeHtml(layer.stroke ?? layer.fill ?? "#000000")}" stroke-width="${Math.max(1, strokeWidth)}"${opacity}${transform}/>`;
+      }
+      return `<rect data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" rx="${layer.cornerRadius ?? 0}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"${opacity}${transform}/>`;
+    }
+    case "text": {
+      const alignItems = layer.role === "cta" || layer.role === "price" ? "center" : "flex-start";
+      const justify = layer.align === "center" ? "center" : layer.align === "right" ? "flex-end" : "flex-start";
+      const stroke = layer.stroke ? `-webkit-text-stroke:0.5px ${escapeCss(layer.stroke)};` : "";
+      return `<foreignObject data-layer-id="${escapeHtml(layer.id)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}"${opacity}${transform}><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;overflow:hidden;display:flex;align-items:${alignItems};justify-content:${justify};white-space:pre-wrap;font-family:&quot;${escapeHtml(layer.fontFamily)}&quot;,Arial,sans-serif;font-size:${layer.fontSize}px;font-weight:${layer.fontWeight};line-height:${layer.lineHeight};letter-spacing:${layer.letterSpacing}px;text-align:${layer.align};color:${escapeCss(layer.fill)};${stroke}">${escapeHtml(layer.text)}</div></foreignObject>`;
+    }
+    case "group":
+      return "";
+    case "mask":
+      throw new Error(`UNSUPPORTED_LAYER: mask SVG rendering is not implemented for ${layer.id}.`);
+  }
+}
+
+export async function buildDesignDocumentSvg(documentInput: DesignDocument): Promise<string> {
+  const document = assertDesignDocument(documentInput);
+  const sorted = [...document.layers].sort((a, b) => a.zIndex - b.zIndex);
+  const rendered = await Promise.all(sorted.map(renderSvgLayer));
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${document.artboard.width}" height="${document.artboard.height}" viewBox="0 0 ${document.artboard.width} ${document.artboard.height}" data-design-id="${escapeHtml(document.id)}" data-design-version="${document.version}">
+<rect x="0" y="0" width="100%" height="100%" fill="${escapeHtml(document.artboard.background)}"/>
+${rendered.filter(Boolean).join("\n")}
+</svg>`;
+}
+
 function scaleForPreset(preset: DesignExportPreset): number {
   if (preset === "high-resolution") return 2;
   if (preset === "4k") return 4;
@@ -167,4 +237,21 @@ export async function exportDesignDocumentPng(input: {
     ...(input.chromePath ? { chromePath: input.chromePath } : {}),
   });
   return { format: "png", preset, htmlPath, outputPath, width, height };
+}
+
+export async function exportDesignDocumentSvg(input: {
+  document: DesignDocument;
+  outputDir: string;
+}): Promise<DesignSvgExportResult> {
+  const document = assertDesignDocument(input.document);
+  const outputDir = resolve(input.outputDir);
+  await mkdir(outputDir, { recursive: true });
+  const outputPath = join(outputDir, `design-v${document.version}.svg`);
+  await writeFile(outputPath, await buildDesignDocumentSvg(document), "utf8");
+  return {
+    format: "svg",
+    outputPath,
+    width: document.artboard.width,
+    height: document.artboard.height,
+  };
 }
