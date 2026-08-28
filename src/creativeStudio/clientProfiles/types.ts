@@ -26,6 +26,11 @@ export interface CreativeBrandReviewContext {
   creativeDirectorGuidance: readonly string[];
 }
 
+export interface CreativeBrandKitPreview {
+  approvedGraphicElements: readonly string[];
+  photographyDirection: readonly string[];
+}
+
 export interface CreativeBrandTheme {
   brandId: string;
   displayName: string;
@@ -43,6 +48,7 @@ export interface CreativeBrandTheme {
   approvedLogoAsset: CreativeApprovedBrandAsset;
   qa: CreativeBrandQaGovernance;
   review: CreativeBrandReviewContext;
+  brandKitPreview: CreativeBrandKitPreview;
 }
 
 export interface CreativeClientProfile {
