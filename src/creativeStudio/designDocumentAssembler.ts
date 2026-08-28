@@ -48,7 +48,7 @@ export function assembleDesignDocument(request: AssembleDesignDocumentRequest): 
   const artboard = { width: request.format.width, height: request.format.height };
   const geometry = resolveLayerGeometry({
     artboard,
-    layoutId: request.layout.id,
+    geometryProfile: request.layout.geometryProfile,
     ...(request.copyZone ? { copyZone: request.copyZone } : {}),
     hasPrice: Boolean(overlay.price),
   });
