@@ -3,7 +3,11 @@ import test from "node:test";
 
 import { ATTHAS_TOKENS } from "../src/atthasTokens.js";
 import { generateCreativeDesign } from "../src/commands/generateCreativeDesign.js";
-import { getCreativeBrandTheme, listCreativeClientProfiles } from "../src/creativeStudio/clientProfiles/registry.js";
+import {
+  findCreativeClientProfileForBrand,
+  getCreativeBrandTheme,
+  listCreativeClientProfiles,
+} from "../src/creativeStudio/clientProfiles/registry.js";
 import type { CampaignCreativeOutput } from "../src/creativeTypes.js";
 import { ATTHAS_LAYOUTS } from "../src/layouts/atthas.js";
 
@@ -57,15 +61,20 @@ const restaurantCreative: CampaignCreativeOutput = {
   factualQaNotes: [],
 };
 
-test("Creative Studio client profile registry exposes ATTHAS styling and QA governance", () => {
+test("Creative Studio client profile registry exposes ATTHAS styling, assets and QA governance", () => {
   const profiles = listCreativeClientProfiles();
   assert.equal(profiles.length, 1);
   assert.equal(profiles[0]?.clientId, "T001");
+  assert.equal(findCreativeClientProfileForBrand("ATTHAS_BURGER").clientId, "T001");
+  assert.equal(findCreativeClientProfileForBrand("ATTHAS_RESTAURANT").clientId, "T001");
 
   const burger = getCreativeBrandTheme("T001", "ATTHAS_BURGER");
   const restaurant = getCreativeBrandTheme("T001", "ATTHAS_RESTAURANT");
   assert.equal(burger.defaultPriceStyle, "BRAND_YELLOW");
   assert.equal(restaurant.defaultPriceStyle, "BRAND_RED");
+  assert.equal(burger.approvedLogoAsset.assetId, "ATTHAS_MASTER_SYMBOL_A_FORK");
+  assert.equal(burger.approvedLogoAsset.relativePath, "logos/source/atthas-master-symbol-a-fork.svg");
+  assert.equal(restaurant.approvedLogoAsset.mimeType, "image/svg+xml");
   assert.equal(burger.qa.safeAreaRatio, 0.05);
   assert.equal(burger.qa.minimumLogoPx, 32);
   assert.equal(burger.qa.logoRequired, true);
@@ -74,6 +83,7 @@ test("Creative Studio client profile registry exposes ATTHAS styling and QA gove
   assert.ok(burger.qa.approvedFonts.includes(burger.displayFont));
   assert.ok(restaurant.qa.approvedFonts.includes(restaurant.bodyFont));
   assert.throws(() => getCreativeBrandTheme("UNKNOWN", "ANY"), /CREATIVE_CLIENT_PROFILE_NOT_FOUND/);
+  assert.throws(() => findCreativeClientProfileForBrand("UNKNOWN_BRAND"), /CREATIVE_BRAND_PROFILE_NOT_FOUND/);
 });
 
 test("Restaurant assembler uses M3-compatible red default price style and omits blank supporting text", () => {
