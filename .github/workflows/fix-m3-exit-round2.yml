@@ -1,4 +1,5 @@
 name: Fix M3 Exit Round 2
+# retry after aligning the generic repair fixture
 
 on:
   push:
@@ -34,6 +35,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/structuredImageBrief.ts src/layouts/atthas.ts src/visualQa/gemini.ts tests/atthasLayouts.test.ts tests/geminiVisualQa.test.ts tests/structuredBriefGovernance.test.ts
+          git add src/structuredImageBrief.ts src/layouts/atthas.ts src/visualQa/gemini.ts tests/atthasLayouts.test.ts tests/geminiVisualQa.test.ts tests/structuredBriefGovernance.test.ts tests/structuredBriefProductionGate.test.ts
           git commit -m "Fix M3 exit generic concept governance"
           git push origin HEAD:m3-exit-calibration
