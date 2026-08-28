@@ -47,6 +47,12 @@ export function createCreativeStudioAdvancedBootstrapHandler(
         deterministicAutoPolish: true,
         layeredCreativeDirectorReview: true,
         flattenedFinalVisualQa: Boolean(process.env.GEMINI_API_KEY?.trim()),
+        versionBoundApproval: {
+          finalVisualQaPassRequired: true,
+          explicitHumanApprovalRequired: true,
+          staleApprovalRejectedAfterEdit: true,
+          approvedPngExport: true,
+        },
         initialRendererParityGate: true,
         designDirections: {
           count: 3,
