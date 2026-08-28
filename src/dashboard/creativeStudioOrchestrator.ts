@@ -2,8 +2,10 @@ import { writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { join, resolve } from "node:path";
 
+import { readAiTrace } from "../aiTrace.js";
 import { assertCreativeBrief, type CreativeBrief } from "../creativeStudio/contracts/creativeBrief.js";
 import { createCreativeOrchestrationPlan } from "../creativeStudio/orchestrator.js";
+import { buildCreativeOrchestrationExecution } from "../creativeStudio/orchestrationExecution.js";
 import { FileCreativeOrchestrationStore } from "../creativeStudio/orchestrationStore.js";
 import { FileDesignProjectStore } from "../creativeStudio/projectStore.js";
 import type { TaskTruthSnapshot } from "../taskTruth.js";
@@ -77,6 +79,17 @@ export function createCreativeStudioOrchestratorHandler(
       return true;
     }
 
+    if (req.method === "GET" && url.pathname === "/api/studio/orchestration/execution") {
+      const orchestrationId = safeId(url.searchParams.get("orchestrationId") ?? "", "orchestrationId");
+      const execution = await store.getExecution(orchestrationId);
+      if (!execution) {
+        sendJson(res, 404, { error: "orchestration_execution_not_found", orchestrationId });
+        return true;
+      }
+      sendJson(res, 200, execution);
+      return true;
+    }
+
     if (req.method === "POST" && url.pathname === "/api/studio/orchestration/link") {
       const data = await readBody(req);
       const designId = safeId(data.designId, "designId");
@@ -105,6 +118,31 @@ export function createCreativeStudioOrchestratorHandler(
         );
       }
       sendJson(res, 200, { linked: true, designId, orchestrationId: plan.id });
+      return true;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/studio/orchestration/complete") {
+      const data = await readBody(req);
+      const designId = safeId(data.designId, "designId");
+      const orchestrationId = safeId(data.orchestrationId, "orchestrationId");
+      const [project, plan] = await Promise.all([
+        designs.get(designId),
+        store.get(orchestrationId),
+      ]);
+      if (!project) throw new Error(`Design project ${designId} does not exist.`);
+      if (!plan) throw new Error(`Creative orchestration ${orchestrationId} does not exist.`);
+      if (project.orchestration?.id !== orchestrationId) {
+        throw new Error("ORCHESTRATION_EXECUTION_UNLINKED: link the immutable plan to the design before completing its execution audit.");
+      }
+      const trace = await readAiTrace(join(rootDir, "outputs", plan.campaignId));
+      const execution = buildCreativeOrchestrationExecution({
+        plan,
+        trace,
+        document: project.document,
+        ...(project.qa ? { deterministicDesignQa: project.qa.decision } : {}),
+      });
+      const saved = await store.saveExecution(execution);
+      sendJson(res, 201, saved);
       return true;
     }
 
