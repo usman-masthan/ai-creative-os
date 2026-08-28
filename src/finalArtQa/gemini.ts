@@ -4,6 +4,8 @@ import {
   type GeminiUsageTelemetry,
 } from "../providers/geminiUsage.js";
 import type {
+  FinalArtQaCheckState,
+  FinalArtQaChecks,
   FinalArtQaDecision,
   FinalArtQaProvider,
   FinalArtQaRequest,
@@ -30,6 +32,24 @@ interface GeminiResponse {
   error?: { message?: string };
 }
 
+const SCORE_SCHEMA = { type: "number", minimum: 0, maximum: 100 } as const;
+const CHECK_SCHEMA = {
+  type: "string",
+  enum: ["PASS", "FAIL", "NOT_APPLICABLE"],
+} as const;
+
+const FINAL_ART_DIMENSIONS = [
+  "brandVisibility",
+  "headlineHierarchy",
+  "ctaHierarchyPlacement",
+  "priceVisibility",
+  "safeAreas",
+  "contrastLegibility",
+  "productDominance",
+  "platformReadability",
+  "decorativeCoherence",
+] as const satisfies readonly (keyof FinalArtQaScores)[];
+
 const FINAL_ART_SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -38,20 +58,19 @@ const FINAL_ART_SCHEMA = {
     scores: {
       type: "object",
       additionalProperties: false,
-      properties: {
-        legibility: { type: "number", minimum: 0, maximum: 100 },
-        hierarchy: { type: "number", minimum: 0, maximum: 100 },
-        safeArea: { type: "number", minimum: 0, maximum: 100 },
-        contrast: { type: "number", minimum: 0, maximum: 100 },
-        brandFit: { type: "number", minimum: 0, maximum: 100 },
-        platformFit: { type: "number", minimum: 0, maximum: 100 },
-      },
-      required: ["legibility", "hierarchy", "safeArea", "contrast", "brandFit", "platformFit"],
+      properties: Object.fromEntries(FINAL_ART_DIMENSIONS.map((key) => [key, SCORE_SCHEMA])),
+      required: [...FINAL_ART_DIMENSIONS],
+    },
+    checks: {
+      type: "object",
+      additionalProperties: false,
+      properties: Object.fromEntries(FINAL_ART_DIMENSIONS.map((key) => [key, CHECK_SCHEMA])),
+      required: [...FINAL_ART_DIMENSIONS],
     },
     issues: { type: "array", items: { type: "string" } },
     notes: { type: "array", items: { type: "string" } },
   },
-  required: ["decision", "scores", "issues", "notes"],
+  required: ["decision", "scores", "checks", "issues", "notes"],
 } as const;
 
 function extractText(body: GeminiResponse): string {
@@ -70,15 +89,45 @@ function numberScore(value: unknown, name: string): number {
 }
 
 function parseScores(value: unknown): FinalArtQaScores {
-  if (!value || typeof value !== "object") throw new Error("Gemini final-art QA returned invalid scores.");
+  if (!value || typeof value !== "object") {
+    throw new Error("Gemini final-art QA returned invalid scores.");
+  }
   const scores = value as Record<string, unknown>;
   return {
-    legibility: numberScore(scores.legibility, "legibility"),
-    hierarchy: numberScore(scores.hierarchy, "hierarchy"),
-    safeArea: numberScore(scores.safeArea, "safeArea"),
-    contrast: numberScore(scores.contrast, "contrast"),
-    brandFit: numberScore(scores.brandFit, "brandFit"),
-    platformFit: numberScore(scores.platformFit, "platformFit"),
+    brandVisibility: numberScore(scores.brandVisibility, "brandVisibility"),
+    headlineHierarchy: numberScore(scores.headlineHierarchy, "headlineHierarchy"),
+    ctaHierarchyPlacement: numberScore(scores.ctaHierarchyPlacement, "ctaHierarchyPlacement"),
+    priceVisibility: numberScore(scores.priceVisibility, "priceVisibility"),
+    safeAreas: numberScore(scores.safeAreas, "safeAreas"),
+    contrastLegibility: numberScore(scores.contrastLegibility, "contrastLegibility"),
+    productDominance: numberScore(scores.productDominance, "productDominance"),
+    platformReadability: numberScore(scores.platformReadability, "platformReadability"),
+    decorativeCoherence: numberScore(scores.decorativeCoherence, "decorativeCoherence"),
+  };
+}
+
+function checkState(value: unknown, name: string): FinalArtQaCheckState {
+  if (value !== "PASS" && value !== "FAIL" && value !== "NOT_APPLICABLE") {
+    throw new Error(`Gemini final-art QA returned invalid ${name} check.`);
+  }
+  return value;
+}
+
+function parseChecks(value: unknown): FinalArtQaChecks {
+  if (!value || typeof value !== "object") {
+    throw new Error("Gemini final-art QA returned invalid checks.");
+  }
+  const checks = value as Record<string, unknown>;
+  return {
+    brandVisibility: checkState(checks.brandVisibility, "brandVisibility"),
+    headlineHierarchy: checkState(checks.headlineHierarchy, "headlineHierarchy"),
+    ctaHierarchyPlacement: checkState(checks.ctaHierarchyPlacement, "ctaHierarchyPlacement"),
+    priceVisibility: checkState(checks.priceVisibility, "priceVisibility"),
+    safeAreas: checkState(checks.safeAreas, "safeAreas"),
+    contrastLegibility: checkState(checks.contrastLegibility, "contrastLegibility"),
+    productDominance: checkState(checks.productDominance, "productDominance"),
+    platformReadability: checkState(checks.platformReadability, "platformReadability"),
+    decorativeCoherence: checkState(checks.decorativeCoherence, "decorativeCoherence"),
   };
 }
 
@@ -96,12 +145,38 @@ function parseDecision(value: unknown): FinalArtQaDecision {
   return value;
 }
 
+function expectedBrandIdentifier(brandId: FinalArtQaRequest["brandId"]): string {
+  return brandId === "ATTHAS_BURGER" ? "ATTHA'S BURGER" : "ATTHA'S RESTAURANT";
+}
+
 function buildPrompt(request: FinalArtQaRequest): string {
+  const platforms = request.expectedPlatforms?.length
+    ? request.expectedPlatforms.join(" / ")
+    : "NONE";
   return [
-    "You are reviewing the finished ATTHA’S advertising artwork, including deterministic text overlays.",
-    "Inspect the supplied pixels. Check legibility, hierarchy, safe areas, contrast, brand fit and platform fit.",
-    "Reject clipping, unreadable copy, bad line breaks, overlapping text, duplicate/generated text, weak CTA visibility, cropped price, unsafe edge placement or obvious spelling mismatch.",
+    "You are reviewing the FINISHED ATTHA'S advertising artwork after deterministic text/price rendering.",
+    "Judge only the supplied pixels. Do not infer that an element exists because it appears in the expected-copy metadata.",
+    "Inspect all nine M3.3 dimensions and return a 0-100 score plus PASS/FAIL/NOT_APPLICABLE check for each.",
+    "",
+    "M3.3 DIMENSIONS",
+    "1. brandVisibility — the deterministic operating-brand identifier is clearly visible and not obscured.",
+    "2. headlineHierarchy — the expected headline is readable, visually primary and clearly separated from supporting copy.",
+    "3. ctaHierarchyPlacement — CTA is readable, action-like and structurally tied to the copy block rather than orphaned in an arbitrary corner.",
+    "4. priceVisibility — when a price is expected, it is complete, readable, correctly formatted and not cropped. If no price is expected and none is visible, mark NOT_APPLICABLE.",
+    "5. safeAreas — important text, CTA, brand identifier and price remain inside safe margins with no clipping or unsafe edge placement.",
+    "6. contrastLegibility — all customer-facing text has sufficient contrast and clean line breaks at the intended platform size.",
+    "7. productDominance — when a verified product is expected, the food/product hero remains visually dominant and is not hidden by overlays. If no product is expected, mark NOT_APPLICABLE.",
+    "8. platformReadability — when a delivery/platform name is expected, it is visibly readable and unambiguous. If none is expected, mark NOT_APPLICABLE.",
+    "9. decorativeCoherence — no accidental rectangles, duplicate/generated text, stray rails, rendering artifacts, arbitrary corner ornaments or incoherent graphic fragments.",
+    "",
+    "CHECK RULES",
+    "- Always-applicable checks (brandVisibility, headlineHierarchy, ctaHierarchyPlacement, safeAreas, contrastLegibility, decorativeCoherence) must be PASS for the artwork to pass.",
+    "- For non-applicable price/product/platform dimensions, use NOT_APPLICABLE and score 100 only when no conflicting unexpected element is visible.",
+    "- If an unexpected price/platform/generated text or artifact is visible, use FAIL and explain it in issues.",
+    "- Do not approve artwork if expected customer-facing copy is visibly missing, materially altered, duplicated, clipped or unreadable.",
+    "",
     `Brand: ${request.brandId}`,
+    `Expected brand identifier: ${expectedBrandIdentifier(request.brandId)}`,
     `Layout: ${request.layoutId}`,
     `Platform: ${request.channel} ${request.assetType}`,
     `Expected dimensions: ${request.width}x${request.height}`,
@@ -109,30 +184,76 @@ function buildPrompt(request: FinalArtQaRequest): string {
     `Expected supporting copy: ${request.expectedSupportingCopy}`,
     `Expected CTA: ${request.expectedCta}`,
     `Expected price: ${request.expectedPrice ?? "NONE"}`,
+    `Expected product: ${request.expectedProductName ?? "NONE"}`,
+    `Expected platform names: ${platforms}`,
     `Approved logo expected: ${request.logoExpected ? "YES" : "NO"}`,
-    "Do not approve artwork if expected customer-facing copy is visibly missing or materially altered.",
+    "",
     "Return only JSON matching the schema.",
   ].join("\n");
 }
 
-function applyGuards(result: Omit<FinalArtQaResult, "provider" | "model" | "usage">) {
+const REQUIRED_MINIMUMS: ReadonlyArray<[keyof FinalArtQaScores, number]> = [
+  ["brandVisibility", 85],
+  ["headlineHierarchy", 82],
+  ["ctaHierarchyPlacement", 80],
+  ["safeAreas", 82],
+  ["contrastLegibility", 82],
+  ["decorativeCoherence", 80],
+];
+
+function applyGuards(
+  result: Omit<FinalArtQaResult, "provider" | "model" | "usage">,
+  request: FinalArtQaRequest,
+): Omit<FinalArtQaResult, "provider" | "model" | "usage"> {
   let decision = result.decision;
   const issues = [...result.issues];
-  const minimums: Array<[keyof FinalArtQaScores, number]> = [
-    ["legibility", 80],
-    ["safeArea", 80],
-    ["contrast", 75],
-    ["platformFit", 75],
-    ["brandFit", 70],
-  ];
+
   if (decision === "PASS") {
-    for (const [key, min] of minimums) {
-      if (result.scores[key] < min) {
+    for (const [key, minimum] of REQUIRED_MINIMUMS) {
+      if (result.checks[key] !== "PASS") {
         decision = "REGENERATE";
-        issues.push(`${key} score ${result.scores[key]} is below required ${min}.`);
+        issues.push(`${key} check must be PASS for finished artwork.`);
+      }
+      if (result.scores[key] < minimum) {
+        decision = "REGENERATE";
+        issues.push(`${key} score ${result.scores[key]} is below required ${minimum}.`);
+      }
+    }
+
+    const optional: Array<{
+      key: "priceVisibility" | "productDominance" | "platformReadability";
+      applicable: boolean;
+      minimum: number;
+    }> = [
+      { key: "priceVisibility", applicable: Boolean(request.expectedPrice), minimum: 85 },
+      { key: "productDominance", applicable: Boolean(request.expectedProductName), minimum: 80 },
+      {
+        key: "platformReadability",
+        applicable: Boolean(request.expectedPlatforms?.length),
+        minimum: 82,
+      },
+    ];
+
+    for (const item of optional) {
+      const state = result.checks[item.key];
+      if (item.applicable) {
+        if (state !== "PASS") {
+          decision = "REGENERATE";
+          issues.push(`${item.key} check must be PASS when the dimension is applicable.`);
+        }
+        if (result.scores[item.key] < item.minimum) {
+          decision = "REGENERATE";
+          issues.push(
+            `${item.key} score ${result.scores[item.key]} is below required ${item.minimum}.`,
+          );
+        }
+      } else if (state !== "NOT_APPLICABLE") {
+        decision = "REGENERATE";
+        issues.push(`${item.key} must be NOT_APPLICABLE when no corresponding verified element is expected.`);
       }
     }
   }
+
   return { ...result, decision, issues: [...new Set(issues)] };
 }
 
@@ -151,7 +272,7 @@ export class GeminiFinalArtQaProvider implements FinalArtQaProvider {
     this.apiKey = apiKey.trim();
     this.model = options.model?.trim() || geminiTextModelForRole("advanced");
     this.baseUrl = options.baseUrl?.replace(/\/$/, "") ?? "https://generativelanguage.googleapis.com/v1beta";
-    this.maxOutputTokens = options.maxOutputTokens ?? 1600;
+    this.maxOutputTokens = options.maxOutputTokens ?? 2200;
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
 
@@ -182,16 +303,24 @@ export class GeminiFinalArtQaProvider implements FinalArtQaProvider {
     } catch {
       throw new Error(`Gemini final-art QA returned non-JSON (HTTP ${response.status}).`);
     }
-    if (!response.ok) throw new Error(`Gemini final-art QA failed: ${body.error?.message ?? `HTTP ${response.status}`}`);
+    if (!response.ok) {
+      throw new Error(
+        `Gemini final-art QA failed: ${body.error?.message ?? `HTTP ${response.status}`}`,
+      );
+    }
     const text = extractText(body);
     if (!text) throw new Error("Gemini final-art QA returned no output.");
     const parsed = JSON.parse(text) as Record<string, unknown>;
-    const guarded = applyGuards({
-      decision: parseDecision(parsed.decision),
-      scores: parseScores(parsed.scores),
-      issues: strings(parsed.issues, "issues"),
-      notes: strings(parsed.notes, "notes"),
-    });
+    const guarded = applyGuards(
+      {
+        decision: parseDecision(parsed.decision),
+        scores: parseScores(parsed.scores),
+        checks: parseChecks(parsed.checks),
+        issues: strings(parsed.issues, "issues"),
+        notes: strings(parsed.notes, "notes"),
+      },
+      request,
+    );
     this.lastUsage = usageFromGenerateContent(this.model, body.usageMetadata);
     return {
       provider: this.providerName,
