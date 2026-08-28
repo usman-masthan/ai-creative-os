@@ -2,6 +2,11 @@ import { ATTHAS_TOKENS, atthasDisplayFont } from "../../atthasTokens.js";
 import type { CreativeClientProfile } from "./types.js";
 
 const APPROVED_COLOURS = [...new Set(Object.values(ATTHAS_TOKENS.colours))];
+const APPROVED_MASTER_SYMBOL = {
+  assetId: "ATTHAS_MASTER_SYMBOL_A_FORK",
+  relativePath: "logos/source/atthas-master-symbol-a-fork.svg",
+  mimeType: "image/svg+xml",
+} as const;
 
 function qaGovernance(displayFont: string) {
   return {
@@ -40,6 +45,7 @@ export const ATTHAS_CREATIVE_CLIENT_PROFILE: CreativeClientProfile = {
         BRAND_YELLOW: { fill: ATTHAS_TOKENS.colours.primaryYellow, text: ATTHAS_TOKENS.colours.ink },
       },
       logoLayerName: "Approved ATTHA'S Burger Logo",
+      approvedLogoAsset: APPROVED_MASTER_SYMBOL,
       qa: qaGovernance(burgerDisplayFont),
     },
     ATTHAS_RESTAURANT: {
@@ -59,6 +65,7 @@ export const ATTHAS_CREATIVE_CLIENT_PROFILE: CreativeClientProfile = {
         BRAND_YELLOW: { fill: ATTHAS_TOKENS.colours.primaryYellow, text: ATTHAS_TOKENS.colours.ink },
       },
       logoLayerName: "Approved ATTHA'S Restaurant Logo",
+      approvedLogoAsset: APPROVED_MASTER_SYMBOL,
       qa: qaGovernance(restaurantDisplayFont),
     },
   },
