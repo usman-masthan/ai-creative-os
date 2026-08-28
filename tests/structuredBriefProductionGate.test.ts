@@ -115,6 +115,8 @@ function baseCreative(): CampaignCreativeOutput {
 
 function invalidFinalCreative(): CampaignCreativeOutput {
   const value = structuredClone(baseCreative());
+  value.creativeBrief.cta = "Discover ATTHA'S";
+  value.overlaySpec.cta = "Discover ATTHA'S";
   value.creativeBrief.composition =
     "Keep the focal subject centre-right with a red rectangle and CTA box in the upper-left.";
   return value;

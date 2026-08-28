@@ -1,4 +1,5 @@
 import type { CampaignCreativeOutput, CampaignProductionFormat } from "./creativeTypes.js";
+import { campaignCopyPolicyPrompt } from "./campaignCopyRules.js";
 import type { CampaignPreflight } from "./commands/createCampaign.js";
 import type { GenerateCampaignRequest } from "./commands/generateCampaign.js";
 import type { CreativeDirectorReview } from "./creativeDirectorTypes.js";
@@ -104,6 +105,7 @@ CAMPAIGN
 - Objective: ${request.objective}
 - Channel: ${request.channel}
 - Asset type: ${request.assetType}
+- Campaign type: ${request.campaignType ?? "unspecified"}
 - Required aspect ratio: ${format.aspectRatio}
 
 BRAND CONTEXT
@@ -129,6 +131,8 @@ FINALIZATION RULES
 8. creativeBrief.aspectRatio must be exactly ${format.aspectRatio}.
 9. If a deterministic price exists in the original overlaySpec, preserve it exactly.
 10. Preserve logoUsage policy; do not promote pending logo artwork.
+
+${campaignCopyPolicyPrompt({ campaignType: request.campaignType, brandId: request.brandId })}
 
 Return ONLY a complete CampaignCreativeOutput JSON object in the same schema as ORIGINAL CREATIVE OUTPUT.`;
 }

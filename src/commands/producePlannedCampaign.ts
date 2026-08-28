@@ -267,6 +267,7 @@ function buildGenerationRequest(request: ProducePlannedCampaignRequest): Generat
     objective: entry.objective,
     channel: entry.channel,
     assetType: entry.assetType,
+    campaignType: entry.campaignType,
     requirements: requirementsFromEntry(entry, request.requirementScopes),
     truthRecords: request.truthRecords,
     brandContext: plannedContext,

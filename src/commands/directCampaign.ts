@@ -1,6 +1,10 @@
 import { assertCreativeRespectsBrandGovernance } from "../brandGovernance.js";
 import { assertCreativeRespectsClaimGovernance } from "../claimGovernance.js";
 import {
+  assertCampaignTypeCopyRules,
+  type CampaignCopyPolicyId,
+} from "../campaignCopyRules.js";
+import {
   buildCreativeDirectorPrompt,
   buildDirectedCreativePrompt,
 } from "../creativeDirectorPrompt.js";
@@ -51,7 +55,7 @@ function assertDirectedCreative(
   review: CreativeDirectorReview,
   campaign: GeneratedCampaign,
   request: GenerateCampaignRequest,
-): void {
+): CampaignCopyPolicyId | undefined {
   if (!conceptsMatch(original, creative)) {
     throw new Error("Creative Director finalization violation: concepts must remain exactly unchanged.");
   }
@@ -93,6 +97,11 @@ function assertDirectedCreative(
     request.claimGovernance ?? {},
   );
   assertCreativeRespectsBrandGovernance(creative, request.brandGovernance);
+  return assertCampaignTypeCopyRules(creative, {
+    campaignType: request.campaignType,
+    brandId: request.brandId,
+    facts: campaign.preflight.facts,
+  });
 }
 
 async function runDirectorReview(
@@ -130,7 +139,12 @@ async function finalizeWinner(
   input: DirectCampaignRequest,
   review: CreativeDirectorReview,
   provider: CampaignGenerationProvider,
-): Promise<{ creative: CampaignCreativeOutput; attempts: number; repairs: number }> {
+): Promise<{
+  creative: CampaignCreativeOutput;
+  attempts: number;
+  repairs: number;
+  copyPolicy?: CampaignCopyPolicyId;
+}> {
   const originalPrompt = buildDirectedCreativePrompt({
     request: input.request,
     preflight: input.campaign.preflight,
@@ -148,8 +162,14 @@ async function finalizeWinner(
     const raw = await provider.generate(prompt);
     try {
       const creative = parseCampaignCreativeOutput(raw);
-      assertDirectedCreative(creative, input.campaign.creative, review, input.campaign, input.request);
-      return { creative, attempts, repairs };
+      const copyPolicy = assertDirectedCreative(
+        creative,
+        input.campaign.creative,
+        review,
+        input.campaign,
+        input.request,
+      );
+      return { creative, attempts, repairs, ...(copyPolicy ? { copyPolicy } : {}) };
     } catch (error) {
       if (repairs >= maxRepairs) {
         const violation = error instanceof Error ? error.message : String(error);
@@ -195,6 +215,7 @@ export async function directGeneratedCampaign(
       finalization: {
         attempts: finalization.attempts,
         repairs: finalization.repairs,
+        ...(finalization.copyPolicy ? { copyPolicy: finalization.copyPolicy } : {}),
       },
     },
   };
