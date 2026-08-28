@@ -2,7 +2,7 @@ import { ATTHAS_TOKENS, atthasDisplayFont } from "../atthasTokens.js";
 import type { TaskTruthSnapshot } from "../taskTruth.js";
 import type { DesignDocument, DesignLayer, DesignTextLayer } from "../designDocument/types.js";
 import { validateDesignDocument } from "../designDocument/validator.js";
-import { buildSafeArea } from "../layoutEngine/geometry.js";
+import { safeAreaRect } from "../layoutEngine/geometry.js";
 
 export type DesignQaSeverity = "LOW" | "MEDIUM" | "HIGH";
 
@@ -45,7 +45,7 @@ function approvedColours(): Set<string> {
 }
 
 function isInsideSafeArea(layer: DesignLayer, document: DesignDocument): boolean {
-  const safe = buildSafeArea(
+  const safe = safeAreaRect(
     { width: document.artboard.width, height: document.artboard.height },
     0.05,
   );
