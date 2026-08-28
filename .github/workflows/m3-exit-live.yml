@@ -1,4 +1,5 @@
 name: M3 Exit Live Calibration
+# round 2 after generic concept governance and structured-brief fallback fixes
 
 on:
   push:
