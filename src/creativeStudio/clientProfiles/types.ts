@@ -6,8 +6,8 @@ export interface CreativePriceTheme {
 }
 
 export interface CreativeBrandQaGovernance {
-  approvedColours: string[];
-  approvedFonts: string[];
+  approvedColours: readonly string[];
+  approvedFonts: readonly string[];
   safeAreaRatio: number;
   minimumLogoPx: number;
   logoRequired: boolean;
