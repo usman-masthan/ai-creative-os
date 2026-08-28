@@ -44,3 +44,5 @@ A successful FINAL render moves the persisted campaign from `DRAFT` to `INTERNAL
 ## Validation rule
 
 The 20–30 real ATTHA'S campaign validation should restart from Campaign 01 only after this branch passes normal PR CI and is merged to `main`.
+
+The first restart case should be the Crispy Chicken Burger PRODUCT_PUSH flow because it exercises typed product truth, governed real-photo binding, Visual QA and the M3 final renderer in one end-to-end path.
