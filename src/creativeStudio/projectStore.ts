@@ -6,6 +6,10 @@ import { assertCreativeBrief } from "./contracts/creativeBrief.js";
 import type { LayeredCreativeDirectorReview } from "../creativeDirectorLayered.js";
 import type { DesignDocument } from "../designDocument/types.js";
 import { assertDesignDocument } from "../designDocument/validator.js";
+import {
+  assertCreativeOrchestrationPlan,
+  type CreativeOrchestrationPlan,
+} from "./orchestrator.js";
 
 export interface DesignQaRecord {
   checkedAt: string;
@@ -36,6 +40,7 @@ export interface DesignProjectSnapshot {
   state: DesignProjectState;
   document: DesignDocument;
   brief?: CreativeBrief;
+  orchestration?: CreativeOrchestrationPlan;
   qa?: DesignQaRecord;
   directorReview?: LayeredCreativeDirectorReview;
   exports: DesignExportRecord[];
@@ -62,6 +67,27 @@ async function writeJson(path: string, value: unknown): Promise<void> {
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
+function assertOrchestrationBinding(input: {
+  document: DesignDocument;
+  brief?: CreativeBrief;
+  orchestration: CreativeOrchestrationPlan;
+}): CreativeOrchestrationPlan {
+  const orchestration = assertCreativeOrchestrationPlan(input.orchestration);
+  if (orchestration.campaignId !== input.document.campaignId) {
+    throw new Error("DESIGN_ORCHESTRATION_MISMATCH: orchestration belongs to a different campaign.");
+  }
+  if (orchestration.truthSnapshotId !== input.document.truthSnapshotId) {
+    throw new Error("DESIGN_ORCHESTRATION_MISMATCH: orchestration truth snapshot differs from the DesignDocument.");
+  }
+  if (orchestration.clientId !== input.document.brand.clientId || orchestration.brandId !== input.document.brand.brandId) {
+    throw new Error("DESIGN_ORCHESTRATION_MISMATCH: orchestration client/brand differs from the DesignDocument.");
+  }
+  if (input.brief && orchestration.briefId !== input.brief.id) {
+    throw new Error("DESIGN_ORCHESTRATION_MISMATCH: orchestration belongs to a different CreativeBrief.");
+  }
+  return orchestration;
+}
+
 export class FileDesignProjectStore {
   readonly rootDir: string;
 
@@ -86,8 +112,16 @@ export class FileDesignProjectStore {
     await mkdir(join(this.projectDir(designId), "versions"), { recursive: true });
   }
 
-  async create(input: { document: DesignDocument; brief?: CreativeBrief }): Promise<DesignProjectSnapshot> {
+  async create(input: {
+    document: DesignDocument;
+    brief?: CreativeBrief;
+    orchestration?: CreativeOrchestrationPlan;
+  }): Promise<DesignProjectSnapshot> {
     const document = assertDesignDocument(input.document);
+    const brief = input.brief ? assertCreativeBrief(input.brief) : undefined;
+    const orchestration = input.orchestration
+      ? assertOrchestrationBinding({ document, ...(brief ? { brief } : {}), orchestration: input.orchestration })
+      : undefined;
     const existing = await this.getState(document.id);
     if (existing) throw new Error(`Design project ${document.id} already exists.`);
     await this.ensureProject(document.id);
@@ -105,8 +139,11 @@ export class FileDesignProjectStore {
       writeJson(this.path(document.id, "state.json"), state),
       writeJson(this.path(document.id, "design.json"), document),
       writeJson(this.versionPath(document.id, document.version), document),
-      input.brief
-        ? writeJson(this.path(document.id, "brief.json"), assertCreativeBrief(input.brief))
+      brief
+        ? writeJson(this.path(document.id, "brief.json"), brief)
+        : Promise.resolve(),
+      orchestration
+        ? writeJson(this.path(document.id, "orchestration.json"), orchestration)
         : Promise.resolve(),
       writeJson(this.path(document.id, "exports.json"), []),
     ]);
@@ -121,18 +158,25 @@ export class FileDesignProjectStore {
   async get(designId: string): Promise<DesignProjectSnapshot | undefined> {
     const state = await this.getState(designId);
     if (!state) return undefined;
-    const [documentRaw, briefRaw, qaRaw, directorReview, exports] = await Promise.all([
+    const [documentRaw, briefRaw, orchestrationRaw, qaRaw, directorReview, exports] = await Promise.all([
       readJson<DesignDocument | null>(this.path(designId, "design.json"), null),
       readJson<CreativeBrief | null>(this.path(designId, "brief.json"), null),
+      readJson<CreativeOrchestrationPlan | null>(this.path(designId, "orchestration.json"), null),
       readJson<DesignQaRecord | null>(this.path(designId, "qa.json"), null),
       readJson<LayeredCreativeDirectorReview | null>(this.path(designId, "director-review.json"), null),
       readJson<DesignExportRecord[]>(this.path(designId, "exports.json"), []),
     ]);
     if (!documentRaw) throw new Error(`Design project ${designId} is missing design.json.`);
+    const document = assertDesignDocument(documentRaw);
+    const brief = briefRaw ? assertCreativeBrief(briefRaw) : undefined;
+    const orchestration = orchestrationRaw
+      ? assertOrchestrationBinding({ document, ...(brief ? { brief } : {}), orchestration: orchestrationRaw })
+      : undefined;
     return {
       state,
-      document: assertDesignDocument(documentRaw),
-      ...(briefRaw ? { brief: assertCreativeBrief(briefRaw) } : {}),
+      document,
+      ...(brief ? { brief } : {}),
+      ...(orchestration ? { orchestration } : {}),
       ...(qaRaw ? { qa: qaRaw } : {}),
       ...(directorReview ? { directorReview } : {}),
       exports,
