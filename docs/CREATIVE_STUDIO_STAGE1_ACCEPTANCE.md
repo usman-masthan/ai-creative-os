@@ -12,6 +12,7 @@ A user can move from a structured marketing brief to a governed creative, open i
 | --- | --- | --- |
 | Structured Creative Brief | PASS | `CreativeBrief` contract/schema + `/studio` intake UI. |
 | Profile-driven Studio intake | PASS | Client, brand-kit and truth-provider metadata come from `/api/studio/bootstrap`; fixed T001 request constants are removed from the active intake flow. |
+| Profile-driven Brand Kit preview | PASS | The intake displays the selected registered brand's approved logo, palette, semantic colors, display/body/price typography, approved graphical elements and photography direction. Logo bytes are served through the same approved asset-root governance used by Studio designs. |
 | Existing truth confirmation reused | PASS | ATTHA'S truth provider points to the existing `/api/ui/*` questionnaire/confirmation/production endpoints; no parallel fact system. |
 | Truth-provider dispatch | PASS | Client truth-provider registry exposes bootstrap/prepare/confirm/upload/produce endpoints and requires explicit confirmation + immutable snapshots. Unknown clients fail closed. |
 | Immutable task truth remains authoritative | PASS | Design imports and Studio QA/edit routes bind back to campaign trace task snapshot. |
@@ -72,7 +73,7 @@ Stage 1 is not accepted if any of the following regress:
 6. AI must not invent or silently overwrite price, offer, branch, contact, campaign date or product facts.
 7. Generated media must never be reclassified as a verified product visual.
 8. Verified product foreground pixels must remain protected after segmentation.
-9. Logos must originate from approved source-controlled assets inside the active client's approved asset root.
+9. Logos must originate from approved source-controlled assets inside the active client's approved asset root, including Brand Kit preview assets.
 10. Promotional typography must remain native/editable rather than baked into image generation.
 11. Manual geometry/styling/history operations must not invoke a model.
 12. AI image operations must target a single isolated layer.
@@ -118,6 +119,7 @@ A change after approval creates `vN+1`. The approval for `vN` remains in governa
 
 ```text
 selected client/brand
+→ registered Brand Kit preview
 → registered truth provider
 → questionnaire preparation
 → explicit user confirmation
