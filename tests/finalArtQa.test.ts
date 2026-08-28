@@ -10,7 +10,7 @@ function fakeResponse(body: unknown, status = 200): Response {
   });
 }
 
-function request() {
+function request(overrides: Record<string, unknown> = {}) {
   return {
     imageBase64: Buffer.from("fake-image").toString("base64"),
     mimeType: "image/png",
@@ -22,40 +22,109 @@ function request() {
     height: 1350,
     expectedHeadline: "Crispy Chicken Burger",
     expectedSupportingCopy: "On Uber Eats",
-    expectedCta: "Order",
+    expectedCta: "Order on Uber Eats",
+    expectedPrice: "LKR 950",
+    expectedProductName: "Crispy Chicken Burger",
+    expectedPlatforms: ["Uber Eats"],
     logoExpected: false,
+    ...overrides,
   };
 }
 
-test("final artwork QA keeps strong output as PASS", async () => {
-  const provider = new GeminiFinalArtQaProvider({
+function strongReview() {
+  return {
+    decision: "PASS",
+    scores: {
+      brandVisibility: 95,
+      headlineHierarchy: 92,
+      ctaHierarchyPlacement: 90,
+      priceVisibility: 94,
+      safeAreas: 93,
+      contrastLegibility: 92,
+      productDominance: 91,
+      platformReadability: 90,
+      decorativeCoherence: 94,
+    },
+    checks: {
+      brandVisibility: "PASS",
+      headlineHierarchy: "PASS",
+      ctaHierarchyPlacement: "PASS",
+      priceVisibility: "PASS",
+      safeAreas: "PASS",
+      contrastLegibility: "PASS",
+      productDominance: "PASS",
+      platformReadability: "PASS",
+      decorativeCoherence: "PASS",
+    },
+    issues: [],
+    notes: [],
+  };
+}
+
+function providerFor(review: unknown): GeminiFinalArtQaProvider {
+  return new GeminiFinalArtQaProvider({
     apiKey: "test",
     fetchImpl: async () => fakeResponse({
-      candidates: [{ content: { parts: [{ text: JSON.stringify({
-        decision: "PASS",
-        scores: { legibility: 95, hierarchy: 90, safeArea: 92, contrast: 91, brandFit: 88, platformFit: 93 },
-        issues: [],
-        notes: [],
-      }) }] } }],
+      candidates: [{ content: { parts: [{ text: JSON.stringify(review) }] } }],
     }),
   });
-  const result = await provider.review(request());
+}
+
+test("M3.3 final artwork QA keeps strong nine-dimension output as PASS", async () => {
+  const result = await providerFor(strongReview()).review(request());
+  assert.equal(result.decision, "PASS");
+  assert.equal(result.scores.brandVisibility, 95);
+  assert.equal(result.checks.decorativeCoherence, "PASS");
+});
+
+test("deterministic threshold downgrades weak contrast/legibility PASS to REGENERATE", async () => {
+  const review = strongReview();
+  review.scores.contrastLegibility = 60;
+  const result = await providerFor(review).review(request());
+  assert.equal(result.decision, "REGENERATE");
+  assert.match(result.issues.join(" "), /contrastLegibility score/);
+});
+
+test("brand visibility check cannot be hidden behind a high model score", async () => {
+  const review = strongReview();
+  review.checks.brandVisibility = "FAIL";
+  const result = await providerFor(review).review(request());
+  assert.equal(result.decision, "REGENERATE");
+  assert.match(result.issues.join(" "), /brandVisibility check must be PASS/);
+});
+
+test("expected price requires both a visible-price check and threshold", async () => {
+  const review = strongReview();
+  review.checks.priceVisibility = "FAIL";
+  const result = await providerFor(review).review(request());
+  assert.equal(result.decision, "REGENERATE");
+  assert.match(result.issues.join(" "), /priceVisibility check must be PASS/);
+});
+
+test("non-applicable price product and platform dimensions must be explicit", async () => {
+  const review = strongReview();
+  review.scores.priceVisibility = 100;
+  review.scores.productDominance = 100;
+  review.scores.platformReadability = 100;
+  review.checks.priceVisibility = "NOT_APPLICABLE";
+  review.checks.productDominance = "NOT_APPLICABLE";
+  review.checks.platformReadability = "NOT_APPLICABLE";
+
+  const result = await providerFor(review).review(
+    request({
+      expectedPrice: undefined,
+      expectedProductName: undefined,
+      expectedPlatforms: undefined,
+    }),
+  );
   assert.equal(result.decision, "PASS");
 });
 
-test("deterministic threshold downgrades weak legibility PASS to REGENERATE", async () => {
-  const provider = new GeminiFinalArtQaProvider({
-    apiKey: "test",
-    fetchImpl: async () => fakeResponse({
-      candidates: [{ content: { parts: [{ text: JSON.stringify({
-        decision: "PASS",
-        scores: { legibility: 60, hierarchy: 90, safeArea: 92, contrast: 91, brandFit: 88, platformFit: 93 },
-        issues: [],
-        notes: [],
-      }) }] } }],
-    }),
-  });
-  const result = await provider.review(request());
+test("accidental decorative artifacts force regeneration even when Gemini reports PASS", async () => {
+  const review = strongReview();
+  review.checks.decorativeCoherence = "FAIL";
+  review.issues = ["A stray rectangular graphic fragment appears near the CTA."];
+  const result = await providerFor(review).review(request());
   assert.equal(result.decision, "REGENERATE");
-  assert.match(result.issues.join(" "), /legibility score/);
+  assert.match(result.issues.join(" "), /decorativeCoherence check must be PASS/);
 });
