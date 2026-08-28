@@ -55,6 +55,10 @@ test("auto-polish fixes only deterministic layout/brand issues without changing 
   assert.ok(before.issues.some((item) => item.code === "TEXT_OVERFLOW_RISK" && item.layerId === "headline"));
   assert.ok(before.issues.some((item) => item.code === "LOGO_TOO_SMALL" && item.layerId === "logo"));
 
+  const originalHeadline = document.layers.find((layer) => layer.id === "headline");
+  assert.ok(originalHeadline?.type === "text");
+  if (originalHeadline?.type !== "text") throw new Error("Fixture headline must be a text layer.");
+
   const polished = autoPolishDesign({ document, qa: before, timestamp: "2026-08-28T18:01:00.000Z" });
   assert.ok(polished.applied.length >= 3);
   assert.equal(polished.document.version, 2);
@@ -62,7 +66,7 @@ test("auto-polish fixes only deterministic layout/brand issues without changing 
   const headline = polished.document.layers.find((layer) => layer.id === "headline");
   assert.ok(headline?.type === "text");
   if (headline?.type === "text") {
-    assert.equal(headline.text, document.layers.find((layer) => layer.id === "headline" && layer.type === "text")?.text);
+    assert.equal(headline.text, originalHeadline.text);
     assert.equal(headline.fontFamily, "Oswald");
     assert.ok(headline.fontSize < 72);
     assert.ok(headline.x >= 54 && headline.y >= 68);
