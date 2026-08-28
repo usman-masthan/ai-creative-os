@@ -1,4 +1,5 @@
-import { ATTHAS_TOKENS, atthasDisplayFont } from "../atthasTokens.js";
+import { getCreativeBrandTheme } from "./clientProfiles/registry.js";
+import type { CreativeBrandTheme } from "./clientProfiles/types.js";
 import type { DesignDocument, DesignLayer, DesignTextLayer } from "../designDocument/types.js";
 import { assertDesignDocument } from "../designDocument/validator.js";
 import { safeAreaRect } from "../layoutEngine/geometry.js";
@@ -29,8 +30,8 @@ function fitFontSize(layer: DesignTextLayer): number {
   return size;
 }
 
-function clampImportantLayer(layer: DesignLayer, document: DesignDocument): DesignLayer {
-  const safe = safeAreaRect(document.artboard, 0.05);
+function clampImportantLayer(layer: DesignLayer, document: DesignDocument, theme: CreativeBrandTheme): DesignLayer {
+  const safe = safeAreaRect(document.artboard, theme.qa.safeAreaRatio);
   const width = Math.min(layer.width, safe.width);
   const height = Math.min(layer.height, safe.height);
   const x = Math.max(safe.x, Math.min(layer.x, safe.x + safe.width - width));
@@ -38,11 +39,11 @@ function clampImportantLayer(layer: DesignLayer, document: DesignDocument): Desi
   return { ...layer, x: Math.round(x), y: Math.round(y), width, height } as DesignLayer;
 }
 
-function minimumLogo(layer: DesignLayer, document: DesignDocument): DesignLayer {
+function minimumLogo(layer: DesignLayer, document: DesignDocument, theme: CreativeBrandTheme): DesignLayer {
   if (layer.type !== "logo") return layer;
-  const minimum = 32;
+  const minimum = theme.qa.minimumLogoPx;
   const smallest = Math.min(layer.width, layer.height);
-  if (smallest >= minimum) return clampImportantLayer(layer, document);
+  if (smallest >= minimum) return clampImportantLayer(layer, document, theme);
   const scale = minimum / Math.max(1, smallest);
   return clampImportantLayer(
     {
@@ -51,17 +52,14 @@ function minimumLogo(layer: DesignLayer, document: DesignDocument): DesignLayer 
       height: Math.round(layer.height * scale),
     },
     document,
+    theme,
   );
 }
 
-function approvedFont(layer: DesignTextLayer, document: DesignDocument): string {
-  if (layer.role === "price") return ATTHAS_TOKENS.typography.price;
-  if (layer.role === "headline" || layer.role === "brand-identifier") {
-    return atthasDisplayFont(
-      document.brand.brandId === "ATTHAS_RESTAURANT" ? "ATTHAS_RESTAURANT" : "ATTHAS_BURGER",
-    );
-  }
-  return ATTHAS_TOKENS.typography.body;
+function approvedFont(layer: DesignTextLayer, theme: CreativeBrandTheme): string {
+  if (layer.role === "price") return theme.priceFont;
+  if (layer.role === "headline" || layer.role === "brand-identifier") return theme.displayFont;
+  return theme.bodyFont;
 }
 
 function issueKey(issue: DesignQaIssue): string {
@@ -74,32 +72,34 @@ export function autoPolishDesign(input: {
   timestamp?: string;
 }): DesignAutoPolishResult {
   const document = assertDesignDocument(input.document);
+  const theme = getCreativeBrandTheme(document.brand.clientId, document.brand.brandId);
   const actionable = new Map(input.qa.issues.map((issue) => [issueKey(issue), issue]));
   const applied: DesignAutoPolishResult["applied"] = [];
+  const safePercent = Math.round(theme.qa.safeAreaRatio * 100);
 
   const layers = document.layers.map((original): DesignLayer => {
     let layer = original;
     const safeIssue = actionable.get(`SAFE_MARGIN:${original.id}`) ?? actionable.get(`LOGO_SAFE_AREA:${original.id}`);
     if (safeIssue && (!original.locked || original.type === "logo")) {
-      const next = clampImportantLayer(layer, document);
+      const next = clampImportantLayer(layer, document, theme);
       if (next.x !== layer.x || next.y !== layer.y || next.width !== layer.width || next.height !== layer.height) {
         layer = next;
-        applied.push({ code: safeIssue.code, layerId: original.id, summary: "Moved layer inside the 5% safe area." });
+        applied.push({ code: safeIssue.code, layerId: original.id, summary: `Moved layer inside the ${safePercent}% safe area.` });
       }
     }
 
     const logoSizeIssue = actionable.get(`LOGO_TOO_SMALL:${original.id}`);
     if (logoSizeIssue && layer.type === "logo") {
-      const next = minimumLogo(layer, document);
+      const next = minimumLogo(layer, document, theme);
       if (next.width !== layer.width || next.height !== layer.height || next.x !== layer.x || next.y !== layer.y) {
         layer = next;
-        applied.push({ code: logoSizeIssue.code, layerId: original.id, summary: "Raised approved logo to the deterministic minimum digital size." });
+        applied.push({ code: logoSizeIssue.code, layerId: original.id, summary: `Raised approved logo to the ${theme.qa.minimumLogoPx}px deterministic minimum digital size.` });
       }
     }
 
     const fontIssue = actionable.get(`NON_BRAND_FONT:${original.id}`);
     if (fontIssue && layer.type === "text") {
-      const fontFamily = approvedFont(layer, document);
+      const fontFamily = approvedFont(layer, theme);
       if (layer.fontFamily !== fontFamily) {
         layer = { ...layer, fontFamily };
         applied.push({ code: fontIssue.code, layerId: original.id, summary: `Restored approved font ${fontFamily}.` });
