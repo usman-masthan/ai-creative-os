@@ -37,6 +37,9 @@ A user can move from a structured marketing brief to a governed creative, open i
 | Approved logo as separate layer | PASS WITH ASSET LIMIT | Approved A/fork working master is enforced. Full official Burger/Restaurant lockups are still pending source assets in the brand manifest. |
 | Governed asset-root isolation | PASS | Approved-brand assets must resolve inside the active client's declared approved asset root; runtime assets remain confined to Creative OS storage. |
 | Layered canvas MVP | PASS | `/studio` native SVG adapter supports selection, drag, safe guides and deterministic edits. |
+| Direct canvas resize / rotate | PASS | Selected unlocked layers expose an SVG resize handle and, except protected logos, a rotation handle. Pointer-up commits the existing versioned `RESIZE_LAYER` / `ROTATE_LAYER` operation instead of mutating hidden state. |
+| Keyboard canvas editing | PASS | Arrow keys nudge selected unlocked layers by 1 px, Shift+Arrow by 10 px, with safe-margin/centre snapping; Cmd/Ctrl+D and Delete reuse governed duplicate/delete operations. |
+| Canvas transform governance | PASS | Locked layers receive no transform controls; logos cannot rotate/duplicate/delete and backgrounds cannot delete because UI actions flow through the same core DesignDocument governance. |
 | Manual editing costs zero model calls | PASS | Geometry/text styling/visibility/order/duplicate/delete operations are deterministic document mutations. |
 | Undo / redo | PASS | Persistent version snapshots + cursor. |
 | Arbitrary version compare | PASS | `/api/studio/compare` returns layer/property deltas. |
@@ -65,7 +68,7 @@ A user can move from a structured marketing brief to a governed creative, open i
 | Second live client | NOT ENABLED | Shared provider boundaries exist, but only ATTHA'S currently has authoritative truth/task-intent data and a production implementation. No unsafe fallback is allowed. |
 | JPG export | DEFERRED | No stable dependency-free JPEG encoder is present. PNG/SVG remain supported instead of adding a fragile native dependency only for conversion. |
 | Full official logo lockups | EXTERNAL BLOCKER | Repository manifest still lists full Burger/Restaurant vector lockups as pending owner-supplied assets. They must not be recreated with AI/substitute fonts. |
-| Konva-specific adapter | OPTIONAL / DEFERRED | Native SVG already satisfies Stage 1 interactions. `DesignDocument` remains compatible with a future Konva adapter if richer multi-select/transform UX requires it. |
+| Konva-specific adapter | OPTIONAL / DEFERRED | Native SVG now satisfies Stage 1 selection, drag, resize, rotation, snapping and keyboard-edit interactions. `DesignDocument` remains compatible with a future Konva adapter if richer multi-select/group transforms require it. |
 
 ## Required safety invariants
 
@@ -84,15 +87,16 @@ Stage 1 is not accepted if any of the following regress:
 11. Logos must originate from approved source-controlled assets inside the active client's approved asset root, including Brand Kit preview assets.
 12. Promotional typography must remain native/editable rather than baked into image generation.
 13. Manual geometry/styling/history operations must not invoke a model.
-14. AI image operations must target a single isolated layer.
-15. A custom or non-social output format must preserve the exact requested DesignDocument/render dimensions; image-provider aspect normalization may affect only generated source media.
-16. Format adaptation must create a new recomposed DesignDocument and must not stretch or destructively overwrite the source design.
-17. Story-layout semantics must not be forced onto a non-story artboard, and standard-fluid layout semantics must not silently masquerade as a story layout.
-18. Deterministic blockers must be resolved before final visual QA or production approval.
-19. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
-20. Any later edit must require a fresh final visual QA and explicit approval before approved export.
-21. Registering an approved Studio asset must not impersonate a client/admin lifecycle approval or automatically change campaign state.
-22. Restoring a version must create a new revision rather than erasing history.
+14. Direct canvas transforms and keyboard editing must use the existing versioned DesignDocument operation API; they must not bypass locked-layer, logo or structural governance.
+15. AI image operations must target a single isolated layer.
+16. A custom or non-social output format must preserve the exact requested DesignDocument/render dimensions; image-provider aspect normalization may affect only generated source media.
+17. Format adaptation must create a new recomposed DesignDocument and must not stretch or destructively overwrite the source design.
+18. Story-layout semantics must not be forced onto a non-story artboard, and standard-fluid layout semantics must not silently masquerade as a story layout.
+19. Deterministic blockers must be resolved before final visual QA or production approval.
+20. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
+21. Any later edit must require a fresh final visual QA and explicit approval before approved export.
+22. Registering an approved Studio asset must not impersonate a client/admin lifecycle approval or automatically change campaign state.
+23. Restoring a version must create a new revision rather than erasing history.
 
 ## Governed Studio creation state machine
 
@@ -140,6 +144,20 @@ Editable source DesignDocument
 ```
 
 The source DesignDocument is never destructively resized. For custom artboards unsupported by the media provider, only generated source imagery uses a nearest supported source aspect ratio; final layout and export remain exact to the requested width and height.
+
+## Canvas transform state machine
+
+```text
+Selected unlocked layer
+→ drag / resize handle / rotation handle / keyboard transform
+→ local visual interaction
+→ one governed DesignDocument operation
+→ new persisted document version
+→ deterministic QA rerun
+→ Studio rerender
+```
+
+Direct interaction is only an adapter over the existing document operation model. Protected logos, backgrounds and locked layers keep the same governance they have through the property panel and API.
 
 ## Client truth state machine
 
