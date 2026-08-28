@@ -1,28 +1,24 @@
 import { getCreativeBrandTheme } from "../creativeStudio/clientProfiles/registry.js";
+import type { CreativeBriefFormatPreset } from "../creativeStudio/contracts/creativeBrief.js";
+import {
+  CREATIVE_OUTPUT_FORMAT_PRESETS,
+  resolveCreativeOutputFormat,
+} from "../creativeStudio/contracts/outputFormat.js";
 import { getCreativeLayoutProvider } from "../creativeStudio/layoutProfiles/registry.js";
 import type { DesignDocument, DesignLayer, DesignTextLayer } from "../designDocument/types.js";
 import { assertDesignDocument } from "../designDocument/validator.js";
 import { resolveLayerGeometry, type DesignCopyZone } from "../layoutEngine/resolver.js";
 
-export type CreativeAdaptationPreset =
-  | "instagram-square"
-  | "instagram-portrait"
-  | "instagram-story"
-  | "facebook-post";
+export type CreativeAdaptationPreset = CreativeBriefFormatPreset;
 
 export interface CreativeAdaptationTarget {
   preset: CreativeAdaptationPreset;
   width: number;
   height: number;
-  aspectRatio: "1:1" | "4:5" | "9:16";
+  aspectRatio: string;
 }
 
-export const CREATIVE_ADAPTATION_TARGETS: Record<CreativeAdaptationPreset, CreativeAdaptationTarget> = {
-  "instagram-square": { preset: "instagram-square", width: 1080, height: 1080, aspectRatio: "1:1" },
-  "instagram-portrait": { preset: "instagram-portrait", width: 1080, height: 1350, aspectRatio: "4:5" },
-  "instagram-story": { preset: "instagram-story", width: 1080, height: 1920, aspectRatio: "9:16" },
-  "facebook-post": { preset: "facebook-post", width: 1080, height: 1350, aspectRatio: "4:5" },
-};
+export const CREATIVE_ADAPTATION_TARGETS = CREATIVE_OUTPUT_FORMAT_PRESETS;
 
 function scaledFont(layer: DesignTextLayer, source: DesignDocument, target: CreativeAdaptationTarget): number {
   const widthScale = target.width / source.artboard.width;
@@ -85,6 +81,8 @@ export function adaptCreativeDesign(input: {
   document: DesignDocument;
   preset: CreativeAdaptationPreset;
   newDesignId: string;
+  customWidth?: number;
+  customHeight?: number;
   copyZone?: DesignCopyZone;
   createdAt?: string;
 }): DesignDocument {
@@ -92,7 +90,17 @@ export function adaptCreativeDesign(input: {
   if (!/^[A-Za-z0-9._-]{1,160}$/.test(input.newDesignId.trim())) {
     throw new Error("newDesignId contains unsafe characters.");
   }
-  const target = CREATIVE_ADAPTATION_TARGETS[input.preset];
+  const resolved = resolveCreativeOutputFormat({
+    preset: input.preset,
+    ...(input.customWidth !== undefined ? { customWidth: input.customWidth } : {}),
+    ...(input.customHeight !== undefined ? { customHeight: input.customHeight } : {}),
+  });
+  const target: CreativeAdaptationTarget = {
+    preset: resolved.preset,
+    width: resolved.width,
+    height: resolved.height,
+    aspectRatio: resolved.aspectRatio,
+  };
   const layoutProvider = getCreativeLayoutProvider(source.brand.clientId);
   const layout = layoutProvider.adaptationLayout({
     brandId: source.brand.brandId,
@@ -125,7 +133,7 @@ export function adaptCreativeDesign(input: {
         version: 1,
         createdAt,
         actor: "system",
-        summary: `Adapted from ${source.id} v${source.version} to ${input.preset} (${target.aspectRatio}) with ${layoutProvider.clientId} layout provider recomposition.`,
+        summary: `Adapted from ${source.id} v${source.version} to ${input.preset} (${target.aspectRatio}, ${target.width}x${target.height}) with ${layoutProvider.clientId} layout-provider recomposition.`,
       },
     ],
     createdAt,
