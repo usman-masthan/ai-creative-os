@@ -85,6 +85,23 @@ test("ATTHAS layout provider lists, resolves and adapts existing layout families
   assert.throws(() => getCreativeLayoutProvider("UNKNOWN"), /CREATIVE_LAYOUT_PROVIDER_NOT_FOUND/);
 });
 
+test("layout provider owns A/B/C design direction recipes", () => {
+  const provider = getCreativeLayoutProvider("T001");
+  const burger = provider.directions({ brandId: "ATTHAS_BURGER", vertical: false, hasPrice: true });
+  assert.deepEqual(burger.map((direction) => direction.id), ["A", "B", "C"]);
+  assert.deepEqual(burger.map((direction) => direction.layoutId), [
+    "ATTHAS_BURGER_HERO_PRODUCT_V1",
+    "ATTHAS_BURGER_MINIMAL_PREMIUM_V1",
+    "ATTHAS_BURGER_PROMOTIONAL_PRICE_V1",
+  ]);
+  assert.equal(burger[2]?.name, "Conversion Price");
+
+  const restaurantStory = provider.directions({ brandId: "ATTHAS_RESTAURANT", vertical: true, hasPrice: false });
+  assert.deepEqual(restaurantStory.map((direction) => direction.id), ["A", "B", "C"]);
+  assert.ok(restaurantStory.every((direction) => direction.layoutId === "ATTHAS_RESTAURANT_STORY_VERTICAL_V1"));
+  assert.deepEqual(restaurantStory.map((direction) => direction.copyZone), ["upperLeft", "upperRight", "lowerLeft"]);
+});
+
 test("shared geometry resolver consumes semantics instead of client layout ids", () => {
   const artboard = { width: 1080, height: 1350 };
   const standard = resolveLayerGeometry({ artboard, geometryProfile: "STANDARD_HERO", hasPrice: false });
