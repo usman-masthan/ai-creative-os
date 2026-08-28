@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 
 import { createCreativeStudioAdaptationHandler } from "./creativeStudioAdaptation.js";
 import { createCreativeStudioDirectorHandler } from "./creativeStudioDirector.js";
+import { createCreativeStudioEnhancedHandler } from "./creativeStudioEnhanced.js";
 import { createCreativeStudioHandler } from "./creativeStudio.js";
 import { createCreativeStudioSegmentationHandler } from "./creativeStudioSegmentation.js";
 import { createCreativeStudioSvgExportHandler } from "./creativeStudioSvgExport.js";
@@ -11,6 +12,7 @@ import { createMarketingManagerHandler, type MarketingManagerHandlerOptions } fr
 export function createAtthasMarketingManagerServer(options: MarketingManagerHandlerOptions = {}) {
   const handleMarketing = createMarketingManagerHandler(options);
   const handleStudio = createCreativeStudioHandler(options);
+  const handleStudioEnhanced = createCreativeStudioEnhancedHandler();
   const handleStudioDirector = createCreativeStudioDirectorHandler(options);
   const handleStudioAdaptation = createCreativeStudioAdaptationHandler(options);
   const handleStudioVersions = createCreativeStudioVersionsHandler(options);
@@ -34,6 +36,7 @@ export function createAtthasMarketingManagerServer(options: MarketingManagerHand
       if (await handleStudioVersions(req, res, url)) return;
       if (await handleStudioSvgExport(req, res, url)) return;
       if (await handleStudioSegmentation(req, res, url)) return;
+      if (await handleStudioEnhanced(req, res, url)) return;
       if (await handleStudio(req, res, url)) return;
       if (await handleMarketing(req, res, url)) return;
       res.writeHead(404, { "content-type": "application/json; charset=utf-8" });
