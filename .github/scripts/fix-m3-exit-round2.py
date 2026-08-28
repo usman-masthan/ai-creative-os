@@ -74,3 +74,9 @@ if addition not in text:
     if anchor not in text:
         raise SystemExit("structured brief test anchor not found")
     p.write_text(text.replace(anchor, addition + anchor, 1))
+
+replace_once(
+    "tests/structuredBriefProductionGate.test.ts",
+    'function safeRepairSubject(productName = "No specific verified SKU supplied") {',
+    'function safeRepairSubject(productName = "Generic concept visual — no verified product identity") {',
+)
