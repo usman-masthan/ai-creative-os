@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { resolve } from "node:path";
 
 import { listCreativeClientProfiles } from "../creativeStudio/clientProfiles/registry.js";
+import { getCreativeLayoutProvider } from "../creativeStudio/layoutProfiles/registry.js";
 import { FileDesignProjectStore } from "../creativeStudio/projectStore.js";
 import { FileCampaignStore } from "../operations/fileStore.js";
 
@@ -27,15 +28,19 @@ export function createCreativeStudioAdvancedBootstrapHandler(
       designs.list(),
       campaigns.listCampaigns(),
     ]);
-    const clientProfiles = listCreativeClientProfiles().map((profile) => ({
-      clientId: profile.clientId,
-      displayName: profile.displayName,
-      defaultBrandKitId: profile.defaultBrandKitId,
-      brands: Object.values(profile.brands).map((brand) => ({
-        brandId: brand.brandId,
-        displayName: brand.displayName,
-      })),
-    }));
+    const clientProfiles = listCreativeClientProfiles().map((profile) => {
+      const layouts = getCreativeLayoutProvider(profile.clientId);
+      return {
+        clientId: profile.clientId,
+        displayName: profile.displayName,
+        defaultBrandKitId: profile.defaultBrandKitId,
+        brands: Object.values(profile.brands).map((brand) => ({
+          brandId: brand.brandId,
+          displayName: brand.displayName,
+          layoutCount: layouts.list(brand.brandId).length,
+        })),
+      };
+    });
     sendJson(res, 200, {
       designs: designStates,
       campaigns: campaignRecords,
@@ -47,6 +52,7 @@ export function createCreativeStudioAdvancedBootstrapHandler(
         renderer: "DesignDocument HTML/SVG renderer",
         canvas: "native-svg-adapter",
         clientProfileRegistry: true,
+        clientLayoutProviderRegistry: true,
         activeClientProfiles: clientProfiles.length,
         manualEditing: true,
         nativeTypography: true,
