@@ -187,7 +187,7 @@ const GEMINI_IMAGE_ASPECT_RATIOS = [
 export function nearestSupportedImageAspectRatio(aspectRatio: string): string {
   if ((GEMINI_IMAGE_ASPECT_RATIOS as readonly string[]).includes(aspectRatio)) return aspectRatio;
   const requested = ratioNumber(aspectRatio);
-  let nearest = GEMINI_IMAGE_ASPECT_RATIOS[0];
+  let nearest: string = GEMINI_IMAGE_ASPECT_RATIOS[0];
   let distance = Math.abs(ratioNumber(nearest) - requested);
   for (const candidate of GEMINI_IMAGE_ASPECT_RATIOS.slice(1)) {
     const nextDistance = Math.abs(ratioNumber(candidate) - requested);
