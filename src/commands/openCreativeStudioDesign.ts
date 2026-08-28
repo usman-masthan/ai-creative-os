@@ -104,6 +104,7 @@ export async function openCreativeStudioDesign(input: {
   outputDir: string;
   repoRoot: string;
   designId?: string;
+  creativeBriefId?: string;
   copyZone?: DesignCopyZone;
   createdAt?: string;
 }): Promise<{ document: DesignDocument; truthSnapshot: TaskTruthSnapshot }> {
@@ -127,6 +128,7 @@ export async function openCreativeStudioDesign(input: {
   const document = generateCreativeDesign({
     designId: input.designId ?? `design-${input.campaignId}`,
     campaignId: input.campaignId,
+    ...(input.creativeBriefId ? { creativeBriefId: input.creativeBriefId } : {}),
     truthSnapshotId: `task:${snapshot.sessionId}`,
     clientId: "T001",
     brandId,
