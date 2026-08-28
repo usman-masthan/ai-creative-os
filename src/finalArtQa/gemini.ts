@@ -195,16 +195,12 @@ function parseDecision(value: unknown): FinalArtQaDecision {
   return value;
 }
 
-function expectedBrandIdentifier(brandId: FinalArtQaRequest["brandId"]): string {
-  return brandId === "ATTHAS_BURGER" ? "ATTHA'S BURGER" : "ATTHA'S RESTAURANT";
-}
-
 function buildPrompt(request: FinalArtQaRequest): string {
   const platforms = request.expectedPlatforms?.length
     ? request.expectedPlatforms.join(" / ")
     : "NONE";
   return [
-    "You are reviewing the FINISHED ATTHA'S advertising artwork after deterministic text/price rendering.",
+    `You are reviewing the FINISHED ${request.finalArtReviewLabel} after deterministic text/price rendering.`,
     "Judge only the supplied pixels. Do not infer that an element exists because it appears in the expected-copy metadata.",
     "Inspect all nine M3.3 dimensions and return a 0-100 score, PASS/FAIL/NOT_APPLICABLE check, and evidence for each.",
     "",
@@ -229,8 +225,8 @@ function buildPrompt(request: FinalArtQaRequest): string {
     "- NOT_APPLICABLE evidence is allowed only when the corresponding check is NOT_APPLICABLE.",
     "- Do not approve artwork if expected customer-facing copy is visibly missing, materially altered, duplicated, clipped or unreadable.",
     "",
-    `Brand: ${request.brandId}`,
-    `Expected brand identifier: ${expectedBrandIdentifier(request.brandId)}`,
+    `Brand: ${request.brandDisplayName} (${request.brandId})`,
+    `Expected brand identifier: ${request.expectedBrandIdentifier}`,
     `Layout: ${request.layoutId}`,
     `Platform: ${request.channel} ${request.assetType}`,
     `Expected dimensions: ${request.width}x${request.height}`,
