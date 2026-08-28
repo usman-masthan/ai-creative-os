@@ -26,21 +26,40 @@ export function creativeStudioProfiledHtml(): string {
 
   html = replaceRequired(
     html,
+    `<div class="checks" style="margin-bottom:10px"><label class="chip"><input type="checkbox" id="showPrice" /> Price</label><label class="chip"><input type="checkbox" id="showProduct" checked /> Product name</label><label class="chip"><input type="checkbox" id="showBranch" /> Branch</label><label class="chip"><input type="checkbox" id="showCta" checked /> CTA</label></div>`,
+    `<div class="checks" style="margin-bottom:10px"><label class="chip"><input type="checkbox" id="showPrice" /> Price</label><label class="chip"><input type="checkbox" id="showOffer" /> Offer</label><label class="chip"><input type="checkbox" id="showProduct" checked /> Product name</label><label class="chip"><input type="checkbox" id="showBranch" /> Branch</label><label class="chip"><input type="checkbox" id="showCta" checked /> CTA</label><label class="chip"><input type="checkbox" id="showContactDetails" /> Contact details</label><label class="chip"><input type="checkbox" id="showCampaignDates" /> Campaign dates</label></div><div class="field"><label>Headline direction <span class="note">optional</span></label><input id="headlineDirection" maxlength="180" placeholder="Short, bold, premium; lead with craving." /></div><div class="field"><label>Custom creative instructions <span class="note">optional</span></label><textarea id="customInstructions" maxlength="800" placeholder="Creative direction only. Business facts still require truth confirmation."></textarea><div class="note">Offer, contact and date content may use only facts confirmed by the task truth gate. These controls never authorize invented values.</div></div>`,
+  );
+
+  html = replaceRequired(
+    html,
     `clientId:'T001',brandId:$('brandId').value`,
     `clientId:$('brandId').selectedOptions[0].dataset.clientId,brandId:$('brandId').value`,
+  );
+  html = replaceRequired(
+    html,
+    `contentRequirements:{showPrice:$('showPrice').checked,showOffer:$('goal').value.toLowerCase().indexOf('offer')>=0,showCTA:$('showCta').checked,showProductName:$('showProduct').checked,showBranch:$('showBranch').checked,showContactDetails:false,showCampaignDates:false}`,
+    `contentRequirements:{showPrice:$('showPrice').checked,showOffer:$('showOffer').checked||$('goal').value.toLowerCase().indexOf('offer')>=0,showCTA:$('showCta').checked,showProductName:$('showProduct').checked,showBranch:$('showBranch').checked,showContactDetails:$('showContactDetails').checked,showCampaignDates:$('showCampaignDates').checked,headlineDirection:$('headlineDirection').value.trim()||undefined,customInstructions:$('customInstructions').value.trim()||undefined}`,
   );
   html = replaceRequired(
     html,
     `brandKitId:'ATTHAS_WORKING_V1',createdAt:new Date().toISOString()`,
     `brandKitId:$('brandId').selectedOptions[0].dataset.brandKitId,createdAt:new Date().toISOString()`,
   );
+  html = replaceRequired(
+    html,
+    `function campaignType(goal,product){var g=goal.toLowerCase();if(g.indexOf('offer')>=0)return 'OFFER';`,
+    `function campaignType(goal,product,showOffer){var g=goal.toLowerCase();if(showOffer||g.indexOf('offer')>=0)return 'OFFER';`,
+  );
+  html = replaceRequired(
+    html,
+    `var raw=[brief.goal,brief.description,product?('featuring '+product):'',brief.branchId||'',brief.vibe.join(' '),brief.contentRequirements.showPrice?'show price':'no price',fmt.channel,fmt.assetType].filter(Boolean).join('. ');return {rawRequest:raw,brandId:brief.brandId,branchScope:brief.branchId||'BRAND_WIDE',campaignType:campaignType(brief.goal,product),objective:brief.description,`,
+    `var raw=[brief.goal,brief.description,product?('featuring '+product):'',brief.branchId||'',brief.vibe.join(' '),brief.contentRequirements.showPrice?'show price':'no price',brief.contentRequirements.showOffer?'show only a confirmed offer':'no offer requested',brief.contentRequirements.showContactDetails?'include only confirmed branch contact details':'',brief.contentRequirements.showCampaignDates?'include only confirmed campaign dates':'',brief.contentRequirements.headlineDirection?('headline direction: '+brief.contentRequirements.headlineDirection):'',brief.contentRequirements.customInstructions?('creative instructions: '+brief.contentRequirements.customInstructions):'',fmt.channel,fmt.assetType].filter(Boolean).join('. ');var objective=[brief.description,brief.contentRequirements.headlineDirection?('Headline direction: '+brief.contentRequirements.headlineDirection):'',brief.contentRequirements.customInstructions?('Creative instructions: '+brief.contentRequirements.customInstructions):''].filter(Boolean).join('. ');return {rawRequest:raw,brandId:brief.brandId,branchScope:brief.branchId||'BRAND_WIDE',campaignType:campaignType(brief.goal,product,brief.contentRequirements.showOffer),objective:objective,`,
+  );
 
   html = replaceRequired(
     html,
     `function selectedVibes(){`,
-    `function truthEndpoint(name){var option=$('brandId').selectedOptions[0];if(!option)throw new Error('Select a brand first.');var key='truth'+name.charAt(0).toUpperCase()+name.slice(1);var path=option.dataset[key];if(!path)throw new Error('Truth provider '+name+' endpoint is unavailable for the selected client.');return path;}
-  async function reloadTruthBootstrap(){state.uiBootstrap=await api(truthEndpoint('bootstrap'));populateBranches();}
-  function selectedVibes(){`,
+    `function truthEndpoint(name){var option=$('brandId').selectedOptions[0];if(!option)throw new Error('Select a brand first.');var key='truth'+name.charAt(0).toUpperCase()+name.slice(1);var path=option.dataset[key];if(!path)throw new Error('Truth provider '+name+' endpoint is unavailable for the selected client.');return path;}\n  async function reloadTruthBootstrap(){state.uiBootstrap=await api(truthEndpoint('bootstrap'));populateBranches();}\n  function selectedVibes(){`,
   );
   html = replaceRequired(html, `api('/api/ui/prepare'`, `api(truthEndpoint('prepare')`);
   html = replaceRequired(html, `api('/api/ui/confirm'`, `api(truthEndpoint('confirm')`);
@@ -85,6 +104,7 @@ export function creativeStudioProfiledHtml(): string {
     if(preview.approvedGraphicElements&&preview.approvedGraphicElements.length)addText(panel,'Approved graphical elements',preview.approvedGraphicElements.join(' · '));
     if(preview.photographyDirection&&preview.photographyDirection.length)addText(panel,'Photography direction',preview.photographyDirection.join('  |  '));
   }
+  function syncOfferControl(){var goal=document.getElementById('goal'),offer=document.getElementById('showOffer');if(!goal||!offer)return;if(goal.value.toLowerCase().indexOf('offer')>=0)offer.checked=true;}
   async function populateCreativeClientProfiles(){
     try{
       var response=await fetch('/api/studio/bootstrap');
@@ -124,6 +144,7 @@ export function creativeStudioProfiledHtml(): string {
       // Source-controlled ATTHA'S provider metadata remains usable if bootstrap enrichment fails.
     }
   }
+  var goal=document.getElementById('goal');if(goal)goal.addEventListener('change',syncOfferControl);syncOfferControl();
   populateCreativeClientProfiles();
 })();
 </script>`;
