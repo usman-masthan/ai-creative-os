@@ -3,6 +3,7 @@ import { extname, join, resolve } from "node:path";
 
 import type { GenerateCampaignResult } from "./generateCampaign.js";
 import type { ImageDraftProvider, ImageDraftResult } from "../imageProviders/types.js";
+import { buildM3RendererPlan, type M3CopyZones, type M3RendererPlan } from "../m3Renderer.js";
 import type {
   FinalArtQaProvider,
   FinalArtQaRequest,
@@ -63,6 +64,8 @@ export interface ProducePosterRequest {
   baseImagePath?: string;
   visualQa?: PosterVisualQaConfig;
   finalArtQa?: PosterFinalArtQaConfig;
+  rendererMode?: "LEGACY" | "M3_V2";
+  copyZones?: M3CopyZones;
   chromePath?: string;
   fetchFn?: typeof fetch;
 }
@@ -77,6 +80,7 @@ export interface ProducePosterResult {
   imageGeneration?: ImageGenerationSummary;
   visualQa?: VisualQaResult;
   finalArtQa?: FinalArtQaResult;
+  rendererPlan?: M3RendererPlan;
   qa: PosterQaResult;
 }
 
@@ -273,12 +277,25 @@ export async function producePoster(request: ProducePosterRequest): Promise<Prod
   });
 
   const baseImageDataUri = await imageToDataUri(baseImagePath);
+  const rendererMode = request.rendererMode ?? "LEGACY";
+  const rendererPlan =
+    rendererMode === "M3_V2"
+      ? buildM3RendererPlan({
+          creative: request.campaign.creative,
+          format: request.campaign.production.format,
+          brandId,
+          layoutId: layout.id,
+          ...(request.copyZones ? { copyZones: request.copyZones } : {}),
+        })
+      : undefined;
   const html = buildPosterHtml({
     creative: request.campaign.creative,
     format: request.campaign.production.format,
     baseImageDataUri,
     brandId,
     layoutId: layout.id,
+    rendererMode,
+    ...(request.copyZones ? { copyZones: request.copyZones } : {}),
   });
   assertPosterHtmlContract(html, request.campaign.creative, request.campaign.production.format);
 
@@ -319,6 +336,7 @@ export async function producePoster(request: ProducePosterRequest): Promise<Prod
       layout,
     },
     overlay: request.campaign.creative.overlaySpec,
+    renderer: rendererPlan ?? { mode: "LEGACY" },
     imageGeneration: imageGenerationSummary ?? { provider: "local", model: "existing-image" },
     ...(visualQa ? { visualQa } : {}),
     ...(finalArtQa ? { finalArtQa } : {}),
@@ -341,6 +359,7 @@ export async function producePoster(request: ProducePosterRequest): Promise<Prod
     ...(imageGenerationSummary ? { imageGeneration: imageGenerationSummary } : {}),
     ...(visualQa ? { visualQa } : {}),
     ...(finalArtQa ? { finalArtQa } : {}),
+    ...(rendererPlan ? { rendererPlan } : {}),
     qa,
   };
 }

@@ -66,11 +66,22 @@ function optionalMoney(
   if (currency !== "LKR") {
     throw new Error(`Invalid campaign creative output: ${path}.${key}.currency must be LKR.`);
   }
+  const priceStyle = value.priceStyle;
+  if (
+    priceStyle !== undefined &&
+    priceStyle !== "BRAND_RED" &&
+    priceStyle !== "BRAND_YELLOW"
+  ) {
+    throw new Error(
+      `Invalid campaign creative output: ${path}.${key}.priceStyle must be BRAND_RED or BRAND_YELLOW when supplied.`,
+    );
+  }
 
   return {
     amount,
     currency: "LKR",
     display: formatLkr(amount),
+    ...(priceStyle ? { priceStyle } : {}),
   };
 }
 
