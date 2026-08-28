@@ -17,7 +17,7 @@ test("Marketing Manager list truth controls clearly support structured separator
   assert.match(html, /semicolon separated/);
 });
 
-
+// Parse the generated inline browser script itself so template-escaping regressions cannot silently disable the UI.
 test("generated Marketing Manager browser script is valid JavaScript", () => {
   const html = marketingManagerHtml();
   const match = html.match(/<script>([\s\S]*?)<\/script>/);
