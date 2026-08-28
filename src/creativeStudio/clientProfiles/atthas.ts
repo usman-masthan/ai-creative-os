@@ -19,6 +19,17 @@ function qaGovernance(displayFont: string) {
   } as const;
 }
 
+function reviewContext(expectedBrandIdentifier: string, displayName: string) {
+  return {
+    expectedBrandIdentifier,
+    finalArtReviewLabel: `${displayName} advertising artwork`,
+    creativeDirectorGuidance: [
+      `Treat ${expectedBrandIdentifier} as the required operating-brand identifier when brand visibility is applicable.`,
+      "Judge brand consistency against the deterministic QA result and approved client-profile typography/color constraints; do not invent new brand elements.",
+    ],
+  } as const;
+}
+
 const burgerDisplayFont = atthasDisplayFont("ATTHAS_BURGER");
 const restaurantDisplayFont = atthasDisplayFont("ATTHAS_RESTAURANT");
 
@@ -47,6 +58,7 @@ export const ATTHAS_CREATIVE_CLIENT_PROFILE: CreativeClientProfile = {
       logoLayerName: "Approved ATTHA'S Burger Logo",
       approvedLogoAsset: APPROVED_MASTER_SYMBOL,
       qa: qaGovernance(burgerDisplayFont),
+      review: reviewContext(ATTHAS_TOKENS.brandIdentifier.burger, "ATTHA'S Burger"),
     },
     ATTHAS_RESTAURANT: {
       brandId: "ATTHAS_RESTAURANT",
@@ -67,6 +79,7 @@ export const ATTHAS_CREATIVE_CLIENT_PROFILE: CreativeClientProfile = {
       logoLayerName: "Approved ATTHA'S Restaurant Logo",
       approvedLogoAsset: APPROVED_MASTER_SYMBOL,
       qa: qaGovernance(restaurantDisplayFont),
+      review: reviewContext(ATTHAS_TOKENS.brandIdentifier.restaurant, "ATTHA'S Restaurant"),
     },
   },
 };
