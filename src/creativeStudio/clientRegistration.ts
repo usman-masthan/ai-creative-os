@@ -63,6 +63,14 @@ function validateProfile(profile: CreativeClientProfile, issues: string[]): void
     if (!brand.review.creativeDirectorGuidance.length || brand.review.creativeDirectorGuidance.some((item) => !item.trim())) {
       issues.push(`${profile.clientId}.${brandKey}.review requires non-empty Creative Director guidance.`);
     }
+    if (!brand.brandKitPreview.approvedGraphicElements.length
+      || brand.brandKitPreview.approvedGraphicElements.some((item) => !item.trim())) {
+      issues.push(`${profile.clientId}.${brandKey}.brandKitPreview requires approved graphical elements.`);
+    }
+    if (!brand.brandKitPreview.photographyDirection.length
+      || brand.brandKitPreview.photographyDirection.some((item) => !item.trim())) {
+      issues.push(`${profile.clientId}.${brandKey}.brandKitPreview requires photography direction.`);
+    }
   }
 }
 
