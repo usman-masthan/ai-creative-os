@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { listCreativeClientProfiles } from "../creativeStudio/clientProfiles/registry.js";
 import { getCreativeLayoutProvider } from "../creativeStudio/layoutProfiles/registry.js";
 import { FileDesignProjectStore } from "../creativeStudio/projectStore.js";
+import { getCreativeTruthProvider } from "../creativeStudio/truthProviders/registry.js";
 import { FileCampaignStore } from "../operations/fileStore.js";
 
 function sendJson(res: ServerResponse, status: number, value: unknown): void {
@@ -30,10 +31,18 @@ export function createCreativeStudioAdvancedBootstrapHandler(
     ]);
     const clientProfiles = listCreativeClientProfiles().map((profile) => {
       const layouts = getCreativeLayoutProvider(profile.clientId);
+      const truthProvider = getCreativeTruthProvider(profile.clientId);
       return {
         clientId: profile.clientId,
         displayName: profile.displayName,
         defaultBrandKitId: profile.defaultBrandKitId,
+        truthProvider: {
+          providerId: truthProvider.providerId,
+          endpoints: truthProvider.endpoints,
+          confirmationRequired: truthProvider.confirmationRequired,
+          immutableSnapshotRequired: truthProvider.immutableSnapshotRequired,
+          factGateMode: truthProvider.factGateMode,
+        },
         brands: Object.values(profile.brands).map((brand) => ({
           brandId: brand.brandId,
           displayName: brand.displayName,
@@ -53,6 +62,12 @@ export function createCreativeStudioAdvancedBootstrapHandler(
         canvas: "native-svg-adapter",
         clientProfileRegistry: true,
         clientLayoutProviderRegistry: true,
+        clientTruthProviderRegistry: true,
+        truthGate: {
+          explicitConfirmationRequired: true,
+          immutableSnapshotRequired: true,
+          providerDispatched: true,
+        },
         activeClientProfiles: clientProfiles.length,
         manualEditing: true,
         nativeTypography: true,
