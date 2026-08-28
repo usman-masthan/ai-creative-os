@@ -1,0 +1,1 @@
+Temporary trigger file for product-photo binding hardening. Removed by validated patch workflow.
