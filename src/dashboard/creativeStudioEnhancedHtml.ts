@@ -39,6 +39,11 @@ export function creativeStudioEnhancedHtml(): string {
       <div id="directorReviewSummary" class="note" style="margin-top:8px">No layered review yet.</div>
     </div>
     <div class="section">
+      <h3>Design Directions</h3>
+      <p class="note">Create three composition directions from the same governed copy, facts and assets with no additional creative-generation call.</p>
+      <button id="directionsBtn" class="secondary" style="width:100%" disabled>Generate 3 Directions</button>
+    </div>
+    <div class="section">
       <h3>Format Adaptation</h3>
       <div class="field"><select id="adaptPreset"><option value="instagram-square">Instagram Square — 1:1</option><option value="instagram-portrait">Instagram Portrait — 4:5</option><option value="instagram-story">Instagram Story — 9:16</option><option value="facebook-post">Facebook Post — 4:5</option></select></div>
       <button id="adaptBtn" class="secondary" style="width:100%" disabled>Create Adapted Design</button>
@@ -49,6 +54,13 @@ export function creativeStudioEnhancedHtml(): string {
       <div class="toolbar-row"><button id="compareVersionsBtn" class="secondary" disabled>Compare</button><button id="restoreVersionBtn" class="secondary" disabled>Restore From</button></div>
       <div id="versionSummary" class="note">Load a design to compare or restore persisted versions.</div>
     </div>`,
+  );
+
+  html = injectBefore(
+    html,
+    '<div id="truthModal" class="modal hidden">',
+    `<div id="directionModal" class="modal hidden"><div class="modal-card" style="width:min(1180px,96vw)"><h2>Choose a Design Direction</h2><p class="note">All three directions use the same governed facts, copy, product provenance and brand assets. Only composition/layout changes.</p><div id="directionGrid" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px"></div><div class="modal-actions"><button id="closeDirections" class="secondary">Close</button></div></div></div>
+`,
   );
 
   html = injectBefore(
@@ -65,6 +77,7 @@ export function creativeStudioEnhancedHtml(): string {
 (function(){
   'use strict';
   var $=function(id){return document.getElementById(id)};
+  function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c];});}
   async function api(path,options){var response=await fetch(path,Object.assign({headers:{'content-type':'application/json'}},options||{}));var data=await response.json();if(!response.ok)throw new Error(data.error||('HTTP '+response.status));return data;}
   function project(){return window.__creativeStudioCurrentProject&&window.__creativeStudioCurrentProject();}
   function selectedLayer(){return window.__creativeStudioSelectedLayer&&window.__creativeStudioSelectedLayer();}
@@ -72,7 +85,7 @@ export function creativeStudioEnhancedHtml(): string {
   function status(message,type){if(window.__creativeStudioSetStatus)window.__creativeStudioSetStatus(message,type);}
   function designId(){var value=project();return value&&value.document&&value.document.id;}
   async function refreshDesign(id){var next=await api('/api/studio/project?designId='+encodeURIComponent(id));load(next);return next;}
-  function updateControls(){var p=project(),ready=Boolean(p&&p.document);['exportSvgBtn','segmentBtn','directorReviewBtn','autoPolishBtn','adaptBtn','compareVersionsBtn','restoreVersionBtn'].forEach(function(id){var el=$(id);if(el)el.disabled=!ready;});if(!ready)return;var current=p.state&&p.state.currentVersion?p.state.currentVersion:p.document.version;var max=p.state&&p.state.maxVersion?p.state.maxVersion:current;$('versionTo').value=String(current);$('versionTo').max=String(max);$('versionFrom').max=String(max);if(Number($('versionFrom').value)>=current)$('versionFrom').value=String(Math.max(1,current-1));}
+  function updateControls(){var p=project(),ready=Boolean(p&&p.document);['exportSvgBtn','segmentBtn','directorReviewBtn','autoPolishBtn','directionsBtn','adaptBtn','compareVersionsBtn','restoreVersionBtn'].forEach(function(id){var el=$(id);if(el)el.disabled=!ready;});if(!ready)return;var current=p.state&&p.state.currentVersion?p.state.currentVersion:p.document.version;var max=p.state&&p.state.maxVersion?p.state.maxVersion:current;$('versionTo').value=String(current);$('versionTo').max=String(max);$('versionFrom').max=String(max);if(Number($('versionFrom').value)>=current)$('versionFrom').value=String(Math.max(1,current-1));}
 
   async function exportSvg(){try{status('Rendering standalone SVG…');var out=await api('/api/studio/export-svg',{method:'POST',body:JSON.stringify({designId:designId()})});window.open(out.outputPath,'_blank','noopener');status('Standalone SVG exported from DesignDocument.','ok');}catch(error){status(error.message,'error');}}
 
@@ -82,13 +95,16 @@ export function creativeStudioEnhancedHtml(): string {
 
   async function autoPolish(){try{status('Applying deterministic low-risk fixes…');var result=await api('/api/studio/auto-polish',{method:'POST',body:JSON.stringify({designId:designId()})});await refreshDesign(result.designId);var count=(result.applied||[]).length;$('directorReviewSummary').textContent=count?('Auto-polish applied '+count+' safe fix(es): '+result.applied.map(function(item){return item.layerId+' — '+item.summary;}).join(' · ')):'No safe deterministic fixes were required.';status(count?'Safe auto-polish applied.':'No safe auto-polish changes required.','ok');}catch(error){status(error.message,'error');}}
 
+  function directionCard(direction){return '<article style="border:1px solid var(--line);background:#111315;border-radius:10px;padding:10px;display:grid;gap:8px"><img src="'+esc(direction.previewUrl)+'" alt="'+esc(direction.name)+'" style="width:100%;aspect-ratio:4/5;object-fit:contain;background:#090a0b;border-radius:7px"/><div><strong>'+esc(direction.id+' · '+direction.name)+'</strong><p class="note" style="margin:5px 0 0">'+esc(direction.rationale)+'</p></div><button class="secondary" data-open-direction="'+esc(direction.designId)+'">Open Direction</button></article>';}
+  async function generateDirections(){try{status('Creating three governed composition directions…');var result=await api('/api/studio/directions',{method:'POST',body:JSON.stringify({designId:designId(),newDesignPrefix:designId()+'-directions-'+Date.now()})});$('directionGrid').innerHTML=result.directions.map(directionCard).join('');$('directionModal').classList.remove('hidden');status('Three design directions ready for comparison.','ok');}catch(error){status(error.message,'error');}}
+
   async function adapt(){try{var preset=$('adaptPreset').value;status('Recomposing design for '+preset+'…');var result=await api('/api/studio/adapt',{method:'POST',body:JSON.stringify({designId:designId(),preset:preset,newDesignId:designId()+'-'+preset+'-'+Date.now()})});await refreshDesign(result.designId);status('Adapted '+result.width+'×'+result.height+' design opened.','ok');}catch(error){status(error.message,'error');}}
 
   async function compareVersions(){try{var from=Number($('versionFrom').value),to=Number($('versionTo').value);var result=await api('/api/studio/compare',{method:'POST',body:JSON.stringify({designId:designId(),fromVersion:from,toVersion:to})});var changes=(result.layerChanges||[]);var summary='v'+from+' → v'+to+': '+changes.length+' layer change(s)';if(result.artboardChanged)summary+=' · artboard changed';if(result.layoutChanged)summary+=' · layout changed';if(changes.length)summary+=' · '+changes.slice(0,5).map(function(change){return change.layerId+' ['+change.fields.join(', ')+']';}).join(' · ');$('versionSummary').textContent=summary;status('Version comparison complete.','ok');}catch(error){status(error.message,'error');}}
 
   async function restoreVersion(){try{var source=Number($('versionFrom').value);if(!window.confirm('Restore design content from v'+source+' as a new revision?'))return;status('Restoring v'+source+' as a new revision…');var result=await api('/api/studio/restore',{method:'POST',body:JSON.stringify({designId:designId(),sourceVersion:source})});await refreshDesign(result.designId);$('versionSummary').textContent='Restored v'+source+' as new v'+result.restoredVersion+'.';status('Version restored without overwriting history.','ok');}catch(error){status(error.message,'error');}}
 
-  function bind(){var svg=$('exportSvgBtn'),segmentButton=$('segmentBtn'),director=$('directorReviewBtn'),polish=$('autoPolishBtn'),adaptButton=$('adaptBtn'),compare=$('compareVersionsBtn'),restore=$('restoreVersionBtn');if(svg)svg.onclick=exportSvg;if(segmentButton)segmentButton.onclick=segment;if(director)director.onclick=directorReview;if(polish)polish.onclick=autoPolish;if(adaptButton)adaptButton.onclick=adapt;if(compare)compare.onclick=compareVersions;if(restore)restore.onclick=restoreVersion;var meta=$('designMeta');if(meta&&window.MutationObserver)new MutationObserver(updateControls).observe(meta,{childList:true,subtree:true});updateControls();}
+  function bind(){var svg=$('exportSvgBtn'),segmentButton=$('segmentBtn'),director=$('directorReviewBtn'),polish=$('autoPolishBtn'),directions=$('directionsBtn'),adaptButton=$('adaptBtn'),compare=$('compareVersionsBtn'),restore=$('restoreVersionBtn');if(svg)svg.onclick=exportSvg;if(segmentButton)segmentButton.onclick=segment;if(director)director.onclick=directorReview;if(polish)polish.onclick=autoPolish;if(directions)directions.onclick=generateDirections;if(adaptButton)adaptButton.onclick=adapt;if(compare)compare.onclick=compareVersions;if(restore)restore.onclick=restoreVersion;$('closeDirections').onclick=function(){$('directionModal').classList.add('hidden');};$('directionGrid').addEventListener('click',function(event){var button=event.target.closest('[data-open-direction]');if(!button)return;refreshDesign(button.dataset.openDirection).then(function(){$('directionModal').classList.add('hidden');status('Selected design direction opened.','ok');}).catch(function(error){status(error.message,'error');});});var meta=$('designMeta');if(meta&&window.MutationObserver)new MutationObserver(updateControls).observe(meta,{childList:true,subtree:true});updateControls();}
   bind();
 })();
 </script>`;
