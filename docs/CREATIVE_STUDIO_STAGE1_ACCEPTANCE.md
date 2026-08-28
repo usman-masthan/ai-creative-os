@@ -11,6 +11,8 @@ A user can move from a structured marketing brief to a governed creative, open i
 | Capability | Status | Acceptance evidence |
 | --- | --- | --- |
 | Structured Creative Brief | PASS | `CreativeBrief` contract/schema + `/studio` intake UI. |
+| Complete brief content requirements | PASS | Intake explicitly controls price, offer, CTA, product name, branch, contact details, campaign dates, headline direction and custom creative instructions rather than deriving them from hidden defaults. |
+| Truth-aware requested content | PASS | Before production authorization, Creative Orchestrator requires matching confirmed facts for requested visible price, offer, product name, contact details and campaign dates. Missing fact support fails closed instead of permitting invented copy. |
 | Profile-driven Studio intake | PASS | Client, brand-kit and truth-provider metadata come from `/api/studio/bootstrap`; fixed T001 request constants are removed from the active intake flow. |
 | Profile-driven Brand Kit preview | PASS | The intake displays the selected registered brand's approved logo, palette, semantic colors, display/body/price typography, approved graphical elements and photography direction. Logo bytes are served through the same approved asset-root governance used by Studio designs. |
 | Existing truth confirmation reused | PASS | ATTHA'S truth provider points to the existing `/api/ui/*` questionnaire/confirmation/production endpoints; no parallel fact system. |
@@ -71,17 +73,19 @@ Stage 1 is not accepted if any of the following regress:
 4. The orchestration plan must remain bound to the exact campaign, CreativeBrief, confirmed task snapshot, client and brand used for the resulting design.
 5. Orchestration planning/audit must not add duplicate strategist, copy, image or layout model calls merely to simulate multi-agent architecture.
 6. AI must not invent or silently overwrite price, offer, branch, contact, campaign date or product facts.
-7. Generated media must never be reclassified as a verified product visual.
-8. Verified product foreground pixels must remain protected after segmentation.
-9. Logos must originate from approved source-controlled assets inside the active client's approved asset root, including Brand Kit preview assets.
-10. Promotional typography must remain native/editable rather than baked into image generation.
-11. Manual geometry/styling/history operations must not invoke a model.
-12. AI image operations must target a single isolated layer.
-13. Deterministic blockers must be resolved before final visual QA or production approval.
-14. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
-15. Any later edit must require a fresh final visual QA and explicit approval before approved export.
-16. Registering an approved Studio asset must not impersonate a client/admin lifecycle approval or automatically change campaign state.
-17. Restoring a version must create a new revision rather than erasing history.
+7. A CreativeBrief requesting visible price, offer, product name, contact details or campaign dates must not receive production authorization unless matching task-confirmed truth exists.
+8. Headline direction and custom instructions are creative guidance only; they never create new business truth.
+9. Generated media must never be reclassified as a verified product visual.
+10. Verified product foreground pixels must remain protected after segmentation.
+11. Logos must originate from approved source-controlled assets inside the active client's approved asset root, including Brand Kit preview assets.
+12. Promotional typography must remain native/editable rather than baked into image generation.
+13. Manual geometry/styling/history operations must not invoke a model.
+14. AI image operations must target a single isolated layer.
+15. Deterministic blockers must be resolved before final visual QA or production approval.
+16. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
+17. Any later edit must require a fresh final visual QA and explicit approval before approved export.
+18. Registering an approved Studio asset must not impersonate a client/admin lifecycle approval or automatically change campaign state.
+19. Restoring a version must create a new revision rather than erasing history.
 
 ## Governed Studio creation state machine
 
@@ -91,6 +95,7 @@ Structured CreativeBrief
 → questionnaire preparation
 → explicit user confirmation
 → immutable task truth snapshot
+→ requested visible-content truth check
 → persisted CreativeOrchestrationPlan
 → existing governed campaign production
 → DesignDocument assembly
@@ -124,11 +129,12 @@ selected client/brand
 → questionnaire preparation
 → explicit user confirmation
 → immutable task snapshot
+→ requested visible-content truth check
 → Creative Orchestrator
 → governed creative/production
 ```
 
-A client without a registered authoritative truth implementation is not production-enabled.
+A client without a registered authoritative truth implementation is not production-enabled. If a requested optional content class is not represented in the confirmed snapshot, Studio fails closed before production rather than inventing it.
 
 ## CI acceptance gate
 
