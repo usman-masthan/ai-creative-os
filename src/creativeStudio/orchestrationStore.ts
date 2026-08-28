@@ -5,6 +5,10 @@ import {
   assertCreativeOrchestrationPlan,
   type CreativeOrchestrationPlan,
 } from "./orchestrator.js";
+import {
+  assertCreativeOrchestrationExecution,
+  type CreativeOrchestrationExecution,
+} from "./orchestrationExecution.js";
 
 function safeId(value: string, name: string): string {
   const trimmed = value.trim();
@@ -41,6 +45,10 @@ export class FileCreativeOrchestrationStore {
     return join(this.rootDir, "orchestrations", "plans", `${safeId(planId, "orchestrationId")}.json`);
   }
 
+  private executionPath(planId: string): string {
+    return join(this.rootDir, "orchestrations", "executions", `${safeId(planId, "orchestrationId")}.json`);
+  }
+
   private campaignCurrentPath(campaignId: string): string {
     return join(this.rootDir, "orchestrations", "campaigns", `${safeId(campaignId, "campaignId")}.json`);
   }
@@ -75,5 +83,33 @@ export class FileCreativeOrchestrationStore {
       throw new Error("ORCHESTRATION_INDEX_BROKEN: current plan belongs to a different campaign.");
     }
     return plan;
+  }
+
+  async saveExecution(
+    executionInput: CreativeOrchestrationExecution,
+  ): Promise<CreativeOrchestrationExecution> {
+    const execution = assertCreativeOrchestrationExecution(executionInput);
+    const plan = await this.get(execution.orchestrationId);
+    if (!plan) throw new Error(`ORCHESTRATION_NOT_FOUND: ${execution.orchestrationId}.`);
+    if (plan.campaignId !== execution.campaignId
+      || plan.truthSnapshotId !== execution.truthSnapshotId
+      || plan.clientId !== execution.clientId
+      || plan.brandId !== execution.brandId) {
+      throw new Error("ORCHESTRATION_EXECUTION_MISMATCH: execution does not match its immutable plan.");
+    }
+    const existing = await this.getExecution(execution.orchestrationId);
+    if (existing) {
+      if (stableJson(existing) !== stableJson(execution)) {
+        throw new Error(`ORCHESTRATION_EXECUTION_CONFLICT: execution for ${execution.orchestrationId} already exists with different content.`);
+      }
+      return existing;
+    }
+    await writeJson(this.executionPath(execution.orchestrationId), execution);
+    return execution;
+  }
+
+  async getExecution(planId: string): Promise<CreativeOrchestrationExecution | undefined> {
+    const value = await readJson<CreativeOrchestrationExecution>(this.executionPath(planId));
+    return value ? assertCreativeOrchestrationExecution(value) : undefined;
   }
 }
