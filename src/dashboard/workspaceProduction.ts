@@ -78,7 +78,7 @@ export function coerceWorkspaceTruthValue(key: string, value: unknown): unknown 
     const raw = Array.isArray(value)
       ? value
       : typeof value === "string"
-        ? value.split(/[,\n]/)
+        ? value.split(/[,;\n]/)
         : [];
     const items = raw
       .filter((item): item is string => typeof item === "string")
@@ -124,6 +124,23 @@ export function taskSnapshotFact(snapshot: TaskTruthSnapshot, key: string): unkn
   return snapshot.facts.find((fact) => fact.key === key)?.value;
 }
 
+export function assertWorkspaceProductPhotoApproval(input: {
+  productId?: string;
+  approvedForAds: boolean;
+  appearanceVerified: boolean;
+  ingredientMatchVerified: boolean;
+}): void {
+  if (!input.productId) return;
+  const missing = [
+    ...(!input.approvedForAds ? ["advertising approval"] : []),
+    ...(!input.appearanceVerified ? ["product appearance verification"] : []),
+    ...(!input.ingredientMatchVerified ? ["ingredient-match verification"] : []),
+  ];
+  if (missing.length) {
+    throw new Error(`Product photo cannot be bound until all approvals are confirmed. Missing: ${missing.join(", ")}.`);
+  }
+}
+
 function taskStringArray(snapshot: TaskTruthSnapshot, key: string): string[] {
   const value = taskSnapshotFact(snapshot, key);
   return Array.isArray(value)
@@ -154,7 +171,12 @@ export function assertWorkspaceProductionTruth(input: {
       !input.uploadedAsset.appearanceVerified ||
       !input.uploadedAsset.ingredientMatchVerified
     ) {
-      throw new Error("The uploaded product photo is not fully approved for advertising/product identity use.");
+      const missing = [
+        ...(!input.uploadedAsset.approvedForAds ? ["advertising approval"] : []),
+        ...(!input.uploadedAsset.appearanceVerified ? ["product appearance verification"] : []),
+        ...(!input.uploadedAsset.ingredientMatchVerified ? ["ingredient-match verification"] : []),
+      ];
+      throw new Error(`The bound product photo is incomplete. Re-upload after confirming: ${missing.join(", ")}.`);
     }
   } else if (source === "AI_GENERATION_ALLOWED") {
     if (input.uploadedAsset) {

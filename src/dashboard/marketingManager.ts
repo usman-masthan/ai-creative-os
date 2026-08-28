@@ -20,6 +20,7 @@ import type { TaskTruthAnswer, TaskTruthSnapshot } from "../taskTruth.js";
 import {
   WORKSPACE_PRODUCTION_PROFILE,
   assertWorkspaceProductionTruth,
+  assertWorkspaceProductPhotoApproval,
   assertWorkspaceUploadedAssetMatchesTask,
   buildWorkspaceVisualQaContext,
   coerceWorkspaceTruthAnswers,
@@ -401,6 +402,12 @@ export function createMarketingManagerHandler(options: MarketingManagerHandlerOp
       const approvedForAds = data.approvedForAds === true;
       const appearanceVerified = data.appearanceVerified === true;
       const ingredientMatchVerified = data.ingredientMatchVerified === true;
+      assertWorkspaceProductPhotoApproval({
+        ...(productId ? { productId } : {}),
+        approvedForAds,
+        appearanceVerified,
+        ingredientMatchVerified,
+      });
       const dataUrl = stringValue(data.dataUrl, "dataUrl");
       const match = dataUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=\r\n]+)$/);
       if (!match) throw new Error("Only PNG, JPEG and WebP image uploads are supported.");
