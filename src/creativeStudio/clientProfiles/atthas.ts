@@ -1,6 +1,22 @@
 import { ATTHAS_TOKENS, atthasDisplayFont } from "../../atthasTokens.js";
 import type { CreativeClientProfile } from "./types.js";
 
+const APPROVED_COLOURS = [...new Set(Object.values(ATTHAS_TOKENS.colours))];
+
+function qaGovernance(displayFont: string) {
+  return {
+    approvedColours: APPROVED_COLOURS,
+    approvedFonts: [displayFont, ATTHAS_TOKENS.typography.body, ATTHAS_TOKENS.typography.price],
+    safeAreaRatio: 0.05,
+    minimumLogoPx: 32,
+    logoRequired: true,
+    logoRequirementLabel: "approved ATTHA'S logo/symbol",
+  } as const;
+}
+
+const burgerDisplayFont = atthasDisplayFont("ATTHAS_BURGER");
+const restaurantDisplayFont = atthasDisplayFont("ATTHAS_RESTAURANT");
+
 export const ATTHAS_CREATIVE_CLIENT_PROFILE: CreativeClientProfile = {
   clientId: "T001",
   displayName: "ATTHA'S",
@@ -10,7 +26,7 @@ export const ATTHAS_CREATIVE_CLIENT_PROFILE: CreativeClientProfile = {
     ATTHAS_BURGER: {
       brandId: "ATTHAS_BURGER",
       displayName: "ATTHA'S Burger",
-      displayFont: atthasDisplayFont("ATTHAS_BURGER"),
+      displayFont: burgerDisplayFont,
       bodyFont: ATTHAS_TOKENS.typography.body,
       priceFont: ATTHAS_TOKENS.typography.price,
       artboardBackground: ATTHAS_TOKENS.colours.deepRed,
@@ -24,11 +40,12 @@ export const ATTHAS_CREATIVE_CLIENT_PROFILE: CreativeClientProfile = {
         BRAND_YELLOW: { fill: ATTHAS_TOKENS.colours.primaryYellow, text: ATTHAS_TOKENS.colours.ink },
       },
       logoLayerName: "Approved ATTHA'S Burger Logo",
+      qa: qaGovernance(burgerDisplayFont),
     },
     ATTHAS_RESTAURANT: {
       brandId: "ATTHAS_RESTAURANT",
       displayName: "ATTHA'S Restaurant",
-      displayFont: atthasDisplayFont("ATTHAS_RESTAURANT"),
+      displayFont: restaurantDisplayFont,
       bodyFont: ATTHAS_TOKENS.typography.body,
       priceFont: ATTHAS_TOKENS.typography.price,
       artboardBackground: ATTHAS_TOKENS.colours.cream,
@@ -42,6 +59,7 @@ export const ATTHAS_CREATIVE_CLIENT_PROFILE: CreativeClientProfile = {
         BRAND_YELLOW: { fill: ATTHAS_TOKENS.colours.primaryYellow, text: ATTHAS_TOKENS.colours.ink },
       },
       logoLayerName: "Approved ATTHA'S Restaurant Logo",
+      qa: qaGovernance(restaurantDisplayFont),
     },
   },
 };
