@@ -1,9 +1,11 @@
+import { writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 import { assertCreativeBrief, type CreativeBrief } from "../creativeStudio/contracts/creativeBrief.js";
 import { createCreativeOrchestrationPlan } from "../creativeStudio/orchestrator.js";
 import { FileCreativeOrchestrationStore } from "../creativeStudio/orchestrationStore.js";
+import { FileDesignProjectStore } from "../creativeStudio/projectStore.js";
 import type { TaskTruthSnapshot } from "../taskTruth.js";
 
 async function readBody(req: IncomingMessage): Promise<Record<string, unknown>> {
@@ -59,7 +61,9 @@ export interface CreativeStudioOrchestratorHandlerOptions {
 export function createCreativeStudioOrchestratorHandler(
   options: CreativeStudioOrchestratorHandlerOptions = {},
 ) {
-  const store = new FileCreativeOrchestrationStore(resolve(options.rootDir ?? ".atthas-os"));
+  const rootDir = resolve(options.rootDir ?? ".atthas-os");
+  const store = new FileCreativeOrchestrationStore(rootDir);
+  const designs = new FileDesignProjectStore(rootDir);
 
   return async function handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> {
     if (req.method === "GET" && url.pathname === "/api/studio/orchestration") {
@@ -70,6 +74,37 @@ export function createCreativeStudioOrchestratorHandler(
         return true;
       }
       sendJson(res, 200, plan);
+      return true;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/studio/orchestration/link") {
+      const data = await readBody(req);
+      const designId = safeId(data.designId, "designId");
+      const orchestrationId = safeId(data.orchestrationId, "orchestrationId");
+      const [project, plan] = await Promise.all([
+        designs.get(designId),
+        store.get(orchestrationId),
+      ]);
+      if (!project) throw new Error(`Design project ${designId} does not exist.`);
+      if (!plan) throw new Error(`Creative orchestration ${orchestrationId} does not exist.`);
+      if (project.orchestration && project.orchestration.id !== plan.id) {
+        throw new Error("DESIGN_ORCHESTRATION_CONFLICT: design already has different orchestration provenance.");
+      }
+      if (plan.campaignId !== project.document.campaignId
+        || plan.truthSnapshotId !== project.document.truthSnapshotId
+        || plan.clientId !== project.document.brand.clientId
+        || plan.brandId !== project.document.brand.brandId
+        || (project.brief && plan.briefId !== project.brief.id)) {
+        throw new Error("DESIGN_ORCHESTRATION_MISMATCH: orchestration provenance does not match the design project.");
+      }
+      if (!project.orchestration) {
+        await writeFile(
+          join(rootDir, "designs", designId, "orchestration.json"),
+          `${JSON.stringify(plan, null, 2)}\n`,
+          "utf8",
+        );
+      }
+      sendJson(res, 200, { linked: true, designId, orchestrationId: plan.id });
       return true;
     }
 
