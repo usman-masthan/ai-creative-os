@@ -1,5 +1,6 @@
 import type { CampaignCreativeOutput, CampaignProductionFormat } from "../../creativeTypes.js";
 import type { LayerGeometryProfile } from "../../layoutEngine/geometry.js";
+import type { DesignCopyZone } from "../../layoutEngine/resolver.js";
 import type { MarketingCampaignType } from "../../marketingPlannerTypes.js";
 
 export interface CreativeLayoutDefinition {
@@ -27,10 +28,25 @@ export interface CreativeLayoutAdaptationInput {
   targetAspectRatio: string;
 }
 
+export interface CreativeLayoutDirectionInput {
+  brandId: string;
+  vertical: boolean;
+  hasPrice: boolean;
+}
+
+export interface CreativeLayoutDirectionSpec {
+  id: "A" | "B" | "C";
+  name: string;
+  rationale: string;
+  layoutId: string;
+  copyZone: DesignCopyZone;
+}
+
 export interface CreativeLayoutProvider {
   clientId: string;
   list(brandId?: string): CreativeLayoutDefinition[];
   get(layoutId: string): CreativeLayoutDefinition;
   select(input: CreativeLayoutSelectionInput): CreativeLayoutDefinition;
   adaptationLayout(input: CreativeLayoutAdaptationInput): CreativeLayoutDefinition;
+  directions(input: CreativeLayoutDirectionInput): CreativeLayoutDirectionSpec[];
 }
