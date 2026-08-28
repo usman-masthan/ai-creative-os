@@ -1,0 +1,46 @@
+name: Style product truth textareas
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-validate:
+    if: github.head_ref == 'fix-product-photo-approval-state'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix-product-photo-approval-state
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Style structured truth textareas
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/dashboard/marketingManagerHtml.ts')
+          text = p.read_text()
+          old = '.q input[type=text]{width:100%;border:1px solid #d7cfc7;border-radius:9px;padding:10px}'
+          new = '.q input[type=text],.q textarea{width:100%;border:1px solid #d7cfc7;border-radius:9px;padding:10px;font:inherit;background:#fff}.q textarea{resize:vertical;min-height:78px}'
+          if text.count(old) != 1:
+              raise SystemExit('Expected one questionnaire input style block.')
+          p.write_text(text.replace(old, new, 1))
+          PY
+      - run: npm ci
+      - name: Full repository gate
+        run: npm run check
+      - name: Commit validated style
+        run: |
+          rm .github/workflows/style-product-truth-textareas.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Style structured product truth inputs"
+          git push origin HEAD:fix-product-photo-approval-state
