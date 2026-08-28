@@ -189,36 +189,43 @@ test("multi-format adaptation recomputes story geometry rather than stretching s
   assert.equal(logo?.type === "logo" ? logo.asset.assetId : undefined, "ATTHAS_MASTER_SYMBOL_A_FORK");
 });
 
-test("layered Creative Director validates structured review and existing layer references", async () => {
+test("layered Creative Director validates structured review and uses client profile guidance", async () => {
+  let prompt = "";
   const provider: CampaignGenerationProvider = {
     providerName: "mock-director",
     model: "mock-director",
-    generate: async () => JSON.stringify({
-      overallScore: 8.6,
-      scores: {
-        hierarchy: 9,
-        composition: 8.5,
-        balance: 8.4,
-        typography: 8.8,
-        brandConsistency: 9.2,
-        productProminence: 8.1,
-        ctaProminence: 8.2,
-        readability: 9,
-        whitespace: 8.3,
-        visualDepth: 7.8,
-        colorHarmony: 8.7,
-        offerClarity: 8.9,
-        imageQuality: 8.2,
-        authenticity: 8.4,
-        aiArtifactSafety: 9.1,
-      },
-      issues: [{ severity: "medium", layerId: "headline", message: "Headline can move slightly lower." }],
-      recommendations: ["Move the headline down slightly."],
-    }),
+    generate: async (value) => {
+      prompt = value;
+      return JSON.stringify({
+        overallScore: 8.6,
+        scores: {
+          hierarchy: 9,
+          composition: 8.5,
+          balance: 8.4,
+          typography: 8.8,
+          brandConsistency: 9.2,
+          productProminence: 8.1,
+          ctaProminence: 8.2,
+          readability: 9,
+          whitespace: 8.3,
+          visualDepth: 7.8,
+          colorHarmony: 8.7,
+          offerClarity: 8.9,
+          imageQuality: 8.2,
+          authenticity: 8.4,
+          aiArtifactSafety: 9.1,
+        },
+        issues: [{ severity: "medium", layerId: "headline", message: "Headline can move slightly lower." }],
+        recommendations: ["Move the headline down slightly."],
+      });
+    },
   };
   const document = layeredDocument();
   const qa = runDesignQa({ document });
   const review = await reviewLayeredDesignWithCreativeDirector({ document, deterministicQa: qa, provider });
+  assert.match(prompt, /for ATTHA'S Burger/);
+  assert.match(prompt, /Treat ATTHA'S BURGER as the required operating-brand identifier/);
+  assert.match(prompt, /approved client-profile typography\/color constraints/);
   assert.equal(review.overallScore, 8.6);
   assert.equal(review.issues[0]?.layerId, "headline");
   assert.equal(review.scores.brandConsistency, 9.2);
