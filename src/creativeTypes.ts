@@ -32,10 +32,13 @@ export interface CampaignImageGeneration {
   textPolicy: "NO_TEXT_OR_LOGOS";
 }
 
+export type CampaignPriceStyle = "BRAND_RED" | "BRAND_YELLOW";
+
 export interface CampaignMoneyOverlay {
   amount: number;
   currency: "LKR";
   display: string;
+  priceStyle?: CampaignPriceStyle;
 }
 
 export interface CampaignOverlaySpec {

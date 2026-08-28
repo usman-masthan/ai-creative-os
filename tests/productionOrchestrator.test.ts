@@ -567,3 +567,36 @@ test("a qualifying Flash image prevents unnecessary Pro generation", async () =>
     assert.equal(result.imageAttempts[1]?.qualityGate?.action, "PASS");
   });
 });
+
+
+test("new renderer receives measured Visual QA copy zones instead of relying on brief quiet zones", async () => {
+  await withTempDir(async (dir) => {
+    const prompts: string[] = [];
+    const request = baseRequest(dir, prompts);
+    request.featureFlags = { useNewRenderer: true };
+    const pass = qaResult("PASS");
+    pass.compositionEvidence = {
+      heroPlacement: "MATCH",
+      heroScale: "MATCH",
+      cropQuality: "GOOD",
+      copyZones: {
+        upperLeft: "POOR",
+        upperRight: "GOOD",
+        lowerLeft: "ACCEPTABLE",
+        lowerRight: "POOR",
+      },
+      notes: ["upper-right is the measured cleanest copy zone"],
+    };
+    request.providers.visualQa = qaProvider([pass]);
+    let captured: ProducePosterRequest | undefined;
+    request.posterProducer = async (posterRequest) => {
+      captured = posterRequest;
+      return posterProducer(posterRequest);
+    };
+
+    const result = await producePlannedCampaign(request);
+    assert.equal(result.status, "FINAL_RENDERED");
+    assert.equal(captured?.rendererMode, "M3_V2");
+    assert.deepEqual(captured?.copyZones, pass.compositionEvidence.copyZones);
+  });
+});

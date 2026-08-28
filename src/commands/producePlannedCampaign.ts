@@ -785,6 +785,7 @@ export async function producePlannedCampaign(
       brandId: request.entry.brandId,
       layoutId: layout.id,
       baseImagePath: current.path,
+      ...(featureFlags.useNewRenderer ? { rendererMode: "M3_V2" as const } : {}),
       ...(request.chromePath ? { chromePath: request.chromePath } : {}),
       ...(request.fetchFn ? { fetchFn: request.fetchFn } : {}),
     });
@@ -1018,6 +1019,10 @@ export async function producePlannedCampaign(
     brandId: request.entry.brandId,
     layoutId: layout.id,
     baseImagePath: current.path,
+    ...(featureFlags.useNewRenderer ? { rendererMode: "M3_V2" as const } : {}),
+    ...(featureFlags.useNewRenderer && lastQa?.compositionEvidence
+      ? { copyZones: lastQa.compositionEvidence.copyZones }
+      : {}),
     ...(request.chromePath ? { chromePath: request.chromePath } : {}),
     ...(request.fetchFn ? { fetchFn: request.fetchFn } : {}),
   });

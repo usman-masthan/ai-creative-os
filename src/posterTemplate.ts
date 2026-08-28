@@ -1,4 +1,5 @@
 import { ATTHAS_TOKENS, atthasCssVariables } from "./atthasTokens.js";
+import { buildM3PosterHtml, type M3CopyZones } from "./m3Renderer.js";
 import type {
   CampaignCreativeOutput,
   CampaignProductionFormat,
@@ -15,6 +16,8 @@ export interface PosterTemplateInput {
   baseImageDataUri: string;
   brandId?: AtthasBrandId;
   layoutId?: AtthasLayoutId;
+  rendererMode?: "LEGACY" | "M3_V2";
+  copyZones?: M3CopyZones;
 }
 
 function escapeHtml(value: string): string {
@@ -33,6 +36,16 @@ function cssString(value: string): string {
 export function buildPosterHtml(input: PosterTemplateInput): string {
   const { creative, format, baseImageDataUri } = input;
   const brandId = input.brandId ?? "ATTHAS_BURGER";
+  if (input.rendererMode === "M3_V2") {
+    return buildM3PosterHtml({
+      creative,
+      format,
+      baseImageDataUri,
+      brandId,
+      ...(input.layoutId ? { layoutId: input.layoutId } : {}),
+      ...(input.copyZones ? { copyZones: input.copyZones } : {}),
+    });
+  }
   const layout = selectAtthasLayout({
     brandId,
     creative,
