@@ -5,6 +5,12 @@ export interface CreativePriceTheme {
   text: string;
 }
 
+export interface CreativeApprovedBrandAsset {
+  assetId: string;
+  relativePath: string;
+  mimeType: string;
+}
+
 export interface CreativeBrandQaGovernance {
   approvedColours: readonly string[];
   approvedFonts: readonly string[];
@@ -28,6 +34,7 @@ export interface CreativeBrandTheme {
   defaultPriceStyle: CampaignPriceStyle;
   priceThemes: Record<CampaignPriceStyle, CreativePriceTheme>;
   logoLayerName: string;
+  approvedLogoAsset: CreativeApprovedBrandAsset;
   qa: CreativeBrandQaGovernance;
 }
 
