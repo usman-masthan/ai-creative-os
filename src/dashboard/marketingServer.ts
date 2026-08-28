@@ -6,6 +6,7 @@ import { createCreativeStudioAutoPolishHandler } from "./creativeStudioAutoPolis
 import { createCreativeStudioDirectorHandler } from "./creativeStudioDirector.js";
 import { createCreativeStudioEnhancedHandler } from "./creativeStudioEnhanced.js";
 import { createCreativeStudioHandler } from "./creativeStudio.js";
+import { createCreativeStudioParityHandler } from "./creativeStudioParity.js";
 import { createCreativeStudioSegmentationHandler } from "./creativeStudioSegmentation.js";
 import { createCreativeStudioSvgExportHandler } from "./creativeStudioSvgExport.js";
 import { createCreativeStudioVersionsHandler } from "./creativeStudioVersions.js";
@@ -17,6 +18,7 @@ export function createAtthasMarketingManagerServer(options: MarketingManagerHand
   const handleStudioEnhanced = createCreativeStudioEnhancedHandler();
   const handleStudioBootstrap = createCreativeStudioAdvancedBootstrapHandler(options);
   const handleStudioAutoPolish = createCreativeStudioAutoPolishHandler(options);
+  const handleStudioParity = createCreativeStudioParityHandler(options);
   const handleStudioDirector = createCreativeStudioDirectorHandler(options);
   const handleStudioAdaptation = createCreativeStudioAdaptationHandler(options);
   const handleStudioVersions = createCreativeStudioVersionsHandler(options);
@@ -37,6 +39,7 @@ export function createAtthasMarketingManagerServer(options: MarketingManagerHand
       }
       if (await handleStudioBootstrap(req, res, url)) return;
       if (await handleStudioAutoPolish(req, res, url)) return;
+      if (await handleStudioParity(req, res, url)) return;
       if (await handleStudioDirector(req, res, url)) return;
       if (await handleStudioAdaptation(req, res, url)) return;
       if (await handleStudioVersions(req, res, url)) return;
