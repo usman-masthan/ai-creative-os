@@ -51,6 +51,25 @@ export function createCreativeStudioAdvancedBootstrapHandler(
           displayName: brand.displayName,
           layoutCount: layouts.list(brand.brandId).length,
           reviewContextRegistered: true,
+          brandKitPreview: {
+            logoUrl: `/studio-brand-asset/${encodeURIComponent(profile.clientId)}/${encodeURIComponent(brand.brandId)}/logo`,
+            approvedLogoAssetId: brand.approvedLogoAsset.assetId,
+            colours: [...brand.qa.approvedColours],
+            semanticColours: {
+              artboardBackground: brand.artboardBackground,
+              primaryText: brand.primaryText,
+              secondaryText: brand.secondaryText,
+              ctaFill: brand.ctaFill,
+              ctaText: brand.ctaText,
+            },
+            typography: {
+              display: brand.displayFont,
+              body: brand.bodyFont,
+              price: brand.priceFont,
+            },
+            approvedGraphicElements: [...brand.brandKitPreview.approvedGraphicElements],
+            photographyDirection: [...brand.brandKitPreview.photographyDirection],
+          },
         })),
       };
     });
@@ -69,6 +88,14 @@ export function createCreativeStudioAdvancedBootstrapHandler(
         clientTruthProviderRegistry: true,
         clientReviewContextRegistry: true,
         failClosedClientRegistration: true,
+        brandKitPreview: {
+          profileDriven: true,
+          approvedLogoAssetServing: true,
+          palette: true,
+          typography: true,
+          approvedGraphicElements: true,
+          photographyDirection: true,
+        },
         truthGate: {
           explicitConfirmationRequired: true,
           immutableSnapshotRequired: true,
