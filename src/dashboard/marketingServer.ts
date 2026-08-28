@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 
+import { createCreativeStudioAdaptationHandler } from "./creativeStudioAdaptation.js";
 import { createCreativeStudioDirectorHandler } from "./creativeStudioDirector.js";
 import { createCreativeStudioHandler } from "./creativeStudio.js";
 import { createMarketingManagerHandler, type MarketingManagerHandlerOptions } from "./marketingManager.js";
@@ -8,6 +9,7 @@ export function createAtthasMarketingManagerServer(options: MarketingManagerHand
   const handleMarketing = createMarketingManagerHandler(options);
   const handleStudio = createCreativeStudioHandler(options);
   const handleStudioDirector = createCreativeStudioDirectorHandler(options);
+  const handleStudioAdaptation = createCreativeStudioAdaptationHandler(options);
   return createServer(async (req, res) => {
     try {
       const url = new URL(req.url ?? "/workspace", "http://localhost");
@@ -22,6 +24,7 @@ export function createAtthasMarketingManagerServer(options: MarketingManagerHand
         return;
       }
       if (await handleStudioDirector(req, res, url)) return;
+      if (await handleStudioAdaptation(req, res, url)) return;
       if (await handleStudio(req, res, url)) return;
       if (await handleMarketing(req, res, url)) return;
       res.writeHead(404, { "content-type": "application/json; charset=utf-8" });
