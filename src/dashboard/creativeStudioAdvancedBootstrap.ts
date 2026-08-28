@@ -44,7 +44,15 @@ export function createCreativeStudioAdvancedBootstrapHandler(
           restoreAsNewRevision: true,
         },
         deterministicQa: true,
+        deterministicAutoPolish: true,
         layeredCreativeDirectorReview: true,
+        flattenedFinalVisualQa: Boolean(process.env.GEMINI_API_KEY?.trim()),
+        initialRendererParityGate: true,
+        designDirections: {
+          count: 3,
+          additionalGenerationCalls: 0,
+          sideBySidePreview: true,
+        },
         aiTextEditing: "selected-layer-only",
         aiImageEditing: "isolated-layers-only",
         segmentation: {
@@ -62,7 +70,11 @@ export function createCreativeStudioAdvancedBootstrapHandler(
         exportFormats: ["png", "svg"],
         pngExportPresets: ["standard", "high-resolution", "4k"],
         jpgExport: false,
-        genericMaskRendering: false,
+        genericMaskRendering: {
+          rect: true,
+          ellipse: true,
+          multipleVisibleMasksPerTarget: false,
+        },
       },
     });
     return true;
