@@ -1,4 +1,3 @@
-import { mkdir, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { join, resolve } from "node:path";
 
@@ -6,6 +5,7 @@ import { readAiTrace } from "../aiTrace.js";
 import type { CampaignProductionFormat } from "../creativeTypes.js";
 import { runDesignQa } from "../creativeStudio/designQa.js";
 import { reviewLayeredFinalVisual } from "../creativeStudio/finalVisualQa.js";
+import { CreativeStudioGovernanceStore } from "../creativeStudio/governanceStore.js";
 import { FileDesignProjectStore } from "../creativeStudio/projectStore.js";
 import { exportDesignDocumentPng } from "../creativeStudio/renderDesignDocument.js";
 import { GeminiFinalArtQaProvider } from "../finalArtQa/gemini.js";
@@ -13,7 +13,13 @@ import type { TaskTruthSnapshot } from "../taskTruth.js";
 
 async function readBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
-  for await (const chunk of req) chunks.push(Buffer.from(chunk));
+  let bytes = 0;
+  for await (const chunk of req) {
+    const buffer = Buffer.from(chunk);
+    bytes += buffer.length;
+    if (bytes > 128 * 1024) throw new Error("Final visual QA request exceeds 128 KB.");
+    chunks.push(buffer);
+  }
   return chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) as Record<string, unknown> : {};
 }
 
@@ -44,6 +50,7 @@ export interface CreativeStudioFinalVisualQaHandlerOptions { rootDir?: string }
 export function createCreativeStudioFinalVisualQaHandler(options: CreativeStudioFinalVisualQaHandlerOptions = {}) {
   const rootDir = resolve(options.rootDir ?? ".atthas-os");
   const store = new FileDesignProjectStore(rootDir);
+  const governance = new CreativeStudioGovernanceStore(rootDir);
   return async function handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> {
     if (req.method !== "POST" || url.pathname !== "/api/studio/final-visual-qa") return false;
     if (!process.env.GEMINI_API_KEY?.trim()) throw new Error("GEMINI_API_KEY is required for final visual QA.");
@@ -86,11 +93,20 @@ export function createCreativeStudioFinalVisualQaHandler(options: CreativeStudio
       pngPath: rendered.outputPath,
       provider: new GeminiFinalArtQaProvider(),
     });
-    await mkdir(outputDir, { recursive: true });
-    await writeFile(join(outputDir, `final-visual-qa-v${project.document.version}.json`), `${JSON.stringify(review, null, 2)}\n`, "utf8");
+    const checkedAt = new Date().toISOString();
+    await governance.saveFinalVisualQa({
+      schemaVersion: 1,
+      designId,
+      designVersion: project.document.version,
+      checkedAt,
+      deterministicDecision: deterministicQa.decision,
+      renderedPngPath: rendered.outputPath,
+      result: review,
+    });
     sendJson(res, {
       designId,
       version: project.document.version,
+      checkedAt,
       deterministicDecision: deterministicQa.decision,
       review,
     });
