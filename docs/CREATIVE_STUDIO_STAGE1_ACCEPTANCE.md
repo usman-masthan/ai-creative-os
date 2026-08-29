@@ -59,6 +59,10 @@ A user can move from a structured marketing brief to a governed creative, open i
 | Component lifecycle states | PASS | Family metadata supports `ACTIVE`, `DEPRECATED` and `ARCHIVED`. Deprecated/archived families remain auditable but cannot be newly inserted or versioned until reactivated; status changes never mutate existing designs. |
 | Explicit component instance upgrade | PASS | Upgrade must stay inside the same active family, target a strictly newer immutable version, revalidate destination confirmed truth, rebind destination native text, preserve current instance placement/rotation as closely as possible and persist exactly one new DesignDocument revision + deterministic QA. No instance auto-updates. |
 | Component instance detach | PASS | Detach removes only `componentInstance` provenance from the selected group/children in one revision; native layers, text, styling, group membership and geometry remain editable and unflattened. |
+| Governed component version authoring | PASS | An edited selected group can be intentionally published as the next immutable version of an existing ACTIVE family through a read-only preview followed by explicit publish. Previous component versions and all existing DesignDocuments/instances remain unchanged. |
+| Component authoring structural + truth diff | PASS | Preview compares the family latest version with a sanitized candidate and reports template counts, text roles added/removed, text/shape style or geometry changes, shape-count changes and truth dependencies added/removed. Semantic role/count/truth changes are classified `REVIEW_REQUIRED`; invalid lifecycle/boundary/base state is `BLOCKED`. |
+| Component authoring stale-preview + notes guard | PASS | Preview returns a SHA-256 token bound to the current design version/group/latest family state. Publish recomputes the candidate, rejects stale tokens/latest pointers, requires 5–500 character version notes and requires explicit acknowledgement for `REVIEW_REQUIRED`. |
+| Component authoring audit + cost discipline | PASS | Successful publish stores immutable vN+1 plus separate authoring notes/diff/source-design/source-truth provenance, mutates no DesignDocument, triggers no instance auto-update and adds zero AI/model calls. |
 | Align / distribute | PASS | Six alignment modes plus horizontal/vertical distribution run as deterministic `ALIGN_LAYERS` / `DISTRIBUTE_LAYERS` operations. Distribution requires at least three layers. |
 | Group / ungroup | PASS | `GROUP_LAYERS` creates a validated non-rendering selection container over existing child layers; `UNGROUP_LAYERS` removes only the container and preserves child content and geometry. Cmd/Ctrl+G and Shift+Cmd/Ctrl+G use the same operations. |
 | Group membership integrity | PASS | A child may belong to only one group; background/logo/group/mask layers are excluded from movable group membership; missing, duplicate, nested or self-referencing group membership fails validation. |
@@ -66,7 +70,7 @@ A user can move from a structured marketing brief to a governed creative, open i
 | Group proportional resize | PASS | Group resize preserves aspect ratio, scales child positions/dimensions, native text size/letter spacing/shadow metrics, and shape stroke/corner metrics in one governed revision. Non-proportional group distortion is rejected. |
 | Group rotation | PASS | Group rotation rotates each child centre around the group pivot, adds the rotation delta to each child rotation, recomputes visual group bounds and remains one `ROTATE_LAYER` revision. |
 | Canvas transform governance | PASS | Locked layers receive no transform controls; logos cannot rotate/duplicate/delete and backgrounds cannot delete. Grouping, marquee selection, layer management, reusable components and multi-object actions cannot bypass these protections because structural eligibility is enforced at the document/server layer. |
-| Manual editing costs zero model calls | PASS | Geometry/text styling/visibility/order/rename/duplicate/delete/multi-arrange/group/marquee/smart-guide/reusable-component lifecycle operations are deterministic local/document mutations. |
+| Manual editing costs zero model calls | PASS | Geometry/text styling/visibility/order/rename/duplicate/delete/multi-arrange/group/marquee/smart-guide/reusable-component lifecycle/authoring operations are deterministic local/document or library mutations. |
 | Undo / redo | PASS | Persistent version snapshots + cursor. |
 | Arbitrary version compare | PASS | `/api/studio/compare` returns layer/property deltas. |
 | Restore old version without destroying history | PASS | `/api/studio/restore` restores content as a new revision. |
@@ -128,15 +132,19 @@ Stage 1 is not accepted if any of the following regress:
 26. Deprecated or archived component families must not be newly inserted or versioned until explicitly reactivated; lifecycle status changes must not mutate existing designs.
 27. Component upgrades must be explicit, same-family, strictly forward-version operations that revalidate destination truth and persist exactly one new DesignDocument revision; there must be no live-linked or automatic instance mutation.
 28. Component detach must remove provenance only and preserve native layer content/geometry/group membership; it must not flatten, delete or invoke a model.
-29. AI image operations must target a single isolated layer.
-30. A custom or non-social output format must preserve the exact requested DesignDocument/render dimensions; image-provider aspect normalization may affect only generated source media.
-31. Format adaptation must create a new recomposed DesignDocument and must not stretch or destructively overwrite the source design.
-32. Story-layout semantics must not be forced onto a non-story artboard, and standard-fluid layout semantics must not silently masquerade as a story layout.
-33. Deterministic blockers must be resolved before final visual QA or production approval.
-34. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
-35. Any later edit must require a fresh final visual QA and explicit approval before approved export.
-36. Registering an approved Studio asset must not impersonate a client/admin lifecycle approval or automatically change campaign state.
-37. Restoring a version must create a new revision rather than erasing history.
+29. Component authoring preview must be read-only and recompute a sanitized candidate from the selected group + confirmed task truth; it must expose structural and truth-dependency changes before publication.
+30. Component authoring publication must require the exact current family latest component, a non-stale preview token, mandatory version notes and explicit acknowledgement for `REVIEW_REQUIRED`; `BLOCKED` previews must never publish.
+31. Publishing a component version must create a new immutable library definition + authoring audit only; it must not mutate the source DesignDocument or automatically update any existing instance.
+32. Component authoring preview/publish/audit must remain deterministic zero-model-call operations.
+33. AI image operations must target a single isolated layer.
+34. A custom or non-social output format must preserve the exact requested DesignDocument/render dimensions; image-provider aspect normalization may affect only generated source media.
+35. Format adaptation must create a new recomposed DesignDocument and must not stretch or destructively overwrite the source design.
+36. Story-layout semantics must not be forced onto a non-story artboard, and standard-fluid layout semantics must not silently masquerade as a story layout.
+37. Deterministic blockers must be resolved before final visual QA or production approval.
+38. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
+39. Any later edit must require a fresh final visual QA and explicit approval before approved export.
+40. Registering an approved Studio asset must not impersonate a client/admin lifecycle approval or automatically change campaign state.
+41. Restoring a version must create a new revision rather than erasing history.
 
 ## Governed Studio creation state machine
 
@@ -206,7 +214,7 @@ Smart alignment and equal-spacing guides exist only during interaction previews.
 
 Direct interaction is therefore only an adapter over the document operation model. Protected logos, backgrounds, masks and locked layers retain the same governance they have through the property panel and API.
 
-## Reusable component lifecycle state machine
+## Reusable component lifecycle and authoring state machine
 
 ```text
 Selected native group
@@ -218,8 +226,18 @@ Selected native group
 → ACTIVE
    ├─ duplicate selected immutable version as vN+1
    ├─ explicit insert after destination truth validation
-   ├─ DEPRECATED (no new insert/version)
-   └─ ARCHIVED   (no new insert/version)
+   ├─ edit native/attached/detached group
+   │  → Preview Version Changes (read-only)
+   │  → rebuild sanitized candidate from current confirmed truth
+   │  → structural + truth-dependency diff
+   │  → COMPATIBLE / REVIEW_REQUIRED / BLOCKED
+   │  → SHA-256 token binds preview to design/group/latest family state
+   │  → mandatory version notes
+   │  → explicit acknowledgement when REVIEW_REQUIRED
+   │  → publish immutable vN+1 + authoring audit
+   │  → source design and all existing instances remain unchanged
+   ├─ DEPRECATED (no new insert/version/authoring)
+   └─ ARCHIVED   (no new insert/version/authoring)
 
 Attached instance vN
 → user explicitly chooses Upgrade
@@ -241,7 +259,7 @@ Attached instance
 → deterministic QA rerun
 ```
 
-There are no live-linked master components and no automatic instance updates. Mutable lifecycle state is stored separately from immutable component definitions. Existing instances remain auditable against the exact immutable `componentId` they were created from until the user explicitly upgrades or detaches them.
+There are no live-linked master components and no automatic instance updates. Mutable lifecycle state and authoring audit data are stored separately from immutable component definitions. Existing instances remain auditable against the exact immutable `componentId` they were created from until the user explicitly upgrades or detaches them.
 
 ## Client truth state machine
 
