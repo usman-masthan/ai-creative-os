@@ -6,6 +6,7 @@ import {
   FileCreativeComponentAuthoringStore,
   previewReusableComponentVersion,
 } from "../creativeStudio/componentAuthoring.js";
+import { FileCreativeComponentImpactAnalyzer } from "../creativeStudio/componentImpact.js";
 import { FileDesignProjectStore } from "../creativeStudio/projectStore.js";
 import type { TaskTruthSnapshot } from "../taskTruth.js";
 
@@ -62,6 +63,7 @@ export function createCreativeStudioComponentAuthoringHandler(
   const rootDir = resolve(options.rootDir ?? ".atthas-os");
   const projects = new FileDesignProjectStore(rootDir);
   const authoring = new FileCreativeComponentAuthoringStore(rootDir);
+  const impact = new FileCreativeComponentImpactAnalyzer(rootDir);
 
   return async function handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> {
     if (req.method === "GET" && url.pathname === "/api/studio/components/version-audit") {
@@ -103,21 +105,61 @@ export function createCreativeStudioComponentAuthoringHandler(
         family,
         baseComponent: base,
       });
-      sendJson(res, 200, { preview: result.preview });
+      const impactReport = result.preview.compatibility === "REVIEW_REQUIRED"
+        ? await impact.analyze({
+            family,
+            targetComponent: result.candidate,
+            targetVersion: result.preview.proposedVersion,
+          })
+        : undefined;
+      sendJson(res, 200, {
+        preview: result.preview,
+        ...(impactReport ? { impact: impactReport } : {}),
+      });
       return true;
     }
 
     if (req.method === "POST" && url.pathname === "/api/studio/components/publish-version") {
       const data = await readBody(req);
       const designId = safeId(data.designId, "designId");
+      const familyId = safeId(data.familyId, "familyId");
+      const groupLayerId = safeId(data.groupLayerId, "groupLayerId");
       const project = await projects.get(designId);
       if (!project) throw new Error(`Design project ${designId} does not exist.`);
       const truth = await campaignTruth(rootDir, project.document.campaignId);
+      const family = await authoring.lifecycle.get(
+        project.document.brand.clientId,
+        project.document.brand.brandId,
+        familyId,
+      );
+      if (!family) throw new Error(`CREATIVE_COMPONENT_FAMILY_NOT_FOUND: ${familyId}`);
+      const base = await authoring.lifecycle.components.get(family.clientId, family.brandId, family.latestComponentId);
+      if (!base) throw new Error(`CREATIVE_COMPONENT_NOT_FOUND: ${family.latestComponentId}`);
+      const currentPreview = previewReusableComponentVersion({
+        document: project.document,
+        sourceTruth: truth,
+        groupLayerId,
+        family,
+        baseComponent: base,
+      });
+      let verifiedImpactToken: string | undefined;
+      if (currentPreview.preview.compatibility === "REVIEW_REQUIRED") {
+        const report = await impact.analyze({
+          family,
+          targetComponent: currentPreview.candidate,
+          targetVersion: currentPreview.preview.proposedVersion,
+        });
+        const supplied = typeof data.expectedImpactToken === "string" ? data.expectedImpactToken.trim() : "";
+        if (!supplied || supplied !== report.impactToken) {
+          throw new Error("COMPONENT_AUTHORING_IMPACT_REQUIRED: semantic component changes require a fresh dependency impact analysis before publish.");
+        }
+        verifiedImpactToken = report.impactToken;
+      }
       const result = await authoring.publish({
         document: project.document,
         sourceTruth: truth,
-        groupLayerId: safeId(data.groupLayerId, "groupLayerId"),
-        familyId: safeId(data.familyId, "familyId"),
+        groupLayerId,
+        familyId,
         expectedBaseComponentId: safeId(data.expectedBaseComponentId, "expectedBaseComponentId"),
         expectedPreviewToken: stringValue(data.expectedPreviewToken, "expectedPreviewToken"),
         versionNotes: stringValue(data.versionNotes, "versionNotes"),
@@ -136,6 +178,7 @@ export function createCreativeStudioComponentAuthoringHandler(
         family: result.family,
         record: result.record,
         preview: result.preview,
+        ...(verifiedImpactToken ? { verifiedImpactToken } : {}),
       });
       return true;
     }
