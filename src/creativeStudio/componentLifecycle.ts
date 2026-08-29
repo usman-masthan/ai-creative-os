@@ -198,14 +198,14 @@ export class FileCreativeComponentLifecycleStore {
 
   async listLibrary(clientId: string, brandId: string): Promise<CreativeComponentLibraryFamily[]> {
     const summaries = await this.components.list(clientId, brandId);
+    let families = await this.listRecords(clientId, brandId);
     for (const summary of summaries) {
-      const families = await this.listRecords(clientId, brandId);
       if (!families.some((family) => family.versions.some((version) => version.componentId === summary.id))) {
         const component = await this.components.get(clientId, brandId, summary.id);
         if (component) await this.registerInitial(component);
+        families = await this.listRecords(clientId, brandId);
       }
     }
-    const families = await this.listRecords(clientId, brandId);
     const output: CreativeComponentLibraryFamily[] = [];
     for (const family of families) {
       const versions: CreativeComponentLibraryVersion[] = [];
@@ -299,6 +299,11 @@ function instanceGroup(document: DesignDocument, instanceId: string): DesignGrou
   return groups[0]!;
 }
 
+function withoutComponentInstance(layer: DesignLayer): DesignLayer {
+  const { componentInstance: _componentInstance, ...rest } = layer;
+  return rest as DesignLayer;
+}
+
 export function detachReusableComponentInstance(
   documentInput: DesignDocument,
   instanceId: string,
@@ -312,7 +317,7 @@ export function detachReusableComponentInstance(
   return assertDesignDocument({
     ...document,
     version: nextVersion,
-    layers: document.layers.map((layer) => ids.has(layer.id) ? { ...layer, componentInstance: undefined } : layer),
+    layers: document.layers.map((layer) => ids.has(layer.id) ? withoutComponentInstance(layer) : layer),
     history: [
       ...document.history,
       { version: nextVersion, createdAt: timestamp, summary: `Detached reusable component instance ${instanceId}.`, actor: "human" },
