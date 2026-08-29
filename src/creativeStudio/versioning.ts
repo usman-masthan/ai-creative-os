@@ -44,6 +44,13 @@ function stableLayerShape(layer: DesignLayer): Record<string, unknown> {
     visible: layer.visible,
     locked: layer.locked,
     aiEditable: layer.aiEditable,
+    componentInstance: layer.componentInstance
+      ? {
+          componentId: layer.componentInstance.componentId,
+          instanceId: layer.componentInstance.instanceId,
+          templateLayerId: layer.componentInstance.templateLayerId,
+        }
+      : undefined,
   };
   if (layer.type === "text") {
     Object.assign(base, {
