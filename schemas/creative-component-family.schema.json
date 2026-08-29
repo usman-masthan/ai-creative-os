@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-creative-os.local/schemas/creative-component-family.schema.json",
+  "title": "CreativeComponentFamilyRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "familyId", "clientId", "brandId", "name", "status", "latestVersion", "latestComponentId", "versions", "createdAt", "updatedAt"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "familyId": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,160}$" },
+    "clientId": { "type": "string", "minLength": 1 },
+    "brandId": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "status": { "enum": ["ACTIVE", "DEPRECATED", "ARCHIVED"] },
+    "latestVersion": { "type": "integer", "minimum": 1 },
+    "latestComponentId": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,160}$" },
+    "versions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["version", "componentId", "createdAt"],
+        "properties": {
+          "version": { "type": "integer", "minimum": 1 },
+          "componentId": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,160}$" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "derivedFromComponentId": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,160}$" }
+        }
+      }
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  }
+}
