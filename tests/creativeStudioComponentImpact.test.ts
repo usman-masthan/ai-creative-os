@@ -210,7 +210,7 @@ test("component impact analysis finds upgradeable, blocked and approved/frozen d
     assert.equal(report.totals.frozenApproved, 1);
     assert.match(report.impactToken, /^[a-f0-9]{64}$/);
 
-    const impacts = new Map(report.designs.map((entry) => [entry.designId, entry.instances[0]!));
+    const impacts = new Map(report.designs.map((entry) => [entry.designId, entry.instances[0]!]));
     assert.equal(impacts.get("upgradeable")?.upgradeReadiness, "UPGRADEABLE");
     assert.equal(impacts.get("upgradeable")?.governance, "EDITABLE");
     assert.equal(impacts.get("missing-truth")?.upgradeReadiness, "BLOCKED_TRUTH");
