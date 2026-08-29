@@ -138,6 +138,39 @@ function bounds(layers: DesignLayer[]): { x: number; y: number; width: number; h
   return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
+function visualBoundsForLayer(layer: DesignLayer): { x: number; y: number; width: number; height: number } {
+  const radians = layer.rotation * Math.PI / 180;
+  if (Math.abs(radians) < 1e-9) return { x: layer.x, y: layer.y, width: layer.width, height: layer.height };
+  const cx = layer.x + layer.width / 2;
+  const cy = layer.y + layer.height / 2;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const corners = [
+    [layer.x, layer.y],
+    [layer.x + layer.width, layer.y],
+    [layer.x + layer.width, layer.y + layer.height],
+    [layer.x, layer.y + layer.height],
+  ].map(([x, y]) => {
+    const dx = x! - cx;
+    const dy = y! - cy;
+    return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos };
+  });
+  const left = Math.min(...corners.map((point) => point.x));
+  const top = Math.min(...corners.map((point) => point.y));
+  const right = Math.max(...corners.map((point) => point.x));
+  const bottom = Math.max(...corners.map((point) => point.y));
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+function visualBounds(layers: DesignLayer[]): { x: number; y: number; width: number; height: number } {
+  const boxes = layers.map(visualBoundsForLayer);
+  const left = Math.min(...boxes.map((box) => box.x));
+  const top = Math.min(...boxes.map((box) => box.y));
+  const right = Math.max(...boxes.map((box) => box.x + box.width));
+  const bottom = Math.max(...boxes.map((box) => box.y + box.height));
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
 function parentGroup(document: DesignDocument, layerId: string): DesignGroupLayer | undefined {
   return document.layers.find(
     (layer): layer is DesignGroupLayer => layer.type === "group" && layer.childLayerIds.includes(layerId),
@@ -152,7 +185,7 @@ function recomputeGroupBounds(layers: DesignLayer[]): DesignLayer[] {
       .map((id) => byId.get(id))
       .filter((child): child is DesignLayer => Boolean(child));
     if (!children.length) return layer;
-    const next = bounds(children);
+    const next = visualBounds(children);
     return { ...layer, ...next };
   });
 }
@@ -164,7 +197,7 @@ function applySingleLayerOperation(layer: DesignLayer, operation: DesignOperatio
       if (!Number.isFinite(operation.x) || !Number.isFinite(operation.y)) throw new Error("Layer position must be finite.");
       return { ...layer, x: operation.x, y: operation.y };
     case "RESIZE_LAYER":
-      if (layer.type === "group") throw new Error("DESIGN_GROUP_TRANSFORM_BLOCK: resize group members directly or ungroup first.");
+      if (layer.type === "group") throw new Error("DESIGN_GROUP_TRANSFORM_BLOCK: group resize requires the group transform path.");
       if (!Number.isFinite(operation.width) || !Number.isFinite(operation.height) || operation.width <= 0 || operation.height <= 0) {
         throw new Error("Layer dimensions must be positive finite numbers.");
       }
@@ -177,7 +210,7 @@ function applySingleLayerOperation(layer: DesignLayer, operation: DesignOperatio
       }
       return { ...layer, width: operation.width, height: operation.height };
     case "ROTATE_LAYER":
-      if (layer.type === "group") throw new Error("DESIGN_GROUP_TRANSFORM_BLOCK: rotate group members directly or ungroup first.");
+      if (layer.type === "group") throw new Error("DESIGN_GROUP_TRANSFORM_BLOCK: group rotation requires the group transform path.");
       if (!Number.isFinite(operation.rotation)) throw new Error("Layer rotation must be finite.");
       if (layer.type === "logo") throw new Error("BRAND_GOVERNANCE_BLOCK: logo rotation is not permitted.");
       return { ...layer, rotation: operation.rotation };
@@ -259,6 +292,95 @@ function moveGroup(document: DesignDocument, operation: Extract<DesignOperation,
     if (!childIds.has(layer.id)) return layer;
     assertEditable(layer, operation);
     return { ...layer, x: layer.x + deltaX, y: layer.y + deltaY };
+  });
+}
+
+function scaleGroupChild(layer: DesignLayer, scale: number, originX: number, originY: number): DesignLayer {
+  const centerX = layer.x + layer.width / 2;
+  const centerY = layer.y + layer.height / 2;
+  const width = layer.width * scale;
+  const height = layer.height * scale;
+  const x = originX + (centerX - originX) * scale - width / 2;
+  const y = originY + (centerY - originY) * scale - height / 2;
+  const common = { ...layer, x, y, width, height };
+  if (layer.type === "text") {
+    return {
+      ...common,
+      fontSize: layer.fontSize * scale,
+      letterSpacing: layer.letterSpacing * scale,
+      ...(layer.shadow
+        ? {
+            shadow: {
+              ...layer.shadow,
+              offsetX: layer.shadow.offsetX * scale,
+              offsetY: layer.shadow.offsetY * scale,
+              blur: layer.shadow.blur * scale,
+            },
+          }
+        : {}),
+    } as DesignTextLayer;
+  }
+  if (layer.type === "shape") {
+    return {
+      ...common,
+      ...(layer.strokeWidth !== undefined ? { strokeWidth: layer.strokeWidth * scale } : {}),
+      ...(layer.cornerRadius !== undefined ? { cornerRadius: layer.cornerRadius * scale } : {}),
+    };
+  }
+  return common as DesignLayer;
+}
+
+function resizeGroup(document: DesignDocument, operation: Extract<DesignOperation, { type: "RESIZE_LAYER" }>, group: DesignGroupLayer): DesignLayer[] {
+  assertEditable(group, operation);
+  if (!Number.isFinite(operation.width) || !Number.isFinite(operation.height) || operation.width <= 0 || operation.height <= 0) {
+    throw new Error("Layer dimensions must be positive finite numbers.");
+  }
+  const widthScale = operation.width / Math.max(group.width, 0.0001);
+  const heightScale = operation.height / Math.max(group.height, 0.0001);
+  if (Math.abs(widthScale - heightScale) / Math.max(widthScale, heightScale, 0.0001) > 0.02) {
+    throw new Error("DESIGN_GROUP_TRANSFORM_BLOCK: group resizing must preserve aspect ratio.");
+  }
+  const scale = (widthScale + heightScale) / 2;
+  const childIds = new Set(group.childLayerIds);
+  return document.layers.map((layer) => {
+    if (layer.id === group.id) return { ...layer, width: operation.width, height: operation.height };
+    if (!childIds.has(layer.id)) return layer;
+    assertEditable(layer, operation);
+    return scaleGroupChild(layer, scale, group.x, group.y);
+  });
+}
+
+function normalizeRotation(value: number): number {
+  const normalized = ((value + 180) % 360 + 360) % 360 - 180;
+  return Math.abs(normalized) < 1e-9 ? 0 : normalized;
+}
+
+function rotateGroup(document: DesignDocument, operation: Extract<DesignOperation, { type: "ROTATE_LAYER" }>, group: DesignGroupLayer): DesignLayer[] {
+  assertEditable(group, operation);
+  if (!Number.isFinite(operation.rotation)) throw new Error("Layer rotation must be finite.");
+  const deltaDegrees = operation.rotation - group.rotation;
+  const radians = deltaDegrees * Math.PI / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const pivotX = group.x + group.width / 2;
+  const pivotY = group.y + group.height / 2;
+  const childIds = new Set(group.childLayerIds);
+  return document.layers.map((layer) => {
+    if (layer.id === group.id) return { ...layer, rotation: normalizeRotation(operation.rotation) };
+    if (!childIds.has(layer.id)) return layer;
+    assertEditable(layer, operation);
+    const centerX = layer.x + layer.width / 2;
+    const centerY = layer.y + layer.height / 2;
+    const dx = centerX - pivotX;
+    const dy = centerY - pivotY;
+    const nextCenterX = pivotX + dx * cos - dy * sin;
+    const nextCenterY = pivotY + dx * sin + dy * cos;
+    return {
+      ...layer,
+      x: nextCenterX - layer.width / 2,
+      y: nextCenterY - layer.height / 2,
+      rotation: normalizeRotation(layer.rotation + deltaDegrees),
+    };
   });
 }
 
@@ -367,7 +489,7 @@ export function applyDesignOperation(
       if (document.layers.some((layer) => layer.id === groupLayerId)) {
         throw new Error(`DESIGN_LAYER_DUPLICATE_ID: ${groupLayerId}`);
       }
-      const frame = bounds(chosen);
+      const frame = visualBounds(chosen);
       const group: DesignGroupLayer = {
         id: groupLayerId,
         name: operation.name?.trim() || "Group",
@@ -415,6 +537,22 @@ export function applyDesignOperation(
         : updateLayer(document, operation.layerId, (layer) => applySingleLayerOperation(layer, operation));
       break;
     }
+    case "RESIZE_LAYER": {
+      const source = document.layers.find((layer) => layer.id === operation.layerId);
+      if (!source) throw new Error(`DESIGN_LAYER_NOT_FOUND: ${operation.layerId}`);
+      layers = source.type === "group"
+        ? resizeGroup(document, operation, source)
+        : updateLayer(document, operation.layerId, (layer) => applySingleLayerOperation(layer, operation));
+      break;
+    }
+    case "ROTATE_LAYER": {
+      const source = document.layers.find((layer) => layer.id === operation.layerId);
+      if (!source) throw new Error(`DESIGN_LAYER_NOT_FOUND: ${operation.layerId}`);
+      layers = source.type === "group"
+        ? rotateGroup(document, operation, source)
+        : updateLayer(document, operation.layerId, (layer) => applySingleLayerOperation(layer, operation));
+      break;
+    }
     case "SET_VISIBILITY":
     case "SET_LOCK": {
       const source = document.layers.find((layer) => layer.id === operation.layerId);
@@ -431,8 +569,6 @@ export function applyDesignOperation(
       });
       break;
     }
-    case "RESIZE_LAYER":
-    case "ROTATE_LAYER":
     case "SET_OPACITY":
     case "REORDER_LAYER":
     case "UPDATE_TEXT":
