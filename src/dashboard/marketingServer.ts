@@ -9,6 +9,7 @@ import { createCreativeStudioCampaignHandoffHandler } from "./creativeStudioCamp
 import { createCreativeStudioComponentAuthoringHandler } from "./creativeStudioComponentAuthoring.js";
 import { createCreativeStudioComponentImpactHandler } from "./creativeStudioComponentImpact.js";
 import { createCreativeStudioComponentLifecycleGuard } from "./creativeStudioComponentLifecycleGuard.js";
+import { createCreativeStudioComponentMigrationHandler } from "./creativeStudioComponentMigration.js";
 import { createCreativeStudioComponentHandler } from "./creativeStudioComponents.js";
 import { createCreativeStudioDirectionsHandler } from "./creativeStudioDirections.js";
 import { createCreativeStudioDirectorHandler } from "./creativeStudioDirector.js";
@@ -37,6 +38,7 @@ export function createAtthasMarketingManagerServer(options: MarketingManagerHand
   const handleStudioComponentAuthoring = createCreativeStudioComponentAuthoringHandler(options);
   const handleStudioComponentImpact = createCreativeStudioComponentImpactHandler(options);
   const handleStudioComponentLifecycleGuard = createCreativeStudioComponentLifecycleGuard(options);
+  const handleStudioComponentMigration = createCreativeStudioComponentMigrationHandler(options);
   const handleStudioDirections = createCreativeStudioDirectionsHandler(options);
   const handleStudioParity = createCreativeStudioParityHandler(options);
   const handleStudioDirector = createCreativeStudioDirectorHandler(options);
@@ -68,6 +70,7 @@ export function createAtthasMarketingManagerServer(options: MarketingManagerHand
       if (await handleStudioComponentAuthoring(req, res, url)) return;
       if (await handleStudioComponentImpact(req, res, url)) return;
       if (await handleStudioComponentLifecycleGuard(req, res, url)) return;
+      if (await handleStudioComponentMigration(req, res, url)) return;
       if (await handleStudioComponents(req, res, url)) return;
       if (await handleStudioDirections(req, res, url)) return;
       if (await handleStudioParity(req, res, url)) return;
