@@ -39,8 +39,16 @@ A user can move from a structured marketing brief to a governed creative, open i
 | Layered canvas MVP | PASS | `/studio` native SVG adapter supports selection, drag, safe guides and deterministic edits. |
 | Direct canvas resize / rotate | PASS | Selected unlocked layers expose an SVG resize handle and, except protected logos, a rotation handle. Pointer-up commits the existing versioned `RESIZE_LAYER` / `ROTATE_LAYER` operation instead of mutating hidden state. |
 | Keyboard canvas editing | PASS | Arrow keys nudge selected unlocked layers by 1 px, Shift+Arrow by 10 px, with safe-margin/centre snapping; Cmd/Ctrl+D and Delete reuse governed duplicate/delete operations. |
-| Canvas transform governance | PASS | Locked layers receive no transform controls; logos cannot rotate/duplicate/delete and backgrounds cannot delete because UI actions flow through the same core DesignDocument governance. |
-| Manual editing costs zero model calls | PASS | Geometry/text styling/visibility/order/duplicate/delete operations are deterministic document mutations. |
+| Multi-selection | PASS | Shift/Cmd/Ctrl-click selects multiple canvas/layer-list items, renders independent selection outlines plus a shared bounds box, and suppresses conflicting single-layer transform handles. |
+| Multi-layer movement | PASS | Dragging any selected canvas layer or using arrow keys moves the selected set through one `MOVE_LAYERS` operation, producing one persisted revision rather than N independent edits. |
+| Align / distribute | PASS | Six alignment modes plus horizontal/vertical distribution run as deterministic `ALIGN_LAYERS` / `DISTRIBUTE_LAYERS` operations. Distribution requires at least three layers. |
+| Group / ungroup | PASS | `GROUP_LAYERS` creates a validated non-rendering selection container over existing child layers; `UNGROUP_LAYERS` removes only the container and preserves child content and geometry. Cmd/Ctrl+G and Shift+Cmd/Ctrl+G use the same operations. |
+| Group membership integrity | PASS | A child may belong to only one group; background/logo/group/mask layers are excluded from movable group membership; missing, duplicate, nested or self-referencing group membership fails validation. |
+| Group move / visibility / lock | PASS | Moving a group translates every child in one revision. Group visibility and lock actions propagate to group members instead of changing an inert metadata layer only. |
+| Group proportional resize | PASS | Group resize preserves aspect ratio, scales child positions/dimensions, native text size/letter spacing/shadow metrics, and shape stroke/corner metrics in one governed revision. Non-proportional group distortion is rejected. |
+| Group rotation | PASS | Group rotation rotates each child centre around the group pivot, adds the rotation delta to each child rotation, recomputes visual group bounds and remains one `ROTATE_LAYER` revision. |
+| Canvas transform governance | PASS | Locked layers receive no transform controls; logos cannot rotate/duplicate/delete and backgrounds cannot delete. Grouping cannot be used to bypass these protections because logo/background/mask/group membership is rejected at the document layer. |
+| Manual editing costs zero model calls | PASS | Geometry/text styling/visibility/order/duplicate/delete/multi-arrange/group operations are deterministic document mutations. |
 | Undo / redo | PASS | Persistent version snapshots + cursor. |
 | Arbitrary version compare | PASS | `/api/studio/compare` returns layer/property deltas. |
 | Restore old version without destroying history | PASS | `/api/studio/restore` restores content as a new revision. |
@@ -68,7 +76,7 @@ A user can move from a structured marketing brief to a governed creative, open i
 | Second live client | NOT ENABLED | Shared provider boundaries exist, but only ATTHA'S currently has authoritative truth/task-intent data and a production implementation. No unsafe fallback is allowed. |
 | JPG export | DEFERRED | No stable dependency-free JPEG encoder is present. PNG/SVG remain supported instead of adding a fragile native dependency only for conversion. |
 | Full official logo lockups | EXTERNAL BLOCKER | Repository manifest still lists full Burger/Restaurant vector lockups as pending owner-supplied assets. They must not be recreated with AI/substitute fonts. |
-| Konva-specific adapter | OPTIONAL / DEFERRED | Native SVG now satisfies Stage 1 selection, drag, resize, rotation, snapping and keyboard-edit interactions. `DesignDocument` remains compatible with a future Konva adapter if richer multi-select/group transforms require it. |
+| Konva-specific adapter | OPTIONAL / DEFERRED | Native SVG now satisfies Stage 1 single/multi-selection, drag, resize, rotation, grouping, alignment, distribution, snapping and keyboard-edit interactions. `DesignDocument` remains compatible with a future canvas adapter if later UX requires richer handles or performance at much larger layer counts. |
 
 ## Required safety invariants
 
@@ -87,16 +95,19 @@ Stage 1 is not accepted if any of the following regress:
 11. Logos must originate from approved source-controlled assets inside the active client's approved asset root, including Brand Kit preview assets.
 12. Promotional typography must remain native/editable rather than baked into image generation.
 13. Manual geometry/styling/history operations must not invoke a model.
-14. Direct canvas transforms and keyboard editing must use the existing versioned DesignDocument operation API; they must not bypass locked-layer, logo or structural governance.
-15. AI image operations must target a single isolated layer.
-16. A custom or non-social output format must preserve the exact requested DesignDocument/render dimensions; image-provider aspect normalization may affect only generated source media.
-17. Format adaptation must create a new recomposed DesignDocument and must not stretch or destructively overwrite the source design.
-18. Story-layout semantics must not be forced onto a non-story artboard, and standard-fluid layout semantics must not silently masquerade as a story layout.
-19. Deterministic blockers must be resolved before final visual QA or production approval.
-20. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
-21. Any later edit must require a fresh final visual QA and explicit approval before approved export.
-22. Registering an approved Studio asset must not impersonate a client/admin lifecycle approval or automatically change campaign state.
-23. Restoring a version must create a new revision rather than erasing history.
+14. Direct canvas transforms, multi-selection, alignment, distribution and grouping must use the existing versioned DesignDocument operation API; they must not bypass locked-layer, logo or structural governance.
+15. One user arrange action must create one persisted document version rather than silently generating multiple history revisions for each selected layer.
+16. A grouped child must belong to only one group, and protected logo/background/mask/group layers must not be admitted into a movable group as a way around their governance.
+17. Group resize must remain proportional and group rotation must transform child geometry around the group pivot; neither operation may flatten text or assets into pixels.
+18. AI image operations must target a single isolated layer.
+19. A custom or non-social output format must preserve the exact requested DesignDocument/render dimensions; image-provider aspect normalization may affect only generated source media.
+20. Format adaptation must create a new recomposed DesignDocument and must not stretch or destructively overwrite the source design.
+21. Story-layout semantics must not be forced onto a non-story artboard, and standard-fluid layout semantics must not silently masquerade as a story layout.
+22. Deterministic blockers must be resolved before final visual QA or production approval.
+23. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
+24. Any later edit must require a fresh final visual QA and explicit approval before approved export.
+25. Registering an approved Studio asset must not impersonate a client/admin lifecycle approval or automatically change campaign state.
+26. Restoring a version must create a new revision rather than erasing history.
 
 ## Governed Studio creation state machine
 
@@ -145,19 +156,21 @@ Editable source DesignDocument
 
 The source DesignDocument is never destructively resized. For custom artboards unsupported by the media provider, only generated source imagery uses a nearest supported source aspect ratio; final layout and export remain exact to the requested width and height.
 
-## Canvas transform state machine
+## Canvas and arrange state machine
 
 ```text
-Selected unlocked layer
-→ drag / resize handle / rotation handle / keyboard transform
-→ local visual interaction
+Selected unlocked layer(s)
+→ direct drag / handle / keyboard / Arrange command
+→ local interaction preview only
 → one governed DesignDocument operation
-→ new persisted document version
+→ one new persisted document version
 → deterministic QA rerun
 → Studio rerender
 ```
 
-Direct interaction is only an adapter over the existing document operation model. Protected logos, backgrounds and locked layers keep the same governance they have through the property panel and API.
+For a multi-selection, `MOVE_LAYERS`, `ALIGN_LAYERS` and `DISTRIBUTE_LAYERS` update all selected leaves in one revision. `GROUP_LAYERS` creates a non-rendering selection container; moving, proportionally resizing or rotating the group transforms its existing children without flattening them. `UNGROUP_LAYERS` removes the container only.
+
+Direct interaction is therefore only an adapter over the document operation model. Protected logos, backgrounds, masks and locked layers retain the same governance they have through the property panel and API.
 
 ## Client truth state machine
 
