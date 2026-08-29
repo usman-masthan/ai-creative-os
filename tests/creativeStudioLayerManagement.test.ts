@@ -42,8 +42,10 @@ test("layer and group rename is metadata-only and creates one revision", () => {
     "2026-08-29T04:01:00.000Z",
   );
   assert.equal(renamed.version, 2);
-  assert.equal(layer(renamed, "group-1").name, "Primary Offer Cluster");
-  assert.deepEqual(layer(renamed, "group-1").type === "group" ? layer(renamed, "group-1").childLayerIds : [], ["a", "b"]);
+  const renamedGroup = layer(renamed, "group-1");
+  assert.equal(renamedGroup.name, "Primary Offer Cluster");
+  assert.equal(renamedGroup.type, "group");
+  assert.deepEqual(renamedGroup.type === "group" ? renamedGroup.childLayerIds : [], ["a", "b"]);
   assert.match(renamed.history.at(-1)?.summary ?? "", /Renamed group-1/);
 });
 
