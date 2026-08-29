@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-import { creativeStudioComponentMigrationHtml } from "./creativeStudioComponentMigrationHtml.js";
+import { creativeStudioComponentMigrationOperationsHtml } from "./creativeStudioComponentMigrationOperationsHtml.js";
 
 function sendHtml(res: ServerResponse, value: string): void {
   res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
@@ -10,7 +10,7 @@ function sendHtml(res: ServerResponse, value: string): void {
 export function createCreativeStudioEnhancedHandler() {
   return async function handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> {
     if (req.method !== "GET" || url.pathname !== "/studio") return false;
-    sendHtml(res, creativeStudioComponentMigrationHtml());
+    sendHtml(res, creativeStudioComponentMigrationOperationsHtml());
     return true;
   };
 }
