@@ -9,6 +9,10 @@ function finite(value: number): boolean {
   return Number.isFinite(value);
 }
 
+function safeReferenceId(value: string): boolean {
+  return /^[A-Za-z0-9._-]{1,160}$/.test(value);
+}
+
 function validateAsset(layerId: string, asset: DesignAssetRef, issues: string[]): void {
   if (!asset.assetId.trim()) issues.push(`Layer ${layerId} has an empty assetId.`);
   if (asset.source === "generated" && asset.visualTruthClass === "VERIFIED_PRODUCT_VISUAL") {
@@ -37,6 +41,17 @@ function validateLayerGeometry(layer: DesignLayer, document: DesignDocument, iss
   }
   if (layer.x > document.artboard.width || layer.y > document.artboard.height) {
     issues.push(`Layer ${layer.id} starts outside the artboard.`);
+  }
+  if (layer.componentInstance) {
+    if (!safeReferenceId(layer.componentInstance.componentId)) {
+      issues.push(`Layer ${layer.id} has an unsafe componentId.`);
+    }
+    if (!safeReferenceId(layer.componentInstance.instanceId)) {
+      issues.push(`Layer ${layer.id} has an unsafe component instanceId.`);
+    }
+    if (!safeReferenceId(layer.componentInstance.templateLayerId)) {
+      issues.push(`Layer ${layer.id} has an unsafe component templateLayerId.`);
+    }
   }
 }
 
