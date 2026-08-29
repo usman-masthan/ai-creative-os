@@ -6,6 +6,7 @@ import { runDesignQa } from "../creativeStudio/designQa.js";
 import { FileDesignProjectStore, type DesignProjectSnapshot } from "../creativeStudio/projectStore.js";
 import {
   applyMultiObjectDesignOperation,
+  type LayerOrderPlacement,
   type MultiObjectDesignOperation,
 } from "../designDocument/multiObjectOperations.js";
 import type { DesignDocument, DesignLayer } from "../designDocument/types.js";
@@ -36,8 +37,8 @@ function safeId(value: unknown, name: string): string {
   return value.trim();
 }
 
-function idArray(value: unknown, name: string): string[] {
-  if (!Array.isArray(value) || value.length < 2) throw new Error(`${name} must contain at least two ids.`);
+function idArray(value: unknown, name: string, minimum = 2): string[] {
+  if (!Array.isArray(value) || value.length < minimum) throw new Error(`${name} must contain at least ${minimum} id${minimum === 1 ? "" : "s"}.`);
   return value.map((item, index) => safeId(item, `${name}[${index}]`));
 }
 
@@ -45,6 +46,18 @@ function finiteOptional(value: unknown, name: string): number | undefined {
   if (value === undefined) return undefined;
   if (typeof value !== "number" || !Number.isFinite(value)) throw new Error(`${name} must be finite.`);
   return value;
+}
+
+function layerName(value: unknown): string {
+  if (typeof value !== "string" || !value.trim() || value.trim().length > 120) {
+    throw new Error("operation.name must contain 1 to 120 characters.");
+  }
+  return value.trim();
+}
+
+function orderPlacement(value: unknown): LayerOrderPlacement {
+  if (value === "FRONT" || value === "FORWARD" || value === "BACKWARD" || value === "BACK") return value;
+  throw new Error("operation.placement is invalid.");
 }
 
 function parseOperation(value: unknown): MultiObjectDesignOperation {
@@ -65,6 +78,28 @@ function parseOperation(value: unknown): MultiObjectDesignOperation {
   }
   if (data.type === "DELETE_LAYERS") {
     return { type: "DELETE_LAYERS", layerIds: idArray(data.layerIds, "operation.layerIds") };
+  }
+  if (data.type === "RENAME_LAYER") {
+    return { type: "RENAME_LAYER", layerId: safeId(data.layerId, "operation.layerId"), name: layerName(data.name) };
+  }
+  if (data.type === "REORDER_LAYERS") {
+    return {
+      type: "REORDER_LAYERS",
+      layerIds: idArray(data.layerIds, "operation.layerIds", 1),
+      placement: orderPlacement(data.placement),
+    };
+  }
+  if (data.type === "DUPLICATE_GROUP") {
+    const offsetX = finiteOptional(data.offsetX, "operation.offsetX");
+    const offsetY = finiteOptional(data.offsetY, "operation.offsetY");
+    return {
+      type: "DUPLICATE_GROUP",
+      groupLayerId: safeId(data.groupLayerId, "operation.groupLayerId"),
+      newGroupLayerId: safeId(data.newGroupLayerId, "operation.newGroupLayerId"),
+      newChildLayerIds: idArray(data.newChildLayerIds, "operation.newChildLayerIds", 2),
+      ...(offsetX !== undefined ? { offsetX } : {}),
+      ...(offsetY !== undefined ? { offsetY } : {}),
+    };
   }
   throw new Error("Unsupported multi-object operation.");
 }
