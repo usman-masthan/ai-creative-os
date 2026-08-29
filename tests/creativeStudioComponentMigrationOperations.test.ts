@@ -11,6 +11,7 @@ import { FileCreativeComponentMigrationPlanner } from "../src/creativeStudio/com
 import { FileCreativeComponentMigrationOperations } from "../src/creativeStudio/componentMigrationOperations.js";
 import { CreativeStudioGovernanceStore } from "../src/creativeStudio/governanceStore.js";
 import { FileDesignProjectStore } from "../src/creativeStudio/projectStore.js";
+import { DesignVersionService } from "../src/creativeStudio/versioning.js";
 import type { DesignDocument } from "../src/designDocument/types.js";
 import type { TaskTruthSnapshot } from "../src/taskTruth.js";
 
@@ -87,7 +88,7 @@ async function persistTruth(root: string, snapshot: TaskTruthSnapshot): Promise<
 
 async function fixture(root: string, designId: string) {
   const sourceTruth = truth("source-campaign", "source-session", "Source Burger", 1000);
-  const source = document({ id: "source-design", campaignId: "source-campaign", sessionId: "source-session", headline: "Source Burger", price: "Rs. 1,000", includeGroup: true });
+  const source = document({ id: "source-design", campaignId: "source-campaign", sessionId: "source-session", headline: "Source Burger", price: "LKR 1,000", includeGroup: true });
   const componentV1 = createReusableComponent({
     document: source,
     sourceTruth,
@@ -110,7 +111,7 @@ async function fixture(root: string, designId: string) {
   const sessionId = `session-${designId}`;
   const snapshot = truth(campaignId, sessionId, `${designId} Burger`, 1550);
   await persistTruth(root, snapshot);
-  const base = document({ id: designId, campaignId, sessionId, headline: `${designId} Burger`, price: "Rs. 1,550", includeGroup: false });
+  const base = document({ id: designId, campaignId, sessionId, headline: `${designId} Burger`, price: "LKR 1,550", includeGroup: false });
   const withInstance = instantiateReusableComponent({
     document: base,
     destinationTruth: snapshot,
@@ -178,7 +179,7 @@ test("migration operations reconciles audited execution and restores pre-migrati
     assert.equal(rootLayer?.componentInstance?.componentId, data.componentV1.id);
 
     const projects = new FileDesignProjectStore(root);
-    const migrationVersion = await new (await import("../src/creativeStudio/versioning.js")).DesignVersionService(root).readVersion(
+    const migrationVersion = await new DesignVersionService(root).readVersion(
       data.item.designId,
       data.item.targetDesignVersion,
     );
