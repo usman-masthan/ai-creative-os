@@ -22,13 +22,16 @@ test("active Studio exposes direct resize/rotate and keyboard transform controls
   assert.match(html, /centerX=doc\.artboard\.width\/2-layer\.width\/2/);
 });
 
-test("direct canvas transforms preserve existing logo, group and structure governance in the UI", () => {
+test("direct canvas transforms preserve logo governance while supporting proportional group transforms", () => {
   const html = creativeStudioTransformHtml();
   assert.match(html, /if\(layer\.type!==['"]logo['"]\)/);
   assert.match(html, /layer\.type!==['"]logo['"]&&layer\.type!==['"]group['"]/);
   assert.match(html, /layer\.type!==['"]logo['"]&&layer\.type!==['"]background['"]/);
-  assert.match(html, /layer\.locked\|\|layer\.type===['"]group['"]\|\|multiSelection\(\)\.length>1/);
-  assert.match(html, /if\(layer\.type===['"]group['"]\)\{svg\.appendChild\(g\);watch\(\);return;\}/);
+  assert.match(html, /controlRotation=layer\.type===['"]group['"]\?0:layer\.rotation/);
+  assert.match(html, /gesture\.layer\.type===['"]group['"]/);
+  assert.match(html, /Group resized proportionally with its members/);
+  assert.match(html, /Group rotated with its members/);
+  assert.match(html, /multiSelection\(\)\.length>1/);
   assert.match(html, /\/api\/studio\/operation/);
 });
 
