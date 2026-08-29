@@ -43,6 +43,12 @@ export interface LayerShadow {
   opacity: number;
 }
 
+export interface DesignComponentInstanceRef {
+  componentId: string;
+  instanceId: string;
+  templateLayerId: string;
+}
+
 export interface DesignLayerBase {
   id: string;
   name: string;
@@ -57,6 +63,7 @@ export interface DesignLayerBase {
   visible: boolean;
   locked: boolean;
   aiEditable: boolean;
+  componentInstance?: DesignComponentInstanceRef;
 }
 
 export interface DesignTextLayer extends DesignLayerBase {
