@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { parseDesignOperation } from "../src/creativeStudio/operationValidation.js";
 import { applyDesignOperation } from "../src/designDocument/operations.js";
-import type { DesignDocument } from "../src/designDocument/types.js";
+import type { DesignDocument, DesignShapeLayer, DesignTextLayer } from "../src/designDocument/types.js";
 
 function documentFixture(): DesignDocument {
   const at = "2026-08-29T00:00:00.000Z";
@@ -50,6 +50,9 @@ function documentFixture(): DesignDocument {
         locked: false,
         aiEditable: false,
         fill: "#FFD21A",
+        stroke: "#FFFFFF",
+        strokeWidth: 4,
+        cornerRadius: 10,
       },
       {
         id: "c",
@@ -71,7 +74,7 @@ function documentFixture(): DesignDocument {
         fontSize: 28,
         fontWeight: 600,
         lineHeight: 1.2,
-        letterSpacing: 0,
+        letterSpacing: 2,
         align: "left",
         fill: "#FFFFFF",
       },
@@ -140,11 +143,62 @@ test("grouping creates a validated selection container and moving it translates 
   assert.deepEqual({ x: layer(ungrouped, "b").x, y: layer(ungrouped, "b").y }, { x: 400, y: 350 });
 });
 
+test("group resize is proportional and scales child text and shape metrics in one revision", () => {
+  const grouped = applyDesignOperation(
+    documentFixture(),
+    { type: "GROUP_LAYERS", layerIds: ["b", "c"], groupLayerId: "group-scale" },
+    "2026-08-29T00:05:30.000Z",
+  );
+  const group = layer(grouped, "group-scale");
+  assert.deepEqual({ width: group.width, height: group.height }, { width: 500, height: 180 });
+
+  const resized = applyDesignOperation(
+    grouped,
+    { type: "RESIZE_LAYER", layerId: "group-scale", width: 250, height: 90 },
+    "2026-08-29T00:05:45.000Z",
+  );
+  assert.equal(resized.version, grouped.version + 1);
+  const text = layer(resized, "c") as DesignTextLayer;
+  const shape = layer(resized, "b") as DesignShapeLayer;
+  assert.equal(text.fontSize, 14);
+  assert.equal(text.letterSpacing, 1);
+  assert.equal(shape.strokeWidth, 2);
+  assert.equal(shape.cornerRadius, 5);
+  assert.deepEqual({ width: text.width, height: text.height }, { width: 100, height: 40 });
+  assert.throws(
+    () => applyDesignOperation(grouped, { type: "RESIZE_LAYER", layerId: "group-scale", width: 250, height: 120 }),
+    /must preserve aspect ratio/,
+  );
+});
+
+test("group rotation rotates child centers and child rotations around the group pivot", () => {
+  const grouped = applyDesignOperation(
+    documentFixture(),
+    { type: "GROUP_LAYERS", layerIds: ["a", "b"], groupLayerId: "group-rotate" },
+    "2026-08-29T00:06:00.000Z",
+  );
+  const rotated = applyDesignOperation(
+    grouped,
+    { type: "ROTATE_LAYER", layerId: "group-rotate", rotation: 90 },
+    "2026-08-29T00:06:15.000Z",
+  );
+  const a = layer(rotated, "a");
+  const b = layer(rotated, "b");
+  const group = layer(rotated, "group-rotate");
+  assert.deepEqual({ x: Math.round(a.x), y: Math.round(a.y), rotation: a.rotation }, { x: 250, y: 50, rotation: 90 });
+  assert.deepEqual({ x: Math.round(b.x), y: Math.round(b.y), rotation: b.rotation }, { x: 150, y: 250, rotation: 90 });
+  assert.equal(group.rotation, 90);
+  assert.deepEqual(
+    { x: Math.round(group.x), y: Math.round(group.y), width: Math.round(group.width), height: Math.round(group.height) },
+    { x: 150, y: 50, width: 200, height: 300 },
+  );
+});
+
 test("multi-layer movement creates one revision and group membership prevents ambiguous regrouping", () => {
   const moved = applyDesignOperation(
     documentFixture(),
     { type: "MOVE_LAYERS", layerIds: ["a", "b", "c"], deltaX: 25, deltaY: -15 },
-    "2026-08-29T00:06:00.000Z",
+    "2026-08-29T00:07:00.000Z",
   );
   assert.equal(moved.version, 2);
   assert.deepEqual({ x: layer(moved, "a").x, y: layer(moved, "a").y }, { x: 125, y: 85 });
