@@ -118,6 +118,12 @@ export function createCreativeStudioAdvancedBootstrapHandler(
         reusableComponents: {
           brandScoped: true,
           immutableLibraryEntries: true,
+          immutableFamilyVersions: true,
+          lifecycleStates: ["ACTIVE", "DEPRECATED", "ARCHIVED"],
+          noAutomaticInstanceUpdates: true,
+          explicitUpgradeOnly: true,
+          upgradeDestinationTruthRevalidation: true,
+          detachToNativeLayers: true,
           structureStyleOnly: true,
           destinationTextRoleRebind: true,
           destinationTruthRevalidation: true,
