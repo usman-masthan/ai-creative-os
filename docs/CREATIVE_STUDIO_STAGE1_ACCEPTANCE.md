@@ -51,14 +51,18 @@ A user can move from a structured marketing brief to a governed creative, open i
 | Professional z-order controls | PASS | Front/Forward/Backward/Back controls and Cmd/Ctrl bracket shortcuts use atomic `REORDER_LAYERS`; multi-selection moves as a stable block and a selected group expands to its native children for stacking. |
 | Protected stacking tiers | PASS | Background, approved logo, mask, locked and group-container z-order are not rewritten by layer-order tooling. Editable layers reorder only within their existing editable z-index slots. |
 | Whole-group duplication | PASS | `DUPLICATE_GROUP` creates a new group plus new native child IDs in one revision, preserves editable text/assets/shapes, applies a deterministic offset and refuses masked/protected children. |
+| Truth-safe reusable component library | PASS | Selected groups can be saved as immutable client+brand-scoped reusable blocks. Version 1 persists native text style/geometry slots plus shapes only; image/logo/background/mask/nested/locked/mask-bound content is rejected. |
+| Reusable component source-content stripping | PASS | Saved component JSON omits source text payloads, source layer display names and asset references. Source text roles, typography/style/geometry, source design/truth provenance and detected required truth keys remain for safe reconstruction/audit. |
+| Destination truth + text rebinding | PASS | Component insertion requires the destination DesignDocument's confirmed task snapshot, exact client+brand match, every recorded truth key, and exactly one native destination text layer for each component role. Inserted text comes from the destination design, never the source campaign. |
+| Component instance provenance | PASS | Inserted child/group layers carry `componentInstance` metadata (`componentId`, `instanceId`, `templateLayerId`). Insertion creates one new DesignDocument version, reruns deterministic QA and adds zero model calls. |
 | Align / distribute | PASS | Six alignment modes plus horizontal/vertical distribution run as deterministic `ALIGN_LAYERS` / `DISTRIBUTE_LAYERS` operations. Distribution requires at least three layers. |
 | Group / ungroup | PASS | `GROUP_LAYERS` creates a validated non-rendering selection container over existing child layers; `UNGROUP_LAYERS` removes only the container and preserves child content and geometry. Cmd/Ctrl+G and Shift+Cmd/Ctrl+G use the same operations. |
 | Group membership integrity | PASS | A child may belong to only one group; background/logo/group/mask layers are excluded from movable group membership; missing, duplicate, nested or self-referencing group membership fails validation. |
 | Group move / visibility / lock | PASS | Moving a group translates every child in one revision. Group visibility and lock actions propagate to group members instead of changing an inert metadata layer only. |
 | Group proportional resize | PASS | Group resize preserves aspect ratio, scales child positions/dimensions, native text size/letter spacing/shadow metrics, and shape stroke/corner metrics in one governed revision. Non-proportional group distortion is rejected. |
 | Group rotation | PASS | Group rotation rotates each child centre around the group pivot, adds the rotation delta to each child rotation, recomputes visual group bounds and remains one `ROTATE_LAYER` revision. |
-| Canvas transform governance | PASS | Locked layers receive no transform controls; logos cannot rotate/duplicate/delete and backgrounds cannot delete. Grouping, marquee selection, layer management and multi-object actions cannot bypass these protections because structural eligibility is enforced at the document/server layer. |
-| Manual editing costs zero model calls | PASS | Geometry/text styling/visibility/order/rename/duplicate/delete/multi-arrange/group/marquee/smart-guide operations are deterministic local/document mutations. |
+| Canvas transform governance | PASS | Locked layers receive no transform controls; logos cannot rotate/duplicate/delete and backgrounds cannot delete. Grouping, marquee selection, layer management, reusable components and multi-object actions cannot bypass these protections because structural eligibility is enforced at the document/server layer. |
+| Manual editing costs zero model calls | PASS | Geometry/text styling/visibility/order/rename/duplicate/delete/multi-arrange/group/marquee/smart-guide/reusable-component operations are deterministic local/document mutations. |
 | Undo / redo | PASS | Persistent version snapshots + cursor. |
 | Arbitrary version compare | PASS | `/api/studio/compare` returns layer/property deltas. |
 | Restore old version without destroying history | PASS | `/api/studio/restore` restores content as a new revision. |
@@ -113,15 +117,18 @@ Stage 1 is not accepted if any of the following regress:
 19. Multi-object duplicate/delete must enforce logo/background/group/mask/lock protections server-side, even if a malformed client bypasses UI disabled states.
 20. Layer-order tooling must never rewrite protected background/logo/mask/group-container stacking; editable selections may move only within editable z-index slots.
 21. Whole-group duplication must create new native child identities and must fail closed if a child is locked/protected or participates in mask semantics that are not duplicated with it.
-22. AI image operations must target a single isolated layer.
-23. A custom or non-social output format must preserve the exact requested DesignDocument/render dimensions; image-provider aspect normalization may affect only generated source media.
-24. Format adaptation must create a new recomposed DesignDocument and must not stretch or destructively overwrite the source design.
-25. Story-layout semantics must not be forced onto a non-story artboard, and standard-fluid layout semantics must not silently masquerade as a story layout.
-26. Deterministic blockers must be resolved before final visual QA or production approval.
-27. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
-28. Any later edit must require a fresh final visual QA and explicit approval before approved export.
-29. Registering an approved Studio asset must not impersonate a client/admin lifecycle approval or automatically change campaign state.
-30. Restoring a version must create a new revision rather than erasing history.
+22. Reusable component persistence must not retain source campaign text payloads, source layer display names or asset references; only native text style/geometry slots and shapes may enter the v1 component library.
+23. Reusable component insertion must remain client+brand scoped, require the destination confirmed task snapshot and every recorded truth key, and rebind each text slot from exactly one native destination role layer rather than reusing source copy.
+24. Component insertion must create one new DesignDocument revision, rerun deterministic QA and retain `componentInstance` provenance on inserted layers; component save/list/insert must add zero model calls.
+25. AI image operations must target a single isolated layer.
+26. A custom or non-social output format must preserve the exact requested DesignDocument/render dimensions; image-provider aspect normalization may affect only generated source media.
+27. Format adaptation must create a new recomposed DesignDocument and must not stretch or destructively overwrite the source design.
+28. Story-layout semantics must not be forced onto a non-story artboard, and standard-fluid layout semantics must not silently masquerade as a story layout.
+29. Deterministic blockers must be resolved before final visual QA or production approval.
+30. Production approval must be bound to the exact DesignDocument version that passed final visual QA.
+31. Any later edit must require a fresh final visual QA and explicit approval before approved export.
+32. Registering an approved Studio asset must not impersonate a client/admin lifecycle approval or automatically change campaign state.
+33. Restoring a version must create a new revision rather than erasing history.
 
 ## Governed Studio creation state machine
 
@@ -190,6 +197,27 @@ Layer-order operations preserve protected stacking tiers. A selected group is ex
 Smart alignment and equal-spacing guides exist only during interaction previews. Marquee selection and group collapse/expand change UI selection/presentation state only. None creates an AI call or document version by itself.
 
 Direct interaction is therefore only an adapter over the document operation model. Protected logos, backgrounds, masks and locked layers retain the same governance they have through the property panel and API.
+
+## Reusable component state machine
+
+```text
+Selected native group
+→ verify unlocked text/shape-only membership
+→ reject image/logo/background/mask/nested/mask-bound content
+→ detect source confirmed-truth dependencies
+→ strip source text payloads + source layer labels
+→ persist immutable client+brand-scoped structure/style component
+→ choose destination DesignDocument
+→ resolve destination confirmed task snapshot
+→ require exact client+brand + required truth keys
+→ rebind each text slot from the destination's native semantic role layer
+→ scale/reposition native geometry without crossing protected stacking tiers
+→ attach componentInstance provenance
+→ one new DesignDocument revision
+→ deterministic QA rerun
+```
+
+The reusable component store is not an asset library and does not carry source campaign copy. If a destination does not have the required confirmed truth or a unique native text role, insertion fails closed.
 
 ## Client truth state machine
 
