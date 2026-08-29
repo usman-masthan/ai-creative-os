@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "creative-component-migration-recovery.schema.json",
+  "title": "Creative Component Migration Recovery Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recoveryId",
+    "planId",
+    "itemId",
+    "designId",
+    "fromCurrentVersion",
+    "restoredContentFromVersion",
+    "recoveryVersion",
+    "currentVersionWasApproved",
+    "approvedRevisionAcknowledged",
+    "qaDecision",
+    "previewToken",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "recoveryId": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,180}$" },
+    "planId": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,180}$" },
+    "itemId": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,180}$" },
+    "designId": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,180}$" },
+    "fromCurrentVersion": { "type": "integer", "minimum": 1 },
+    "restoredContentFromVersion": { "type": "integer", "minimum": 1 },
+    "recoveryVersion": { "type": "integer", "minimum": 2 },
+    "currentVersionWasApproved": { "type": "boolean" },
+    "approvedRevisionAcknowledged": { "type": "boolean" },
+    "qaDecision": { "enum": ["PASS", "WARN"] },
+    "previewToken": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "createdAt": { "type": "string", "format": "date-time" }
+  }
+}
