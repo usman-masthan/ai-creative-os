@@ -15,7 +15,10 @@ function request(overrides: Record<string, unknown> = {}) {
   return {
     imageBase64: Buffer.from("fake-image").toString("base64"),
     mimeType: "image/png",
-    brandId: "ATTHAS_BURGER" as const,
+    brandId: "ATTHAS_BURGER",
+    brandDisplayName: "ATTHA'S Burger",
+    expectedBrandIdentifier: "ATTHA'S BURGER",
+    finalArtReviewLabel: "ATTHA'S Burger advertising artwork",
     layoutId: "ATTHAS_BURGER_HERO_PRODUCT_V1",
     channel: "instagram",
     assetType: "poster",

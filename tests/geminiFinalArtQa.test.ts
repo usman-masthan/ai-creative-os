@@ -64,7 +64,7 @@ function finalArtResponse(): Response {
   );
 }
 
-test("Gemini final-art QA uses the REST response-format MIME enum and nine-dimension schema", async () => {
+test("Gemini final-art QA uses client-supplied brand context and nine-dimension schema", async () => {
   let requestInit: RequestInit | undefined;
 
   const provider = new GeminiFinalArtQaProvider({
@@ -79,6 +79,9 @@ test("Gemini final-art QA uses the REST response-format MIME enum and nine-dimen
     imageBase64: Buffer.from("fake-final-art").toString("base64"),
     mimeType: "image/png",
     brandId: "ATTHAS_RESTAURANT",
+    brandDisplayName: "ATTHA'S Restaurant",
+    expectedBrandIdentifier: "ATTHA'S RESTAURANT",
+    finalArtReviewLabel: "ATTHA'S Restaurant advertising artwork",
     layoutId: "ATTHAS_RESTAURANT_FOOD_HERO_V1",
     channel: "instagram",
     assetType: "poster",
@@ -109,12 +112,15 @@ test("Gemini final-art QA uses the REST response-format MIME enum and nine-dimen
     };
   };
 
+  const prompt = body.contents[0]!.parts[1]!.text ?? "";
   assert.equal(body.generationConfig.responseFormat.text.mimeType, "APPLICATION_JSON");
   assert.equal(body.generationConfig.responseFormat.text.schema.type, "object");
   assert.equal(body.generationConfig.responseFormat.text.schema.properties.scores.required.length, 9);
   assert.equal(body.generationConfig.responseFormat.text.schema.properties.checks.required.length, 9);
   assert.equal(body.generationConfig.responseFormat.text.schema.properties.evidence.required.length, 9);
-  assert.match(body.contents[0]!.parts[1]!.text ?? "", /Expected brand identifier: ATTHA'S RESTAURANT/);
+  assert.match(prompt, /FINISHED ATTHA'S Restaurant advertising artwork/);
+  assert.match(prompt, /Brand: ATTHA'S Restaurant \(ATTHAS_RESTAURANT\)/);
+  assert.match(prompt, /Expected brand identifier: ATTHA'S RESTAURANT/);
   assert.equal(result.decision, "PASS");
   assert.equal(result.usage?.inputTokens, 50);
 });

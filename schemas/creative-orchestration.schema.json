@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-creative-os.local/schemas/creative-orchestration.schema.json",
+  "title": "CreativeOrchestrationPlan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "campaignId",
+    "briefId",
+    "clientId",
+    "brandId",
+    "truthSnapshotId",
+    "truthConfirmation",
+    "brandContext",
+    "creativeStrategy",
+    "execution",
+    "productionGuards",
+    "status",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "campaignId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "briefId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "clientId": { "type": "string", "minLength": 1 },
+    "brandId": { "type": "string", "minLength": 1 },
+    "truthSnapshotId": { "type": "string", "minLength": 1 },
+    "truthConfirmation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sessionId", "confirmedBy", "confirmedAt", "confirmedFactLabels"],
+      "properties": {
+        "sessionId": { "type": "string", "minLength": 1 },
+        "confirmedBy": { "type": "string", "minLength": 1 },
+        "confirmedAt": { "type": "string", "format": "date-time" },
+        "confirmedFactLabels": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      }
+    },
+    "brandContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clientDisplayName",
+        "brandDisplayName",
+        "brandKitId",
+        "approvedLogoAssetId",
+        "typographyMode",
+        "logoPolicy",
+        "layoutProviderClientId",
+        "availableLayoutCount"
+      ],
+      "properties": {
+        "clientDisplayName": { "type": "string", "minLength": 1 },
+        "brandDisplayName": { "type": "string", "minLength": 1 },
+        "brandKitId": { "type": "string", "minLength": 1 },
+        "approvedLogoAssetId": { "type": "string", "minLength": 1 },
+        "typographyMode": { "const": "NATIVE_EDITABLE" },
+        "logoPolicy": { "const": "APPROVED_SOURCE_ONLY" },
+        "layoutProviderClientId": { "type": "string", "minLength": 1 },
+        "availableLayoutCount": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "creativeStrategy": {
+      "type": "object",
+      "required": ["goal", "description", "audience", "vibe", "format", "contentRequirements"],
+      "properties": {
+        "goal": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "audience": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "vibe": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "format": { "type": "object" },
+        "contentRequirements": { "type": "object" },
+        "product": { "type": "object" },
+        "branchId": { "type": "string" },
+        "salesChannel": { "type": "string" }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategyFirst",
+        "specialistExecution",
+        "specialistTasks",
+        "creativeDirectorReviewRequired",
+        "deterministicQaRequired"
+      ],
+      "properties": {
+        "strategyFirst": { "const": true },
+        "specialistExecution": { "const": "PARALLEL_WHERE_INDEPENDENT" },
+        "specialistTasks": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "role", "executionMode", "canRunInParallel", "dependsOn", "objective", "constraints"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "role": { "enum": ["COPY_CONTENT", "ASSET_DIRECTION", "LAYOUT_ART_DIRECTION"] },
+              "executionMode": { "enum": ["AI_ASSISTED", "DETERMINISTIC", "HYBRID"] },
+              "canRunInParallel": { "type": "boolean" },
+              "dependsOn": {
+                "type": "array",
+                "items": { "enum": ["CONFIRMED_TRUTH", "BRAND_CONTEXT", "CREATIVE_STRATEGY"] }
+              },
+              "objective": { "type": "string", "minLength": 1 },
+              "constraints": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "creativeDirectorReviewRequired": { "const": true },
+        "deterministicQaRequired": { "const": true }
+      }
+    },
+    "productionGuards": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "confirmedTruthOnly",
+        "nativeTypographyRequired",
+        "approvedLogoOnly",
+        "deterministicLayoutRequired",
+        "generatedMediaCannotBecomeVerifiedProductVisual",
+        "creativeDirectorReviewRequired"
+      ],
+      "properties": {
+        "confirmedTruthOnly": { "const": true },
+        "nativeTypographyRequired": { "const": true },
+        "approvedLogoOnly": { "const": true },
+        "deterministicLayoutRequired": { "const": true },
+        "generatedMediaCannotBecomeVerifiedProductVisual": { "const": true },
+        "creativeDirectorReviewRequired": { "const": true }
+      }
+    },
+    "status": { "const": "READY_FOR_GOVERNED_PRODUCTION" },
+    "createdAt": { "type": "string", "format": "date-time" }
+  }
+}

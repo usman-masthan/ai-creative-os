@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-creative-os.local/schemas/creative-component-authoring.schema.json",
+  "title": "CreativeComponentVersionPreview",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "familyId",
+    "familyName",
+    "baseVersion",
+    "baseComponentId",
+    "proposedVersion",
+    "proposedComponentId",
+    "sourceDesignId",
+    "sourceDesignVersion",
+    "groupLayerId",
+    "compatibility",
+    "issues",
+    "diff",
+    "previewToken"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "familyId": { "type": "string", "minLength": 1 },
+    "familyName": { "type": "string", "minLength": 1 },
+    "baseVersion": { "type": "integer", "minimum": 1 },
+    "baseComponentId": { "type": "string", "minLength": 1 },
+    "proposedVersion": { "type": "integer", "minimum": 2 },
+    "proposedComponentId": { "type": "string", "minLength": 1 },
+    "sourceDesignId": { "type": "string", "minLength": 1 },
+    "sourceDesignVersion": { "type": "integer", "minimum": 1 },
+    "groupLayerId": { "type": "string", "minLength": 1 },
+    "compatibility": { "enum": ["COMPATIBLE", "REVIEW_REQUIRED", "BLOCKED"] },
+    "issues": { "type": "array", "items": { "type": "string" } },
+    "previewToken": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "diff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["templateCount", "textRoles", "shapes", "truthDependencies"],
+      "properties": {
+        "templateCount": { "$ref": "#/$defs/countChange" },
+        "textRoles": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["added", "removed", "styleOrGeometryChanged"],
+          "properties": {
+            "added": { "$ref": "#/$defs/stringList" },
+            "removed": { "$ref": "#/$defs/stringList" },
+            "styleOrGeometryChanged": { "$ref": "#/$defs/stringList" }
+          }
+        },
+        "shapes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["before", "after", "styleOrGeometryChanged"],
+          "properties": {
+            "before": { "type": "integer", "minimum": 0 },
+            "after": { "type": "integer", "minimum": 0 },
+            "styleOrGeometryChanged": { "type": "boolean" }
+          }
+        },
+        "truthDependencies": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["added", "removed"],
+          "properties": {
+            "added": { "$ref": "#/$defs/stringList" },
+            "removed": { "$ref": "#/$defs/stringList" }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "countChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["before", "after"],
+      "properties": {
+        "before": { "type": "integer", "minimum": 0 },
+        "after": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "stringList": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  }
+}

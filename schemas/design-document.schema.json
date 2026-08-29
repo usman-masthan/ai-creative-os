@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-creative-os.local/schemas/design-document.schema.json",
+  "title": "DesignDocument",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "version", "campaignId", "truthSnapshotId", "artboard", "brand", "layoutId", "layers", "history", "createdAt", "updatedAt"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "version": { "type": "integer", "minimum": 1 },
+    "campaignId": { "type": "string", "minLength": 1 },
+    "creativeBriefId": { "type": "string", "minLength": 1 },
+    "truthSnapshotId": { "type": "string", "minLength": 1 },
+    "artboard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height", "background"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 64 },
+        "height": { "type": "integer", "minimum": 64 },
+        "background": { "type": "string", "minLength": 1 }
+      }
+    },
+    "brand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clientId", "brandId", "brandKitId"],
+      "properties": {
+        "clientId": { "type": "string", "minLength": 1 },
+        "brandId": { "type": "string", "minLength": 1 },
+        "brandKitId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "layoutId": { "type": "string", "minLength": 1 },
+    "layers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "type", "x", "y", "width", "height", "rotation", "opacity", "zIndex", "visible", "locked", "aiEditable"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "type": { "enum": ["text", "image", "logo", "shape", "background", "group", "mask"] },
+          "x": { "type": "number" },
+          "y": { "type": "number" },
+          "width": { "type": "number", "minimum": 0 },
+          "height": { "type": "number", "minimum": 0 },
+          "rotation": { "type": "number" },
+          "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+          "zIndex": { "type": "number" },
+          "visible": { "type": "boolean" },
+          "locked": { "type": "boolean" },
+          "aiEditable": { "type": "boolean" }
+        }
+      }
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["version", "createdAt", "summary", "actor"],
+        "properties": {
+          "version": { "type": "integer", "minimum": 1 },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "summary": { "type": "string", "minLength": 1 },
+          "actor": { "enum": ["system", "human", "ai"] }
+        }
+      }
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  }
+}

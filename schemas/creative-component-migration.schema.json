@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://atthas.local/schemas/creative-component-migration.schema.json",
+  "title": "Creative Component Migration Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "planId",
+    "clientId",
+    "brandId",
+    "familyId",
+    "familyStatus",
+    "targetComponentId",
+    "targetVersion",
+    "createdAt",
+    "sourceImpactToken",
+    "eligibleDesigns",
+    "exclusions",
+    "totals",
+    "planToken"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "planId": { "$ref": "#/$defs/id" },
+    "clientId": { "$ref": "#/$defs/id" },
+    "brandId": { "$ref": "#/$defs/id" },
+    "familyId": { "$ref": "#/$defs/id" },
+    "familyStatus": { "const": "ACTIVE" },
+    "targetComponentId": { "$ref": "#/$defs/id" },
+    "targetVersion": { "type": "integer", "minimum": 1 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "sourceImpactToken": { "$ref": "#/$defs/hash" },
+    "eligibleDesigns": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/designPlan" }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/exclusion" }
+    },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eligibleDesigns", "eligibleInstances", "excludedInstances", "frozenApproved", "blocked"],
+      "properties": {
+        "eligibleDesigns": { "type": "integer", "minimum": 0 },
+        "eligibleInstances": { "type": "integer", "minimum": 0 },
+        "excludedInstances": { "type": "integer", "minimum": 0 },
+        "frozenApproved": { "type": "integer", "minimum": 0 },
+        "blocked": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "planToken": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 180,
+      "pattern": "^[A-Za-z0-9._-]+$"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "instancePlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["instanceId", "groupLayerId", "currentComponentId", "currentVersion", "targetComponentId", "targetVersion"],
+      "properties": {
+        "instanceId": { "$ref": "#/$defs/id" },
+        "groupLayerId": { "$ref": "#/$defs/id" },
+        "currentComponentId": { "$ref": "#/$defs/id" },
+        "currentVersion": { "type": "integer", "minimum": 1 },
+        "targetComponentId": { "$ref": "#/$defs/id" },
+        "targetVersion": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "designPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["itemId", "designId", "campaignId", "sourceDesignVersion", "targetDesignVersion", "instances", "preconditionToken"],
+      "properties": {
+        "itemId": { "$ref": "#/$defs/id" },
+        "designId": { "$ref": "#/$defs/id" },
+        "campaignId": { "$ref": "#/$defs/id" },
+        "sourceDesignVersion": { "type": "integer", "minimum": 1 },
+        "targetDesignVersion": { "type": "integer", "minimum": 2 },
+        "instances": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/instancePlan" }
+        },
+        "preconditionToken": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "exclusion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["designId", "designVersion", "campaignId", "instanceId", "currentComponentId", "currentVersion", "governance", "upgradeReadiness", "reason"],
+      "properties": {
+        "designId": { "$ref": "#/$defs/id" },
+        "designVersion": { "type": "integer", "minimum": 1 },
+        "campaignId": { "$ref": "#/$defs/id" },
+        "instanceId": { "$ref": "#/$defs/id" },
+        "currentComponentId": { "$ref": "#/$defs/id" },
+        "currentVersion": { "type": "integer", "minimum": 1 },
+        "governance": { "enum": ["EDITABLE", "FROZEN_APPROVED"] },
+        "upgradeReadiness": {
+          "enum": ["CURRENT_TARGET", "UPGRADEABLE", "BLOCKED_TRUTH", "BLOCKED_TEXT_ROLE", "BLOCKED_VERSION", "BLOCKED_STRUCTURE"]
+        },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

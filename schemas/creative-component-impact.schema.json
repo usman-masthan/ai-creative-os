@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-creative-os.local/schemas/creative-component-impact.schema.json",
+  "title": "Creative Component Impact Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "familyId", "familyStatus", "clientId", "brandId", "targetComponentId", "targetVersion", "generatedAt", "totals", "designs", "impactToken"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "familyId": { "type": "string", "minLength": 1 },
+    "familyStatus": { "enum": ["ACTIVE", "DEPRECATED", "ARCHIVED"] },
+    "clientId": { "type": "string", "minLength": 1 },
+    "brandId": { "type": "string", "minLength": 1 },
+    "targetComponentId": { "type": "string", "minLength": 1 },
+    "targetVersion": { "type": "integer", "minimum": 1 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["designs", "instances", "currentTarget", "upgradeable", "blocked", "frozenApproved"],
+      "properties": {
+        "designs": { "type": "integer", "minimum": 0 },
+        "instances": { "type": "integer", "minimum": 0 },
+        "currentTarget": { "type": "integer", "minimum": 0 },
+        "upgradeable": { "type": "integer", "minimum": 0 },
+        "blocked": { "type": "integer", "minimum": 0 },
+        "frozenApproved": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "designs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["designId", "designVersion", "campaignId", "approvedCurrentVersion", "instances"],
+        "properties": {
+          "designId": { "type": "string", "minLength": 1 },
+          "designVersion": { "type": "integer", "minimum": 1 },
+          "campaignId": { "type": "string", "minLength": 1 },
+          "approvedCurrentVersion": { "type": "boolean" },
+          "instances": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["designId", "designVersion", "campaignId", "instanceId", "groupLayerId", "currentComponentId", "currentVersion", "targetComponentId", "targetVersion", "governance", "upgradeReadiness", "missingTruthKeys", "missingTextRoles", "reason"],
+              "properties": {
+                "designId": { "type": "string", "minLength": 1 },
+                "designVersion": { "type": "integer", "minimum": 1 },
+                "campaignId": { "type": "string", "minLength": 1 },
+                "instanceId": { "type": "string", "minLength": 1 },
+                "groupLayerId": { "type": "string", "minLength": 1 },
+                "currentComponentId": { "type": "string", "minLength": 1 },
+                "currentVersion": { "type": "integer", "minimum": 1 },
+                "targetComponentId": { "type": "string", "minLength": 1 },
+                "targetVersion": { "type": "integer", "minimum": 1 },
+                "governance": { "enum": ["EDITABLE", "FROZEN_APPROVED"] },
+                "upgradeReadiness": { "enum": ["CURRENT_TARGET", "UPGRADEABLE", "BLOCKED_TRUTH", "BLOCKED_TEXT_ROLE", "BLOCKED_VERSION", "BLOCKED_STRUCTURE"] },
+                "missingTruthKeys": { "type": "array", "items": { "type": "string" } },
+                "missingTextRoles": { "type": "array", "items": { "type": "string" } },
+                "reason": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "impactToken": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

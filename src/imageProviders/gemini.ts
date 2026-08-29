@@ -1,3 +1,4 @@
+import { nearestSupportedImageAspectRatio } from "../creativeStudio/contracts/outputFormat.js";
 import {
   geminiImageModelForRole,
   type GeminiImageRole,
@@ -145,6 +146,7 @@ export class GeminiImageProvider implements ImageDraftProvider {
     }
 
     const mimeType = mimeTypeForOutputFormat(request.outputFormat);
+    const aspectRatio = nearestSupportedImageAspectRatio(request.aspectRatio);
     const retryResult = await withTransientRetry(async () => {
       const response = await this.fetchImpl(`${this.baseUrl}/interactions`, {
         method: "POST",
@@ -158,7 +160,7 @@ export class GeminiImageProvider implements ImageDraftProvider {
           response_format: {
             type: "image",
             mime_type: mimeType,
-            aspect_ratio: request.aspectRatio,
+            aspect_ratio: aspectRatio,
             image_size: resolution,
           },
         }),
