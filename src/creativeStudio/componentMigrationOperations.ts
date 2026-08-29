@@ -121,10 +121,12 @@ async function listJson<T>(directory: string): Promise<T[]> {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
     throw error;
   }
-  const values = await Promise.all(
-    names.filter((name) => name.endsWith(".json")).sort().map((name) => readJson<T>(join(directory, name))),
-  );
-  return values.filter((value): value is T => value !== undefined);
+  const output: T[] = [];
+  for (const name of names.filter((entry) => entry.endsWith(".json")).sort()) {
+    const value = await readJson<T>(join(directory, name));
+    if (value !== undefined) output.push(value);
+  }
+  return output;
 }
 
 function truthSnapshotFromTrace(value: unknown): TaskTruthSnapshot | undefined {
