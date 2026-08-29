@@ -177,7 +177,7 @@ function templateFromLayer(
 ): CreativeComponentLayerTemplate {
   const base: CreativeComponentTemplateBase = {
     templateLayerId: layer.id,
-    name: layer.name,
+    name: layer.type === "text" ? `Component ${layer.role}` : `Component shape ${zOrder + 1}`,
     offsetX: layer.x - group.x,
     offsetY: layer.y - group.y,
     width: layer.width,
