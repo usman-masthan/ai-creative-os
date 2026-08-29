@@ -115,6 +115,16 @@ export function createCreativeStudioAdvancedBootstrapHandler(
         },
         activeClientProfiles: clientProfiles.length,
         manualEditing: true,
+        reusableComponents: {
+          brandScoped: true,
+          immutableLibraryEntries: true,
+          structureStyleOnly: true,
+          destinationTextRoleRebind: true,
+          destinationTruthRevalidation: true,
+          componentInstanceProvenance: true,
+          assetBackedTemplates: false,
+          extraModelCalls: 0,
+        },
         nativeTypography: true,
         undoRedo: true,
         versionHistory: {
