@@ -54,9 +54,11 @@ export function validateDesignDocument(document: DesignDocument): DesignDocument
   if (!Number.isInteger(document.artboard.height) || document.artboard.height < 64) issues.push("DesignDocument.artboard.height must be at least 64.");
 
   const ids = new Set<string>();
+  const byId = new Map<string, DesignLayer>();
   for (const layer of document.layers) {
     if (ids.has(layer.id)) issues.push(`Duplicate layer id: ${layer.id}.`);
     ids.add(layer.id);
+    byId.set(layer.id, layer);
     validateLayerGeometry(layer, document, issues);
     if (layer.type === "text") {
       if (!layer.text.trim()) issues.push(`Text layer ${layer.id} cannot be blank.`);
@@ -74,9 +76,32 @@ export function validateDesignDocument(document: DesignDocument): DesignDocument
     }
   }
 
+  const groupedChildren = new Map<string, string>();
   for (const layer of document.layers) {
     if (layer.type === "group") {
-      for (const childId of layer.childLayerIds) if (!ids.has(childId)) issues.push(`Group ${layer.id} references missing layer ${childId}.`);
+      if (layer.childLayerIds.length < 2) issues.push(`Group ${layer.id} must reference at least two child layers.`);
+      const uniqueChildren = new Set(layer.childLayerIds);
+      if (uniqueChildren.size !== layer.childLayerIds.length) issues.push(`Group ${layer.id} contains duplicate child references.`);
+      for (const childId of layer.childLayerIds) {
+        if (childId === layer.id) {
+          issues.push(`Group ${layer.id} cannot reference itself.`);
+          continue;
+        }
+        const child = byId.get(childId);
+        if (!child) {
+          issues.push(`Group ${layer.id} references missing layer ${childId}.`);
+          continue;
+        }
+        if (child.type === "background" || child.type === "logo" || child.type === "group" || child.type === "mask") {
+          issues.push(`Group ${layer.id} cannot contain ${child.type} layer ${childId}.`);
+        }
+        const existingParent = groupedChildren.get(childId);
+        if (existingParent && existingParent !== layer.id) {
+          issues.push(`Layer ${childId} cannot belong to both ${existingParent} and ${layer.id}.`);
+        } else {
+          groupedChildren.set(childId, layer.id);
+        }
+      }
     }
     if (layer.type === "mask") {
       for (const targetId of layer.targetLayerIds) if (!ids.has(targetId)) issues.push(`Mask ${layer.id} references missing layer ${targetId}.`);
