@@ -2,6 +2,7 @@ import { assertDesignDocument } from "./validator.js";
 import type {
   DesignAssetRef,
   DesignDocument,
+  DesignGroupLayer,
   DesignLayer,
   DesignTextLayer,
 } from "./types.js";
@@ -17,10 +18,25 @@ export interface DesignTextStylePatch {
   stroke?: string | null;
 }
 
+export type DesignLayerAlignment =
+  | "left"
+  | "horizontal-center"
+  | "right"
+  | "top"
+  | "vertical-center"
+  | "bottom";
+
+export type DesignLayerDistributionAxis = "horizontal" | "vertical";
+
 export type DesignOperation =
   | { type: "MOVE_LAYER"; layerId: string; x: number; y: number; actor?: "human" | "ai" }
+  | { type: "MOVE_LAYERS"; layerIds: string[]; deltaX: number; deltaY: number; actor?: "human" | "ai" }
   | { type: "RESIZE_LAYER"; layerId: string; width: number; height: number; actor?: "human" | "ai" }
   | { type: "ROTATE_LAYER"; layerId: string; rotation: number; actor?: "human" | "ai" }
+  | { type: "ALIGN_LAYERS"; layerIds: string[]; alignment: DesignLayerAlignment; actor?: "human" | "ai" }
+  | { type: "DISTRIBUTE_LAYERS"; layerIds: string[]; axis: DesignLayerDistributionAxis; actor?: "human" | "ai" }
+  | { type: "GROUP_LAYERS"; layerIds: string[]; groupLayerId: string; name?: string; actor?: "human" | "ai" }
+  | { type: "UNGROUP_LAYERS"; layerId: string; actor?: "human" | "ai" }
   | { type: "SET_OPACITY"; layerId: string; opacity: number; actor?: "human" | "ai" }
   | { type: "SET_VISIBILITY"; layerId: string; visible: boolean; actor?: "human" | "ai" }
   | { type: "SET_LOCK"; layerId: string; locked: boolean; actor?: "human" | "ai" }
@@ -34,6 +50,12 @@ export type DesignOperation =
 
 function nowOr(value?: string): string {
   return value ?? new Date().toISOString();
+}
+
+function safeLayerId(value: string, name: string): string {
+  const trimmed = value.trim();
+  if (!/^[A-Za-z0-9._-]{1,160}$/.test(trimmed)) throw new Error(`${name} contains unsafe characters.`);
+  return trimmed;
 }
 
 function updateLayer(
@@ -54,8 +76,13 @@ function updateLayer(
 function summary(operation: DesignOperation): string {
   switch (operation.type) {
     case "MOVE_LAYER": return `Moved ${operation.layerId}.`;
+    case "MOVE_LAYERS": return `Moved ${operation.layerIds.length} selected layers.`;
     case "RESIZE_LAYER": return `Resized ${operation.layerId}.`;
     case "ROTATE_LAYER": return `Rotated ${operation.layerId}.`;
+    case "ALIGN_LAYERS": return `Aligned ${operation.layerIds.length} layers ${operation.alignment}.`;
+    case "DISTRIBUTE_LAYERS": return `Distributed ${operation.layerIds.length} layers ${operation.axis}ly.`;
+    case "GROUP_LAYERS": return `Grouped ${operation.layerIds.length} layers as ${operation.groupLayerId}.`;
+    case "UNGROUP_LAYERS": return `Ungrouped ${operation.layerId}.`;
     case "SET_OPACITY": return `Changed opacity of ${operation.layerId}.`;
     case "SET_VISIBILITY": return `${operation.visible ? "Showed" : "Hid"} ${operation.layerId}.`;
     case "SET_LOCK": return `${operation.locked ? "Locked" : "Unlocked"} ${operation.layerId}.`;
@@ -84,12 +111,60 @@ function assertTextPatch(patch: DesignTextStylePatch): void {
   if (patch.fill !== undefined && !patch.fill.trim()) throw new Error("Text fill cannot be blank.");
 }
 
-function applySingleLayerOperation(layer: DesignLayer, operation: Exclude<DesignOperation, { type: "DUPLICATE_LAYER" | "DELETE_LAYER" }>): DesignLayer {
+function selectedLayers(document: DesignDocument, layerIds: string[], minimum: number): DesignLayer[] {
+  if (layerIds.length < minimum) throw new Error(`Select at least ${minimum} layers.`);
+  const unique = [...new Set(layerIds.map((id) => safeLayerId(id, "layerId")))];
+  if (unique.length !== layerIds.length) throw new Error("Layer selection contains duplicate ids.");
+  return unique.map((id) => {
+    const layer = document.layers.find((candidate) => candidate.id === id);
+    if (!layer) throw new Error(`DESIGN_LAYER_NOT_FOUND: ${id}`);
+    return layer;
+  });
+}
+
+function assertArrangeable(layers: DesignLayer[], operation: DesignOperation): void {
+  for (const layer of layers) {
+    assertEditable(layer, operation);
+    if (layer.type === "group") throw new Error("DESIGN_GROUP_SELECTION_BLOCK: arrange group containers separately from leaf layers.");
+    if (layer.type === "background") throw new Error("DESIGN_STRUCTURE_BLOCK: the primary background cannot participate in multi-layer arrange operations.");
+  }
+}
+
+function bounds(layers: DesignLayer[]): { x: number; y: number; width: number; height: number } {
+  const left = Math.min(...layers.map((layer) => layer.x));
+  const top = Math.min(...layers.map((layer) => layer.y));
+  const right = Math.max(...layers.map((layer) => layer.x + layer.width));
+  const bottom = Math.max(...layers.map((layer) => layer.y + layer.height));
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+function parentGroup(document: DesignDocument, layerId: string): DesignGroupLayer | undefined {
+  return document.layers.find(
+    (layer): layer is DesignGroupLayer => layer.type === "group" && layer.childLayerIds.includes(layerId),
+  );
+}
+
+function recomputeGroupBounds(layers: DesignLayer[]): DesignLayer[] {
+  const byId = new Map(layers.map((layer) => [layer.id, layer]));
+  return layers.map((layer) => {
+    if (layer.type !== "group") return layer;
+    const children = layer.childLayerIds
+      .map((id) => byId.get(id))
+      .filter((child): child is DesignLayer => Boolean(child));
+    if (!children.length) return layer;
+    const next = bounds(children);
+    return { ...layer, ...next };
+  });
+}
+
+function applySingleLayerOperation(layer: DesignLayer, operation: DesignOperation): DesignLayer {
   assertEditable(layer, operation);
   switch (operation.type) {
     case "MOVE_LAYER":
+      if (!Number.isFinite(operation.x) || !Number.isFinite(operation.y)) throw new Error("Layer position must be finite.");
       return { ...layer, x: operation.x, y: operation.y };
     case "RESIZE_LAYER":
+      if (layer.type === "group") throw new Error("DESIGN_GROUP_TRANSFORM_BLOCK: resize group members directly or ungroup first.");
       if (!Number.isFinite(operation.width) || !Number.isFinite(operation.height) || operation.width <= 0 || operation.height <= 0) {
         throw new Error("Layer dimensions must be positive finite numbers.");
       }
@@ -102,10 +177,12 @@ function applySingleLayerOperation(layer: DesignLayer, operation: Exclude<Design
       }
       return { ...layer, width: operation.width, height: operation.height };
     case "ROTATE_LAYER":
+      if (layer.type === "group") throw new Error("DESIGN_GROUP_TRANSFORM_BLOCK: rotate group members directly or ungroup first.");
       if (!Number.isFinite(operation.rotation)) throw new Error("Layer rotation must be finite.");
       if (layer.type === "logo") throw new Error("BRAND_GOVERNANCE_BLOCK: logo rotation is not permitted.");
       return { ...layer, rotation: operation.rotation };
     case "SET_OPACITY":
+      if (layer.type === "group") throw new Error("DESIGN_GROUP_STYLE_BLOCK: group opacity is not destructive shorthand for child opacity.");
       if (!Number.isFinite(operation.opacity) || operation.opacity < 0 || operation.opacity > 1) {
         throw new Error("Layer opacity must be between 0 and 1.");
       }
@@ -121,6 +198,7 @@ function applySingleLayerOperation(layer: DesignLayer, operation: Exclude<Design
       }
       return { ...layer, locked: operation.locked };
     case "REORDER_LAYER":
+      if (layer.type === "group") throw new Error("DESIGN_GROUP_STYLE_BLOCK: reorder child layers directly.");
       if (!Number.isFinite(operation.zIndex)) throw new Error("Layer zIndex must be finite.");
       return { ...layer, zIndex: operation.zIndex };
     case "UPDATE_TEXT":
@@ -165,7 +243,71 @@ function applySingleLayerOperation(layer: DesignLayer, operation: Exclude<Design
         return { ...layer, asset: operation.asset };
       }
       throw new Error(`DESIGN_LAYER_TYPE_MISMATCH: ${layer.id} does not accept an asset.`);
+    default:
+      throw new Error(`DESIGN_OPERATION_NOT_SINGLE_LAYER: ${operation.type}.`);
   }
+}
+
+function moveGroup(document: DesignDocument, operation: Extract<DesignOperation, { type: "MOVE_LAYER" }>, group: DesignGroupLayer): DesignLayer[] {
+  assertEditable(group, operation);
+  if (!Number.isFinite(operation.x) || !Number.isFinite(operation.y)) throw new Error("Layer position must be finite.");
+  const deltaX = operation.x - group.x;
+  const deltaY = operation.y - group.y;
+  const childIds = new Set(group.childLayerIds);
+  return document.layers.map((layer) => {
+    if (layer.id === group.id) return { ...layer, x: operation.x, y: operation.y };
+    if (!childIds.has(layer.id)) return layer;
+    assertEditable(layer, operation);
+    return { ...layer, x: layer.x + deltaX, y: layer.y + deltaY };
+  });
+}
+
+function alignLayers(document: DesignDocument, operation: Extract<DesignOperation, { type: "ALIGN_LAYERS" }>): DesignLayer[] {
+  const chosen = selectedLayers(document, operation.layerIds, 2);
+  assertArrangeable(chosen, operation);
+  const frame = bounds(chosen);
+  const targets = new Map<string, { x: number; y: number }>();
+  for (const layer of chosen) {
+    let x = layer.x;
+    let y = layer.y;
+    switch (operation.alignment) {
+      case "left": x = frame.x; break;
+      case "horizontal-center": x = frame.x + frame.width / 2 - layer.width / 2; break;
+      case "right": x = frame.x + frame.width - layer.width; break;
+      case "top": y = frame.y; break;
+      case "vertical-center": y = frame.y + frame.height / 2 - layer.height / 2; break;
+      case "bottom": y = frame.y + frame.height - layer.height; break;
+    }
+    targets.set(layer.id, { x, y });
+  }
+  return document.layers.map((layer) => {
+    const target = targets.get(layer.id);
+    return target ? { ...layer, ...target } : layer;
+  });
+}
+
+function distributeLayers(document: DesignDocument, operation: Extract<DesignOperation, { type: "DISTRIBUTE_LAYERS" }>): DesignLayer[] {
+  const chosen = selectedLayers(document, operation.layerIds, 3);
+  assertArrangeable(chosen, operation);
+  const horizontal = operation.axis === "horizontal";
+  const ordered = [...chosen].sort((a, b) => horizontal ? a.x - b.x : a.y - b.y);
+  const first = ordered[0]!;
+  const last = ordered[ordered.length - 1]!;
+  const start = horizontal ? first.x : first.y;
+  const end = horizontal ? last.x + last.width : last.y + last.height;
+  const occupied = ordered.reduce((sum, layer) => sum + (horizontal ? layer.width : layer.height), 0);
+  const gap = (end - start - occupied) / (ordered.length - 1);
+  const targets = new Map<string, number>();
+  let cursor = start;
+  for (const layer of ordered) {
+    targets.set(layer.id, cursor);
+    cursor += (horizontal ? layer.width : layer.height) + gap;
+  }
+  return document.layers.map((layer) => {
+    const target = targets.get(layer.id);
+    if (target === undefined) return layer;
+    return horizontal ? { ...layer, x: target } : { ...layer, y: target };
+  });
 }
 
 export function applyDesignOperation(
@@ -177,36 +319,131 @@ export function applyDesignOperation(
   const actor = operation.actor ?? "human";
   let layers: DesignLayer[];
 
-  if (operation.type === "DUPLICATE_LAYER") {
-    if (!/^[A-Za-z0-9._-]{1,160}$/.test(operation.newLayerId)) throw new Error("newLayerId contains unsafe characters.");
-    if (document.layers.some((layer) => layer.id === operation.newLayerId)) {
-      throw new Error(`DESIGN_LAYER_DUPLICATE_ID: ${operation.newLayerId}`);
+  switch (operation.type) {
+    case "DUPLICATE_LAYER": {
+      const newLayerId = safeLayerId(operation.newLayerId, "newLayerId");
+      if (document.layers.some((layer) => layer.id === newLayerId)) {
+        throw new Error(`DESIGN_LAYER_DUPLICATE_ID: ${newLayerId}`);
+      }
+      const source = document.layers.find((layer) => layer.id === operation.layerId);
+      if (!source) throw new Error(`DESIGN_LAYER_NOT_FOUND: ${operation.layerId}`);
+      assertEditable(source, operation);
+      if (source.type === "logo") throw new Error("BRAND_GOVERNANCE_BLOCK: logo layers cannot be duplicated.");
+      if (source.type === "group") throw new Error("DESIGN_GROUP_DUPLICATE_BLOCK: duplicate group members explicitly instead.");
+      const copy: DesignLayer = {
+        ...source,
+        id: newLayerId,
+        name: operation.name?.trim() || `${source.name} copy`,
+        x: source.x + (operation.offsetX ?? 20),
+        y: source.y + (operation.offsetY ?? 20),
+        zIndex: source.zIndex + 1,
+        locked: false,
+      };
+      layers = [...document.layers, copy];
+      break;
     }
-    const source = document.layers.find((layer) => layer.id === operation.layerId);
-    if (!source) throw new Error(`DESIGN_LAYER_NOT_FOUND: ${operation.layerId}`);
-    assertEditable(source, operation);
-    if (source.type === "logo") throw new Error("BRAND_GOVERNANCE_BLOCK: logo layers cannot be duplicated.");
-    const copy: DesignLayer = {
-      ...source,
-      id: operation.newLayerId,
-      name: operation.name?.trim() || `${source.name} copy`,
-      x: source.x + (operation.offsetX ?? 20),
-      y: source.y + (operation.offsetY ?? 20),
-      zIndex: source.zIndex + 1,
-      locked: false,
-    };
-    layers = [...document.layers, copy];
-  } else if (operation.type === "DELETE_LAYER") {
-    const source = document.layers.find((layer) => layer.id === operation.layerId);
-    if (!source) throw new Error(`DESIGN_LAYER_NOT_FOUND: ${operation.layerId}`);
-    assertEditable(source, operation);
-    if (source.type === "logo") throw new Error("BRAND_GOVERNANCE_BLOCK: logo layers cannot be deleted.");
-    if (source.type === "background") throw new Error("DESIGN_STRUCTURE_BLOCK: the primary background cannot be deleted.");
-    layers = document.layers.filter((layer) => layer.id !== operation.layerId);
-  } else {
-    layers = updateLayer(document, operation.layerId, (layer) => applySingleLayerOperation(layer, operation));
+    case "DELETE_LAYER": {
+      const source = document.layers.find((layer) => layer.id === operation.layerId);
+      if (!source) throw new Error(`DESIGN_LAYER_NOT_FOUND: ${operation.layerId}`);
+      assertEditable(source, operation);
+      if (source.type === "logo") throw new Error("BRAND_GOVERNANCE_BLOCK: logo layers cannot be deleted.");
+      if (source.type === "background") throw new Error("DESIGN_STRUCTURE_BLOCK: the primary background cannot be deleted.");
+      const parent = parentGroup(document, source.id);
+      if (parent) throw new Error(`DESIGN_GROUP_MEMBER_BLOCK: ungroup ${parent.id} before deleting ${source.id}.`);
+      layers = document.layers.filter((layer) => layer.id !== operation.layerId);
+      break;
+    }
+    case "GROUP_LAYERS": {
+      const chosen = selectedLayers(document, operation.layerIds, 2);
+      assertArrangeable(chosen, operation);
+      for (const layer of chosen) {
+        if (layer.type === "logo" || layer.type === "mask") {
+          throw new Error(`DESIGN_GROUP_MEMBER_BLOCK: ${layer.type} layer ${layer.id} cannot join a movable group.`);
+        }
+        const parent = parentGroup(document, layer.id);
+        if (parent) throw new Error(`DESIGN_GROUP_MEMBER_BLOCK: ${layer.id} already belongs to ${parent.id}.`);
+      }
+      const groupLayerId = safeLayerId(operation.groupLayerId, "groupLayerId");
+      if (document.layers.some((layer) => layer.id === groupLayerId)) {
+        throw new Error(`DESIGN_LAYER_DUPLICATE_ID: ${groupLayerId}`);
+      }
+      const frame = bounds(chosen);
+      const group: DesignGroupLayer = {
+        id: groupLayerId,
+        name: operation.name?.trim() || "Group",
+        type: "group",
+        ...frame,
+        rotation: 0,
+        opacity: 1,
+        zIndex: Math.max(...chosen.map((layer) => layer.zIndex)) + 1,
+        visible: chosen.some((layer) => layer.visible),
+        locked: false,
+        aiEditable: false,
+        childLayerIds: chosen.map((layer) => layer.id),
+      };
+      layers = [...document.layers, group];
+      break;
+    }
+    case "UNGROUP_LAYERS": {
+      const group = document.layers.find((layer): layer is DesignGroupLayer => layer.id === operation.layerId && layer.type === "group");
+      if (!group) throw new Error(`DESIGN_GROUP_NOT_FOUND: ${operation.layerId}`);
+      assertEditable(group, operation);
+      layers = document.layers.filter((layer) => layer.id !== group.id);
+      break;
+    }
+    case "MOVE_LAYERS": {
+      if (!Number.isFinite(operation.deltaX) || !Number.isFinite(operation.deltaY)) throw new Error("Multi-layer movement delta must be finite.");
+      const chosen = selectedLayers(document, operation.layerIds, 2);
+      assertArrangeable(chosen, operation);
+      const ids = new Set(chosen.map((layer) => layer.id));
+      layers = document.layers.map((layer) => ids.has(layer.id)
+        ? { ...layer, x: layer.x + operation.deltaX, y: layer.y + operation.deltaY }
+        : layer);
+      break;
+    }
+    case "ALIGN_LAYERS":
+      layers = alignLayers(document, operation);
+      break;
+    case "DISTRIBUTE_LAYERS":
+      layers = distributeLayers(document, operation);
+      break;
+    case "MOVE_LAYER": {
+      const source = document.layers.find((layer) => layer.id === operation.layerId);
+      if (!source) throw new Error(`DESIGN_LAYER_NOT_FOUND: ${operation.layerId}`);
+      layers = source.type === "group"
+        ? moveGroup(document, operation, source)
+        : updateLayer(document, operation.layerId, (layer) => applySingleLayerOperation(layer, operation));
+      break;
+    }
+    case "SET_VISIBILITY":
+    case "SET_LOCK": {
+      const source = document.layers.find((layer) => layer.id === operation.layerId);
+      if (!source) throw new Error(`DESIGN_LAYER_NOT_FOUND: ${operation.layerId}`);
+      if (source.type !== "group") {
+        layers = updateLayer(document, operation.layerId, (layer) => applySingleLayerOperation(layer, operation));
+        break;
+      }
+      assertEditable(source, operation);
+      const childIds = new Set(source.childLayerIds);
+      layers = document.layers.map((layer) => {
+        if (layer.id === source.id || childIds.has(layer.id)) return applySingleLayerOperation(layer, operation);
+        return layer;
+      });
+      break;
+    }
+    case "RESIZE_LAYER":
+    case "ROTATE_LAYER":
+    case "SET_OPACITY":
+    case "REORDER_LAYER":
+    case "UPDATE_TEXT":
+    case "UPDATE_TEXT_STYLE":
+    case "UPDATE_SHAPE_STYLE":
+    case "REPLACE_ASSET":
+      layers = updateLayer(document, operation.layerId, (layer) => applySingleLayerOperation(layer, operation));
+      break;
   }
 
+  layers = recomputeGroupBounds(layers);
   const nextVersion = document.version + 1;
   return assertDesignDocument({
     ...document,
