@@ -140,10 +140,83 @@ ARCHIVED
 
 Rules:
 
-- `ACTIVE` — may be inserted, versioned and used as an upgrade target.
+- `ACTIVE` — may be inserted, versioned, authored and used as an upgrade target.
 - `DEPRECATED` — existing instances remain valid, but new insertion/version creation is blocked until reactivated.
 - `ARCHIVED` — retained for audit/history, but new insertion/version creation is blocked until reactivated.
 - changing status never mutates an existing design or component instance.
+
+## Governed version authoring
+
+A designer may intentionally turn an edited group into the next immutable version of an existing active family.
+
+Authoring is a two-step operation:
+
+```text
+Preview → Explicit Publish
+```
+
+### Preview
+
+Preview is read-only. It:
+
+1. rebuilds a sanitized candidate component from the selected group and current confirmed task truth;
+2. compares the candidate with the family's current latest immutable component;
+3. computes structural and truth-dependency differences;
+4. classifies compatibility;
+5. returns a SHA-256 preview token bound to the design id/version, selected group, family latest version, diff and sanitized candidate structure.
+
+The preview reports:
+
+- template count before/after;
+- text roles added/removed;
+- text style or geometry changes;
+- shape count and shape style/geometry changes;
+- confirmed-truth dependencies added/removed;
+- compatibility issues.
+
+Compatibility states are:
+
+```text
+COMPATIBLE
+REVIEW_REQUIRED
+BLOCKED
+```
+
+`COMPATIBLE` means the semantic slot/truth contract is unchanged and the edit is structure/style/geometry compatible.
+
+`REVIEW_REQUIRED` is used when text roles, shape-layer count or truth dependencies change. It does not mean the version is invalid; it means the user must explicitly acknowledge that downstream destination compatibility has changed.
+
+`BLOCKED` is used when the family is not active, the preview base is no longer the family latest version, or the client/brand boundary does not match.
+
+### Publish
+
+Publish recomputes the candidate and preview on the server. It requires:
+
+- the exact family latest component id returned by preview;
+- the exact preview token returned by preview;
+- the same current design version and selected group state represented by that token;
+- mandatory version notes from 5 to 500 characters;
+- explicit review acknowledgement when compatibility is `REVIEW_REQUIRED`;
+- an `ACTIVE` family.
+
+If the group or design changes after preview, publication fails with a stale-preview error and the user must preview again.
+
+A successful publish:
+
+1. writes a new immutable component definition using the next contiguous family version id;
+2. advances only the family latest-version pointer;
+3. stores authoring notes, compatibility state, diff and source design/truth provenance in an authoring audit record;
+4. leaves every previous component definition unchanged;
+5. leaves every existing DesignDocument and component instance unchanged;
+6. adds zero AI/model calls.
+
+Version authoring is therefore a **component-library mutation only**. It is not a hidden design edit or live-link update.
+
+Authoring audit records are stored separately under:
+
+```text
+.atthas-os/components/<clientId>/<brandId>/_authoring/<familyId>.json
+```
 
 ## Explicit instance upgrades
 
@@ -178,7 +251,7 @@ It does not:
 - remove group membership;
 - invoke a model.
 
-After detach, the block is ordinary native DesignDocument content and cannot be upgraded through the component lifecycle path unless it is saved again as a new component family.
+After detach, the block is ordinary native DesignDocument content and cannot be upgraded through the component lifecycle path unless it is saved again as a new component family or intentionally authored into an existing compatible family.
 
 ## Persistence
 
@@ -194,21 +267,30 @@ Family lifecycle records are stored separately under:
 .atthas-os/components/<clientId>/<brandId>/_families/<familyId>.json
 ```
 
-This keeps mutable lifecycle state separate from immutable component definitions.
+Authoring notes/diffs are stored separately under:
+
+```text
+.atthas-os/components/<clientId>/<brandId>/_authoring/<familyId>.json
+```
+
+This keeps mutable lifecycle state and authoring audit metadata separate from immutable component definitions.
 
 ## Studio routes
 
 ```text
 GET  /api/studio/components?designId=<designId>
+GET  /api/studio/components/version-audit?designId=<designId>&familyId=<familyId>
 POST /api/studio/components/create
 POST /api/studio/components/version
 POST /api/studio/components/status
 POST /api/studio/components/instantiate
 POST /api/studio/components/upgrade
 POST /api/studio/components/detach
+POST /api/studio/components/version-preview
+POST /api/studio/components/publish-version
 ```
 
-Create, instantiate and upgrade routes resolve the campaign's immutable task truth from the existing AI trace. Insert, upgrade and detach each save exactly one new DesignDocument version and rerun deterministic QA where design content/provenance changes.
+Create, instantiate, upgrade, preview and publish routes resolve the campaign's immutable task truth from the existing AI trace. Insert, upgrade and detach each save exactly one new DesignDocument version and rerun deterministic QA where design content/provenance changes. Preview and publish-authoring do not mutate the source DesignDocument.
 
 ## UI
 
@@ -224,15 +306,20 @@ The `/studio` Arrange panel exposes a component family/version browser with:
 - Reactivate
 - Upgrade Selected Instance
 - Detach Instance
+- Preview Version Changes
+- mandatory version-notes editor
+- structural/truth-dependency diff preview
+- Publish as Next Immutable Version
+- authored version-note history
 - Refresh Library
 
-The browser shows family status, latest version, selected version, truth dependencies and selected-instance version information. Server-side validation remains authoritative even if the browser is bypassed.
+The browser shows family status, latest version, selected version, truth dependencies, selected-instance version information and authoring compatibility. Server-side validation remains authoritative even if the browser is bypassed.
 
 ## Cost model
 
-Saving, listing, lifecycle management, versioning, inserting, upgrading and detaching reusable components are deterministic operations and add **zero AI/model calls**.
+Saving, listing, lifecycle management, versioning, previewing, publishing, inserting, upgrading and detaching reusable components are deterministic operations and add **zero AI/model calls**.
 
-## Lifecycle state machine
+## Lifecycle and authoring state machine
 
 ```text
 Selected native group
@@ -241,6 +328,12 @@ Selected native group
 → ACTIVE
    ├─ duplicate as immutable vN+1
    ├─ explicit insert after destination truth validation
+   ├─ preview edited group against latest version
+   │  → structural + truth-dependency diff
+   │  → COMPATIBLE / REVIEW_REQUIRED / BLOCKED
+   │  → required notes + acknowledgement when needed
+   │  → publish immutable vN+1
+   │  → existing designs remain unchanged
    ├─ DEPRECATED
    └─ ARCHIVED
 
@@ -256,6 +349,7 @@ Attached instance
 → Detach
 → remove component provenance only
 → ordinary native group/layers
+→ may be edited and intentionally previewed/published as a new family version
 ```
 
 ## Non-goals for this phase
@@ -268,6 +362,7 @@ This is intentionally not:
 - a way to save factual copy as a template;
 - nested components;
 - automatic/live-linked master components that mutate existing instances;
-- a background process that silently upgrades approved designs.
+- a background process that silently upgrades approved designs;
+- an overwrite/edit operation on an existing immutable component version.
 
-Those features require additional provenance and governance and must not be implemented by weakening destination truth checks or immutable version history.
+Those features require additional provenance and governance and must not be implemented by weakening destination truth checks, explicit authoring review or immutable version history.
