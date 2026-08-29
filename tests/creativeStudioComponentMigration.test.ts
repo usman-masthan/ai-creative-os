@@ -55,9 +55,9 @@ function document(input: {
   const at = "2026-08-29T06:20:00.000Z";
   const layers: DesignDocument["layers"] = [
     { id: `${input.id}-background`, name: "Background", type: "background", x: 0, y: 0, width: 1080, height: 1350, rotation: 0, opacity: 1, zIndex: 0, visible: true, locked: false, aiEditable: false, fill: "#820008" },
-    { id: `${input.id}-headline`, name: "Headline", type: "text", x: 90, y: 140, width: 520, height: 140, rotation: 0, opacity: 1, zIndex: 10, visible: true, locked: false, aiEditable: true, text: input.headline, role: "headline", fontFamily: "Anton", fontSize: 70, fontWeight: 700, lineHeight: 1.05, letterSpacing: 0, align: "left", fill: "#FFFFFF" },
+    { id: `${input.id}-headline`, name: "Headline", type: "text", x: 90, y: 140, width: 520, height: 140, rotation: 0, opacity: 1, zIndex: 10, visible: true, locked: false, aiEditable: true, text: input.headline, role: "headline", fontFamily: "Oswald", fontSize: 70, fontWeight: 700, lineHeight: 1.05, letterSpacing: 0, align: "left", fill: "#FFFFFF" },
     { id: `${input.id}-badge`, name: "Badge", type: "shape", shape: "rect", x: 80, y: 310, width: 330, height: 135, rotation: 0, opacity: 1, zIndex: 15, visible: true, locked: false, aiEditable: false, fill: "#B50008", cornerRadius: 16 },
-    { id: `${input.id}-price`, name: "Price", type: "text", x: 100, y: 325, width: 280, height: 95, rotation: 0, opacity: 1, zIndex: 20, visible: true, locked: false, aiEditable: false, text: input.price, role: "price", fontFamily: "Anton", fontSize: 56, fontWeight: 700, lineHeight: 1, letterSpacing: 0, align: "center", fill: "#FFD21A" },
+    { id: `${input.id}-price`, name: "Price", type: "text", x: 100, y: 325, width: 280, height: 95, rotation: 0, opacity: 1, zIndex: 20, visible: true, locked: false, aiEditable: false, text: input.price, role: "price", fontFamily: "Oswald", fontSize: 56, fontWeight: 700, lineHeight: 1, letterSpacing: 0, align: "center", fill: "#FFD21A" },
     { id: `${input.id}-logo`, name: "Approved Logo", type: "logo", x: 875, y: 70, width: 110, height: 110, rotation: 0, opacity: 1, zIndex: 100, visible: true, locked: true, aiEditable: false, asset: { assetId: "logo", source: "approved-brand" }, preserveAspectRatio: true, clearSpacePx: 20 },
   ];
   if (input.includeGroup) {
@@ -100,7 +100,7 @@ async function dependent(input: {
     campaignId,
     sessionId,
     headline: `${input.id} Burger`,
-    price: "Rs. 1,550",
+    price: "LKR 1,550",
     includeGroup: false,
   });
   const withInstance = instantiateReusableComponent({
@@ -130,7 +130,7 @@ test("migration plan excludes frozen designs and executes selected editable desi
   const root = await mkdtemp(join(tmpdir(), "creative-component-migration-"));
   try {
     const sourceTruth = truth("source-campaign", "source-session", "Source Burger", 1000);
-    const source = document({ id: "source-design", campaignId: "source-campaign", sessionId: "source-session", headline: "Source Burger", price: "Rs. 1,000", includeGroup: true });
+    const source = document({ id: "source-design", campaignId: "source-campaign", sessionId: "source-session", headline: "Source Burger", price: "LKR 1,000", includeGroup: true });
     const componentV1 = createReusableComponent({
       document: source,
       sourceTruth,
@@ -215,7 +215,7 @@ test("migration execution rejects a stale planned design before persisting anoth
   const root = await mkdtemp(join(tmpdir(), "creative-component-migration-stale-"));
   try {
     const sourceTruth = truth("source-campaign", "source-session", "Source Burger", 1000);
-    const source = document({ id: "source-design", campaignId: "source-campaign", sessionId: "source-session", headline: "Source Burger", price: "Rs. 1,000", includeGroup: true });
+    const source = document({ id: "source-design", campaignId: "source-campaign", sessionId: "source-session", headline: "Source Burger", price: "LKR 1,000", includeGroup: true });
     const componentV1 = createReusableComponent({ document: source, sourceTruth, groupLayerId: "source-design-group", componentId: "promo-block", name: "Promo Block", createdAt: "2026-08-29T06:20:00.000Z" });
     const lifecycle = new FileCreativeComponentLifecycleStore(root);
     await lifecycle.components.save(componentV1);
