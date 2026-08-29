@@ -66,6 +66,7 @@ Insertion requires:
 
 - exact client match;
 - exact brand match;
+- an `ACTIVE` component family;
 - destination DesignDocument bound to the destination confirmed task snapshot;
 - valid confirmation provenance;
 - every recorded `requiredTruthKey` present in destination task truth;
@@ -108,50 +109,165 @@ componentInstance.templateLayerId
 
 This metadata is audit provenance only. It does not drive factual content or renderer truth.
 
+`componentId` points to one immutable component version. Existing instances therefore never need a mutable live-link pointer.
+
+## Immutable family/version lifecycle
+
+Reusable components are organized into component families.
+
+A family record contains:
+
+- `familyId`
+- `clientId`
+- `brandId`
+- family display name
+- lifecycle status
+- contiguous immutable version records
+- latest version/component pointer
+- created/updated timestamps
+
+The first component saved for a family is version 1. Older pre-lifecycle component files are migrated lazily as implicit version 1 families when the library is read.
+
+Creating a new version never overwrites an older component definition. `Duplicate as New Version` creates a new immutable component file with the next contiguous version number and records which earlier component it was derived from.
+
+Lifecycle status is mutable metadata separate from immutable component definitions:
+
+```text
+ACTIVE
+DEPRECATED
+ARCHIVED
+```
+
+Rules:
+
+- `ACTIVE` — may be inserted, versioned and used as an upgrade target.
+- `DEPRECATED` — existing instances remain valid, but new insertion/version creation is blocked until reactivated.
+- `ARCHIVED` — retained for audit/history, but new insertion/version creation is blocked until reactivated.
+- changing status never mutates an existing design or component instance.
+
+## Explicit instance upgrades
+
+There are no automatic instance updates.
+
+An upgrade is an explicit user action and must:
+
+1. start from an attached component instance;
+2. stay inside the same component family;
+3. target a strictly newer immutable component version;
+4. require the family to be `ACTIVE`;
+5. rerun destination truth validation against the target component's truth dependencies;
+6. rebuild text from destination native role layers;
+7. preserve the existing instance's visual placement as closely as possible through proportional fit, rotation and center-position restoration;
+8. replace the old instance in memory;
+9. persist exactly one new DesignDocument revision;
+10. rerun deterministic QA.
+
+Placement-preservation transforms are calculated internally and are not saved as separate history versions.
+
+This prevents a library edit from silently changing a reviewed or approved campaign design.
+
+## Detach
+
+Detach removes only `componentInstance` provenance from the selected instance's group and children.
+
+It does not:
+
+- delete layers;
+- flatten content;
+- rewrite text;
+- remove group membership;
+- invoke a model.
+
+After detach, the block is ordinary native DesignDocument content and cannot be upgraded through the component lifecycle path unless it is saved again as a new component family.
+
 ## Persistence
 
-Components are stored under:
+Immutable component definitions are stored under:
 
 ```text
 .atthas-os/components/<clientId>/<brandId>/<componentId>.json
 ```
 
-Entries are immutable. Reusing the same component ID does not overwrite an existing library object.
+Family lifecycle records are stored separately under:
+
+```text
+.atthas-os/components/<clientId>/<brandId>/_families/<familyId>.json
+```
+
+This keeps mutable lifecycle state separate from immutable component definitions.
 
 ## Studio routes
 
 ```text
 GET  /api/studio/components?designId=<designId>
 POST /api/studio/components/create
+POST /api/studio/components/version
+POST /api/studio/components/status
 POST /api/studio/components/instantiate
+POST /api/studio/components/upgrade
+POST /api/studio/components/detach
 ```
 
-Create and instantiate routes resolve the campaign's immutable task truth from the existing AI trace. Instantiation saves exactly one new DesignDocument version and reruns deterministic QA.
+Create, instantiate and upgrade routes resolve the campaign's immutable task truth from the existing AI trace. Insert, upgrade and detach each save exactly one new DesignDocument version and rerun deterministic QA where design content/provenance changes.
 
 ## UI
 
-The `/studio` Arrange panel exposes:
+The `/studio` Arrange panel exposes a component family/version browser with:
 
-- Save Selected Group
-- reusable-block selector
-- Insert Block
+- Save Group as New Family
+- family selector
+- immutable version selector
+- Insert Version
+- Duplicate as New Version
+- Deprecate
+- Archive
+- Reactivate
+- Upgrade Selected Instance
+- Detach Instance
 - Refresh Library
 
-The UI displays detected required truth keys. Server-side validation remains authoritative even if the browser is bypassed.
+The browser shows family status, latest version, selected version, truth dependencies and selected-instance version information. Server-side validation remains authoritative even if the browser is bypassed.
 
 ## Cost model
 
-Saving, listing and inserting reusable components are deterministic operations and add **zero AI/model calls**.
+Saving, listing, lifecycle management, versioning, inserting, upgrading and detaching reusable components are deterministic operations and add **zero AI/model calls**.
+
+## Lifecycle state machine
+
+```text
+Selected native group
+→ source text/name/asset stripping
+→ immutable component family v1
+→ ACTIVE
+   ├─ duplicate as immutable vN+1
+   ├─ explicit insert after destination truth validation
+   ├─ DEPRECATED
+   └─ ARCHIVED
+
+Attached instance vN
+→ user explicitly chooses Upgrade
+→ same-family newer version required
+→ destination truth revalidated
+→ destination native text rebound
+→ placement preserved
+→ one new DesignDocument revision + QA
+
+Attached instance
+→ Detach
+→ remove component provenance only
+→ ordinary native group/layers
+```
 
 ## Non-goals for this phase
 
-This is intentionally not yet:
+This is intentionally not:
 
 - a cross-brand template marketplace;
 - a cross-client component system;
 - a reusable product-image library;
 - a way to save factual copy as a template;
 - nested components;
-- live linked/master components that mutate existing instances after library edits.
+- automatic/live-linked master components that mutate existing instances;
+- a background process that silently upgrades approved designs.
 
-Those features require additional provenance and governance and must not be implemented by weakening destination truth checks.
+Those features require additional provenance and governance and must not be implemented by weakening destination truth checks or immutable version history.
