@@ -55,7 +55,7 @@ test("multi delete removes eligible layers in one revision", () => {
 test("multi object operations cannot bypass logo or background governance", () => {
   assert.throws(
     () => applyMultiObjectDesignOperation(fixture(), { type: "DUPLICATE_LAYERS", layerIds: ["a", "logo"], newLayerIds: ["a-copy", "logo-copy"] }),
-    /logo layers cannot be duplicated/,
+    /DESIGN_LAYER_LOCKED: logo|logo layers cannot be duplicated/,
   );
   assert.throws(
     () => applyMultiObjectDesignOperation(fixture(), { type: "DELETE_LAYERS", layerIds: ["a", "background"] }),
